@@ -12,7 +12,8 @@
         this.params = {
           position: [0, 0],
           duration: [0.1, 0],
-          ratio: [1, 0]
+          ratio: [0.5, 0],
+          env: 0
         }
         this.url = url
       }
@@ -25,24 +26,30 @@
 
       Grains.prototype.getDuration = function() {
         var mean = this.params.duration[0]
-        return 0.005 + pickVal(mean, this.params.duration[1])
+        mean = (Math.exp(mean * 2) - Math.exp(0)) / (Math.exp(2) - Math.exp(0))
+        return Math.max(0.01, pickVal(4 * mean, this.params.duration[1]))
       }
 
       Grains.prototype.getRatio = function() {
-        return 0.1 + pickVal(this.params.ratio[0] * 2, this.params.ratio[1])
+        return Math.max(0.05, pickVal(this.params.ratio[0], this.params.ratio[1]))
+      }
+
+      Grains.prototype.getEnv = function() {
+        return ['rectangle', 'triangle'][this.params.env]
       }
 
       Grains.prototype.start = function() {
         var self = this
         var event = clock.setTimeout(function() {
           var duration = self.getDuration()
-          playSound(
+          duration = playSound(
             self.url,
             self.getPosition(),
             duration,
-            self.getRatio()
+            self.getRatio(),
+            self.getEnv()
           )
-          event.repeat(duration)
+          event.repeat(duration || 0.005)
         }, 0.1)
         event.repeat(0.1)
       }
@@ -96,22 +103,36 @@
       }
       rhizome.on('message', onMessage)
 
-      var playSound = function(url, start, duration, ratio) {
+      // TODO: somehow this doesn't work when duration * ratio is bigger than buffer even if recalculating duration.
+      var playSound = function(url, start, duration, ratio, env) {
         var buffer = buffers[url]
           , bufDuration = buffer.length / audioContext.sampleRate
-        
-        if (start > bufDuration)
-          return
-        if ((start + duration) >= bufDuration)
-          duration = floor(bufDuration - start, 3)
-        if (duration === 0) return
+          , availDur = bufDuration - start
 
-        console.log('playSound', url, start, duration, ratio, bufDuration)
+        duration = Math.min(availDur / ratio, duration)
+        if (duration <= 0) return 0
+
         var bufferNode = audioContext.createBufferSource()
+          , gainNode = audioContext.createGain()
         bufferNode.playbackRate.value = ratio
         bufferNode.buffer = buffer
-        bufferNode.connect(audioContext.destination)
+
+        if (env === 'triangle') {
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+          gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration / 2)
+          gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration)
+        } else if (env === 'rectangle') {
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+          gainNode.gain.setValueAtTime(1, audioContext.currentTime + 0.002)
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime + duration - 0.002)
+        }
+        else throw new Error('invalid enveloppe')
+
+        bufferNode.connect(gainNode)
+        gainNode.connect(audioContext.destination)
         bufferNode.start(0, start, duration)
+
+        return duration
       }
 
       var loadBuffer = function(url, done) {
