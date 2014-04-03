@@ -90,6 +90,7 @@
 
       var onConnected = function() {
         doSubscribe()
+        doResend()
         var id, grains
         for (id in grainsDict) {
           grains = grainsDict[id]
@@ -128,6 +129,14 @@
         rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
         rhizome.send('/sys/subscribe', ['/grains/1/env/1/1'])
         rhizome.send('/sys/subscribe', ['/grains/1/env/1/2'])
+      }
+
+      var doResend = function() {
+        rhizome.send('/sys/resend', ['/grains/1/position'])
+        rhizome.send('/sys/resend', ['/grains/1/duration'])
+        rhizome.send('/sys/resend', ['/grains/1/ratio'])
+        rhizome.send('/sys/resend', ['/grains/1/env/1/1'])
+        rhizome.send('/sys/resend', ['/grains/1/env/1/2'])
       }
 
       var onMessage = function(address, args) {
