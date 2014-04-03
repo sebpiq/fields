@@ -1,0 +1,187 @@
+<!doctype html>
+
+<html>
+  
+  <head>
+    <script src="js/AudioContextMonkeyPatch.js"></script>
+    <script src="js/jquery-2.1.0.js"></script>
+    <script src="js/WAAClock-0.3.1.js"></script>
+    <script src="/rhizome/rhizome.js"></script>
+    <script>
+      var Grains = function(url) {
+        this.params = {
+          position: [0, 0],
+          duration: [0.1, 0],
+          ratio: [1, 0]
+        }
+        this.url = url
+      }
+
+      Grains.prototype.getPosition = function() {
+        var mean = this.params.position[0]
+          * (buffers[this.url].length / audioContext.sampleRate)
+        return 0 + pickVal(mean, this.params.position[1])
+      }
+
+      Grains.prototype.getDuration = function() {
+        var mean = this.params.duration[0]
+        return 0.005 + pickVal(mean, this.params.duration[1])
+      }
+
+      Grains.prototype.getRatio = function() {
+        return 0.1 + pickVal(this.params.ratio[0] * 2, this.params.ratio[1])
+      }
+
+      Grains.prototype.start = function() {
+        var self = this
+        var event = clock.setTimeout(function() {
+          var duration = self.getDuration()
+          playSound(
+            self.url,
+            self.getPosition(),
+            duration,
+            self.getRatio()
+          )
+          event.repeat(duration)
+        }, 0.1)
+        event.repeat(0.1)
+      }
+
+
+      Grains.prototype.loadBuffer = function(done) {
+        var self = this
+        loadBuffer(this.url, function(err, buffer) {
+          if (err) log(err)
+          else {
+            log('loaded ' + self.url + ' , samples : ' + buffer.length)
+            buffers[self.url] = buffer
+            done()
+          }
+        })        
+      }
+
+      var audioContext
+        , clock
+        , buffers = {}
+        , grainsDict = {
+          '1': new Grains('sounds/chimes.wav')
+        }
+
+      var onConnected = function() {
+        rhizome.send('/sys/subscribe', ['/grains/1/position'])
+        rhizome.send('/sys/subscribe', ['/grains/1/duration'])
+        rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
+        var id, grains
+        for (id in grainsDict) {
+          grains = grainsDict[id]
+          grains.loadBuffer((function(grains) {
+            return function() { grains.start() }
+          })(grains))
+        }
+      }
+      rhizome.on('connected', onConnected)
+
+      var onMessage = function(address, args) {
+        if (address === '/sys/subscribed') {
+          log('subscribed ' + args[0])
+        } else {
+          var tokens = address.split('/').slice(1)
+            , mode = tokens[0]
+          if (mode === 'grains') {
+            var id = tokens[1]
+              , param = tokens[2]
+            grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
+          }
+        }
+      }
+      rhizome.on('message', onMessage)
+
+      var playSound = function(url, start, duration, ratio) {
+        var buffer = buffers[url]
+          , bufDuration = buffer.length / audioContext.sampleRate
+        
+        if (start > bufDuration)
+          return
+        if ((start + duration) >= bufDuration)
+          duration = floor(bufDuration - start, 3)
+        if (duration === 0) return
+
+        console.log('playSound', url, start, duration, ratio, bufDuration)
+        var bufferNode = audioContext.createBufferSource()
+        bufferNode.playbackRate.value = ratio
+        bufferNode.buffer = buffer
+        bufferNode.connect(audioContext.destination)
+        bufferNode.start(0, start, duration)
+      }
+
+      var loadBuffer = function(url, done) {
+        var request = new XMLHttpRequest()
+        request.open('GET', url, true)
+        request.responseType = 'arraybuffer'
+        request.onload = function() {
+          audioContext.decodeAudioData(request.response, function(buffer) {
+            done(null, buffer)
+          }, function(err) {
+            done(err || new Error('decoding error'), null)
+          })
+        }
+        request.onerror = function(err) {
+          done(err || new Error('unexpected request error'), null)
+        }
+        request.send()
+      }
+
+      var pickVal = function(mean, variance) {
+        return mean + mean * variance * (1 - 2 * Math.random())
+      }
+
+      var floor = function(val, dec) {
+        return Math.floor(val * Math.pow(10, dec)) / Math.pow(10, dec) 
+      }
+
+      var startPressed = function() {
+        // We need to create the audio context in response to a user action,
+        // and we also need to force the dsp to start by for example starting
+        // an oscillator.
+        audioContext = new AudioContext()
+        clock = new WAAClock(audioContext)
+        var osc = audioContext.createOscillator()
+          , gain = audioContext.createGain()
+        gain.gain.value = 0
+        osc.connect(gain)
+        osc.frequency.value = 440
+        gain.connect(audioContext.destination)
+        osc.start(0)
+        osc.stop(1)
+        rhizome.start()
+      }
+    </script>
+    <script>
+      var log = function(msg) {
+        $('<div>', { class: 'log' })
+          .html(msg)
+          .prependTo('#console')
+      }
+      //if (typeof rhizome !== 'undefined') rhizome.log = log
+
+      var isSupported = function() {
+        if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
+          if (window.AudioContext) return true
+          else return false
+        } else return false
+        return false
+      }
+    </script>
+  </head>
+
+  <body>
+    <button id="startButton" onclick="startPressed();">Start</button>
+    <div id="console"></div>
+    <script>
+      if (!isSupported()) log('Device not supported')
+      else log('Device is supported')
+    </script>
+
+  </body>
+  
+</html>
