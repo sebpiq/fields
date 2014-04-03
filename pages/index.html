@@ -3,6 +3,15 @@
 <html>
   
   <head>
+    <style>
+      body {
+        font-size: 30px;
+      }
+
+      button {
+        font-size: 100px;
+      }
+    </style>
     <script src="js/AudioContextMonkeyPatch.js"></script>
     <script src="js/jquery-2.1.0.js"></script>
     <script src="js/WAAClock-0.3.1.js"></script>
@@ -40,7 +49,7 @@
 
       Grains.prototype.start = function() {
         var self = this
-        var event = clock.setTimeout(function() {
+        this.grainEvent = clock.setTimeout(function() {
           var duration = self.getDuration()
           duration = playSound(
             self.url,
@@ -49,9 +58,14 @@
             self.getRatio(),
             self.getEnv()
           )
-          event.repeat(duration || 0.005)
+          self.grainEvent.repeat(duration || 0.005)
         }, 0.1)
-        event.repeat(0.1)
+        self.grainEvent.repeat(0.1)
+      }
+
+      Grains.prototype.stop = function() {
+        log('stop ' + this.grainEvent)
+        if (this.grainEvent) this.grainEvent.clear()
       }
 
 
@@ -75,9 +89,7 @@
         }
 
       var onConnected = function() {
-        rhizome.send('/sys/subscribe', ['/grains/1/position'])
-        rhizome.send('/sys/subscribe', ['/grains/1/duration'])
-        rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
+        doSubscribe()
         var id, grains
         for (id in grainsDict) {
           grains = grainsDict[id]
@@ -86,7 +98,37 @@
           })(grains))
         }
       }
+
+      // TODO
+      var onServerFull = function() {
+
+      }
+
+      var onConnectionLost = function() {
+        for (id in grainsDict) {
+          grainsDict[id].stop()
+        }        
+      }
+
+      var onReconnected = function() {
+        doSubscribe()
+        for (id in grainsDict) {
+          grainsDict[id].start()
+        }        
+      }
+
       rhizome.on('connected', onConnected)
+      rhizome.on('server full', onServerFull)
+      rhizome.on('connection lost', onConnectionLost)
+      rhizome.on('reconnected', onReconnected)
+
+      var doSubscribe = function() {
+        rhizome.send('/sys/subscribe', ['/grains/1/position'])
+        rhizome.send('/sys/subscribe', ['/grains/1/duration'])
+        rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
+        rhizome.send('/sys/subscribe', ['/grains/1/env/1/1'])
+        rhizome.send('/sys/subscribe', ['/grains/1/env/1/2'])
+      }
 
       var onMessage = function(address, args) {
         if (address === '/sys/subscribed') {
@@ -97,7 +139,13 @@
           if (mode === 'grains') {
             var id = tokens[1]
               , param = tokens[2]
-            grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
+            if (param === 'env') {
+              if (args[0] === 1) {
+                grainsDict[id].params.env = tokens[4] - 1
+              }
+            } else {
+              grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
+            }
           }
         }
       }
