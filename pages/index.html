@@ -22,9 +22,12 @@
           position: [0, 0],
           duration: [0.1, 0],
           ratio: [0.5, 0],
-          env: 0
+          env: 1,
+          volume: 0,
+          density: 0
         }
         this.url = url
+        this.mixer = null
       }
 
       Grains.prototype.getPosition = function() {
@@ -43,31 +46,46 @@
         return Math.max(0.05, pickVal(this.params.ratio[0], this.params.ratio[1]))
       }
 
-      Grains.prototype.getEnv = function() {
-        return ['rectangle', 'triangle'][this.params.env]
+      // Returns true for silence, false for grain.
+      // There is twice as much chance as expected from the density 
+      // to pick up a silence, but silences should be twice shorter.
+      Grains.prototype.enjoyTheSilence = function() {
+        var pick1 = Math.random() > this.params.density
+          , pick2 = Math.random() > this.params.density
+        return pick1 || pick2
       }
 
       Grains.prototype.start = function() {
         var self = this
+
+        this.mixer = audioContext.createGain()
+        this.mixer.connect(audioContext.destination)
+
         this.grainEvent = clock.setTimeout(function() {
           var duration = self.getDuration()
-          duration = playSound(
-            self.url,
-            self.getPosition(),
-            duration,
-            self.getRatio(),
-            self.getEnv()
-          )
-          self.grainEvent.repeat(duration || 0.005)
+          if (self.enjoyTheSilence()) {
+            self.grainEvent.repeat(duration / 2 || 0.005)
+          } else {
+            self.mixer.gain.value = self.params.volume
+
+            duration = playSound(
+              self.url,
+              self.mixer,
+              self.getPosition(),
+              duration,
+              self.getRatio(),
+              self.params.env
+            )
+            self.grainEvent.repeat(duration || 0.005)
+          }
         }, 0.1)
-        self.grainEvent.repeat(0.1)
+        this.grainEvent.repeat(0.1)
       }
 
       Grains.prototype.stop = function() {
         log('stop ' + this.grainEvent)
         if (this.grainEvent) this.grainEvent.clear()
       }
-
 
       Grains.prototype.loadBuffer = function(done) {
         var self = this
@@ -89,8 +107,6 @@
         }
 
       var onConnected = function() {
-        doSubscribe()
-        doResend()
         var id, grains
         for (id in grainsDict) {
           grains = grainsDict[id]
@@ -98,6 +114,9 @@
             return function() { grains.start() }
           })(grains))
         }
+
+        doSubscribe()
+        doResend()
       }
 
       // TODO
@@ -113,6 +132,7 @@
 
       var onReconnected = function() {
         doSubscribe()
+        doResend()
         for (id in grainsDict) {
           grainsDict[id].start()
         }        
@@ -124,19 +144,21 @@
       rhizome.on('reconnected', onReconnected)
 
       var doSubscribe = function() {
+        rhizome.send('/sys/subscribe', ['/grains/1/volume'])
+        rhizome.send('/sys/subscribe', ['/grains/1/density'])
         rhizome.send('/sys/subscribe', ['/grains/1/position'])
         rhizome.send('/sys/subscribe', ['/grains/1/duration'])
         rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
-        rhizome.send('/sys/subscribe', ['/grains/1/env/1/1'])
-        rhizome.send('/sys/subscribe', ['/grains/1/env/1/2'])
+        rhizome.send('/sys/subscribe', ['/grains/1/env'])
       }
 
       var doResend = function() {
+        rhizome.send('/sys/resend', ['/grains/1/volume'])
+        rhizome.send('/sys/resend', ['/grains/1/density'])
         rhizome.send('/sys/resend', ['/grains/1/position'])
         rhizome.send('/sys/resend', ['/grains/1/duration'])
         rhizome.send('/sys/resend', ['/grains/1/ratio'])
-        rhizome.send('/sys/resend', ['/grains/1/env/1/1'])
-        rhizome.send('/sys/resend', ['/grains/1/env/1/2'])
+        rhizome.send('/sys/resend', ['/grains/1/env'])
       }
 
       var onMessage = function(address, args) {
@@ -148,10 +170,8 @@
           if (mode === 'grains') {
             var id = tokens[1]
               , param = tokens[2]
-            if (param === 'env') {
-              if (args[0] === 1) {
-                grainsDict[id].params.env = tokens[4] - 1
-              }
+            if (param === 'volume' || param === 'density' || param === 'env') {
+              grainsDict[id].params[param] = args[0]
             } else {
               grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
             }
@@ -161,7 +181,7 @@
       rhizome.on('message', onMessage)
 
       // TODO: somehow this doesn't work when duration * ratio is bigger than buffer even if recalculating duration.
-      var playSound = function(url, start, duration, ratio, env) {
+      var playSound = function(url, sink, start, duration, ratio, env) {
         var buffer = buffers[url]
           , bufDuration = buffer.length / audioContext.sampleRate
           , availDur = bufDuration - start
@@ -174,19 +194,19 @@
         bufferNode.playbackRate.value = ratio
         bufferNode.buffer = buffer
 
-        if (env === 'triangle') {
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-          gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration / 2)
-          gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration)
-        } else if (env === 'rectangle') {
+        var rampDur = Math.max(duration * (env / 2), 0.002)
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+        gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + rampDur)
+        gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration - rampDur)
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration)
+        /*} else if (env === 'rectangle') {
           gainNode.gain.setValueAtTime(0, audioContext.currentTime)
           gainNode.gain.setValueAtTime(1, audioContext.currentTime + 0.002)
           gainNode.gain.setValueAtTime(0, audioContext.currentTime + duration - 0.002)
-        }
-        else throw new Error('invalid enveloppe')
+        }*/
 
         bufferNode.connect(gainNode)
-        gainNode.connect(audioContext.destination)
+        gainNode.connect(sink)
         bufferNode.start(0, start, duration)
 
         return duration
