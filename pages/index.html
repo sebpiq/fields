@@ -24,10 +24,13 @@
           ratio: [0.5, 0],
           env: 1,
           volume: 0,
-          density: 0
+          density: 0,
+          mode: 'off'
         }
         this.url = url
         this.mixer = null
+        this.grainCount = 0 // grain counter
+        this.ready = false // true when the samples are loaded
       }
 
       Grains.prototype.getPosition = function() {
@@ -55,36 +58,47 @@
         return pick1 || pick2
       }
 
-      Grains.prototype.start = function() {
+      Grains.prototype.setMode = function(mode) {
+        log('MODE ' + mode)
+        if (this.grainEvent) this.grainEvent.clear()
+        if (mode === 'off') return
+        
         var self = this
-
+          , repeatFunc
         this.mixer = audioContext.createGain()
         this.mixer.connect(audioContext.destination)
 
-        this.grainEvent = clock.setTimeout(function() {
-          var duration = self.getDuration()
-          if (self.enjoyTheSilence()) {
-            self.grainEvent.repeat(duration / 2 || 0.005)
-          } else {
-            self.mixer.gain.value = self.params.volume
-
-            duration = playSound(
-              self.url,
-              self.mixer,
-              self.getPosition(),
-              duration,
-              self.getRatio(),
-              self.params.env
-            )
-            self.grainEvent.repeat(duration || 0.005)
+        // If grains, the silence is randomized according to density
+        if (mode === 'grains') {
+          repeatFunc = function() {
+            var duration = self.getDuration()
+            if (self.enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
+            else {
+              self.mixer.gain.value = self.params.volume
+              duration = playSound(self.url, self.mixer, self.getPosition()
+                , duration, self.getRatio(), self.params.env)
+              self.grainEvent.repeat(duration || 0.005)
+            }
           }
-        }, 0.1)
-        this.grainEvent.repeat(0.1)
-      }
 
-      Grains.prototype.stop = function() {
-        log('stop ' + this.grainEvent)
-        if (this.grainEvent) this.grainEvent.clear()
+        // If we are looping, we play 1 grain silence, 1 grain sound
+        } else if (mode === 'loop') {
+          repeatFunc = function() {
+            var duration = self.getDuration()
+            self.grainCount++
+            if ((self.grainCount % 2) === 0) {
+              self.grainEvent.repeat((duration * (1 - self.params.density) * 4) || 0.005)
+            } else {
+              self.mixer.gain.value = self.params.volume
+              duration = playSound(self.url, self.mixer, self.getPosition()
+                , duration, self.getRatio(), self.params.env)
+              self.grainEvent.repeat(duration || 0.005)
+            }
+          }
+        }
+
+        this.grainEvent = clock.setTimeout(repeatFunc, 0.1)
+        this.grainEvent.repeat(0.1)
       }
 
       Grains.prototype.loadBuffer = function(done) {
@@ -103,7 +117,8 @@
         , clock
         , buffers = {}
         , grainsDict = {
-          '1': new Grains('sounds/chimes.wav')
+          '1': new Grains('sounds/uk_terns.wav'),
+          '2': new Grains('sounds/slow_wood_short.wav')
         }
 
       var onConnected = function() {
@@ -111,7 +126,10 @@
         for (id in grainsDict) {
           grains = grainsDict[id]
           grains.loadBuffer((function(grains) {
-            return function() { grains.start() }
+            return function() {
+              grains.ready = true
+              grains.setMode(grains.params.mode)
+            }
           })(grains))
         }
 
@@ -126,7 +144,7 @@
 
       var onConnectionLost = function() {
         for (id in grainsDict) {
-          grainsDict[id].stop()
+          grainsDict[id].setMode('off')
         }        
       }
 
@@ -134,7 +152,7 @@
         doSubscribe()
         doResend()
         for (id in grainsDict) {
-          grainsDict[id].start()
+          grainsDict[id].setMode(grainsDict[id].params.mode)
         }        
       }
 
@@ -150,6 +168,15 @@
         rhizome.send('/sys/subscribe', ['/grains/1/duration'])
         rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
         rhizome.send('/sys/subscribe', ['/grains/1/env'])
+        rhizome.send('/sys/subscribe', ['/grains/1/mode'])
+
+        rhizome.send('/sys/subscribe', ['/grains/2/volume'])
+        rhizome.send('/sys/subscribe', ['/grains/2/density'])
+        rhizome.send('/sys/subscribe', ['/grains/2/position'])
+        rhizome.send('/sys/subscribe', ['/grains/2/duration'])
+        rhizome.send('/sys/subscribe', ['/grains/2/ratio'])
+        rhizome.send('/sys/subscribe', ['/grains/2/env'])
+        rhizome.send('/sys/subscribe', ['/grains/2/mode'])
       }
 
       var doResend = function() {
@@ -159,6 +186,19 @@
         rhizome.send('/sys/resend', ['/grains/1/duration'])
         rhizome.send('/sys/resend', ['/grains/1/ratio'])
         rhizome.send('/sys/resend', ['/grains/1/env'])
+        rhizome.send('/sys/resend', ['/grains/1/mode/1/1'])
+        rhizome.send('/sys/resend', ['/grains/1/mode/1/2'])
+        rhizome.send('/sys/resend', ['/grains/1/mode/1/3'])
+
+        rhizome.send('/sys/resend', ['/grains/2/volume'])
+        rhizome.send('/sys/resend', ['/grains/2/density'])
+        rhizome.send('/sys/resend', ['/grains/2/position'])
+        rhizome.send('/sys/resend', ['/grains/2/duration'])
+        rhizome.send('/sys/resend', ['/grains/2/ratio'])
+        rhizome.send('/sys/resend', ['/grains/2/env'])
+        rhizome.send('/sys/resend', ['/grains/2/mode/1/1'])
+        rhizome.send('/sys/resend', ['/grains/2/mode/1/2'])
+        rhizome.send('/sys/resend', ['/grains/2/mode/1/3'])
       }
 
       var onMessage = function(address, args) {
@@ -170,8 +210,18 @@
           if (mode === 'grains') {
             var id = tokens[1]
               , param = tokens[2]
+
             if (param === 'volume' || param === 'density' || param === 'env') {
               grainsDict[id].params[param] = args[0]
+
+            } else if (param === 'mode') {
+              if (args[0] === 1) {
+                var mode = ['off', 'grains', 'loop'][parseInt(tokens[4], 10) - 1]
+                console.log(mode, tokens[4], parseInt(tokens[4], 10) - 1)
+                grainsDict[id].params.mode = mode
+                if (grainsDict[id].ready) grainsDict[id].setMode(mode)
+              }
+
             } else {
               grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
             }
@@ -199,11 +249,6 @@
         gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + rampDur)
         gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + duration - rampDur)
         gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration)
-        /*} else if (env === 'rectangle') {
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-          gainNode.gain.setValueAtTime(1, audioContext.currentTime + 0.002)
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime + duration - 0.002)
-        }*/
 
         bufferNode.connect(gainNode)
         gainNode.connect(sink)
