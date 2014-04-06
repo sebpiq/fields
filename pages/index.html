@@ -46,8 +46,12 @@
       }
 
       Grains.prototype.getRatio = function() {
-        return Math.max(0.05, pickVal(this.params.ratio[0], this.params.ratio[1]))
+        var meanRatio = this.params.ratio[0]
+        if (this.params.quantize_ratio) {
+          return meanRatio * ratios[Math.floor(Math.random() * 0.99 * ratios.length)]
+        } else return Math.max(0.05, pickVal(meanRatio, this.params.ratio[1]))
       }
+      var ratios = [0.5, 0.75, 1]
 
       // Returns true for silence, false for grain.
       // There is twice as much chance as expected from the density 
@@ -118,7 +122,10 @@
         , buffers = {}
         , grainsDict = {
           '1': new Grains('sounds/uk_terns.wav'),
-          '2': new Grains('sounds/slow_wood_short.wav')
+          '2': new Grains('sounds/wood_contact.wav'),
+          '3': new Grains('sounds/violin_fields.wav'), // ambient violins
+          '4': new Grains('sounds/field_bowed.wav'), // bowed violin
+          '5': new Grains('sounds/Fields_noise.wav')
         }
 
       var onConnected = function() {
@@ -162,43 +169,25 @@
       rhizome.on('reconnected', onReconnected)
 
       var doSubscribe = function() {
-        rhizome.send('/sys/subscribe', ['/grains/1/volume'])
-        rhizome.send('/sys/subscribe', ['/grains/1/density'])
-        rhizome.send('/sys/subscribe', ['/grains/1/position'])
-        rhizome.send('/sys/subscribe', ['/grains/1/duration'])
-        rhizome.send('/sys/subscribe', ['/grains/1/ratio'])
-        rhizome.send('/sys/subscribe', ['/grains/1/env'])
-        rhizome.send('/sys/subscribe', ['/grains/1/mode'])
-
-        rhizome.send('/sys/subscribe', ['/grains/2/volume'])
-        rhizome.send('/sys/subscribe', ['/grains/2/density'])
-        rhizome.send('/sys/subscribe', ['/grains/2/position'])
-        rhizome.send('/sys/subscribe', ['/grains/2/duration'])
-        rhizome.send('/sys/subscribe', ['/grains/2/ratio'])
-        rhizome.send('/sys/subscribe', ['/grains/2/env'])
-        rhizome.send('/sys/subscribe', ['/grains/2/mode'])
+        var addresses = ['/volume', '/density', '/position'
+          , '/duration', '/ratio', '/env', '/mode', '/quantize_ratio'
+          , '/randomize_position']
+        var id, i
+        for (id in grainsDict) {
+          for (i = 0; i < addresses.length; i++)
+            rhizome.send('/sys/subscribe', ['/grains/' + id + addresses[i]])
+        }
       }
 
       var doResend = function() {
-        rhizome.send('/sys/resend', ['/grains/1/volume'])
-        rhizome.send('/sys/resend', ['/grains/1/density'])
-        rhizome.send('/sys/resend', ['/grains/1/position'])
-        rhizome.send('/sys/resend', ['/grains/1/duration'])
-        rhizome.send('/sys/resend', ['/grains/1/ratio'])
-        rhizome.send('/sys/resend', ['/grains/1/env'])
-        rhizome.send('/sys/resend', ['/grains/1/mode/1/1'])
-        rhizome.send('/sys/resend', ['/grains/1/mode/1/2'])
-        rhizome.send('/sys/resend', ['/grains/1/mode/1/3'])
-
-        rhizome.send('/sys/resend', ['/grains/2/volume'])
-        rhizome.send('/sys/resend', ['/grains/2/density'])
-        rhizome.send('/sys/resend', ['/grains/2/position'])
-        rhizome.send('/sys/resend', ['/grains/2/duration'])
-        rhizome.send('/sys/resend', ['/grains/2/ratio'])
-        rhizome.send('/sys/resend', ['/grains/2/env'])
-        rhizome.send('/sys/resend', ['/grains/2/mode/1/1'])
-        rhizome.send('/sys/resend', ['/grains/2/mode/1/2'])
-        rhizome.send('/sys/resend', ['/grains/2/mode/1/3'])
+        var addresses = ['/volume', '/density', '/position'
+          , '/duration', '/ratio', '/env', '/mode/1/1', '/mode/1/2'
+          , '/mode/1/3', '/quantize_ratio']
+        var id, i
+        for (id in grainsDict) {
+          for (i = 0; i < addresses.length; i++)
+            rhizome.send('/sys/resend', ['/grains/' + id + addresses[i]])
+        }
       }
 
       var onMessage = function(address, args) {
@@ -211,17 +200,19 @@
             var id = tokens[1]
               , param = tokens[2]
 
-            if (param === 'volume' || param === 'density' || param === 'env') {
+            if (param === 'volume' || param === 'density'
+              || param === 'env' || param === 'quantize_ratio') {
               grainsDict[id].params[param] = args[0]
+
+            } else if (param === 'randomize_position') { 
+              grainsDict[id].params.position[0] = Math.random()
 
             } else if (param === 'mode') {
               if (args[0] === 1) {
                 var mode = ['off', 'grains', 'loop'][parseInt(tokens[4], 10) - 1]
-                console.log(mode, tokens[4], parseInt(tokens[4], 10) - 1)
                 grainsDict[id].params.mode = mode
                 if (grainsDict[id].ready) grainsDict[id].setMode(mode)
               }
-
             } else {
               grainsDict[id].params[param] = [args[1], args[0]] // x and y are inverted
             }
@@ -241,6 +232,7 @@
 
         var bufferNode = audioContext.createBufferSource()
           , gainNode = audioContext.createGain()
+
         bufferNode.playbackRate.value = ratio
         bufferNode.buffer = buffer
 
