@@ -41,8 +41,11 @@
 
       Grains.prototype.getDuration = function() {
         var mean = this.params.duration[0]
-        mean = (Math.exp(mean * 2) - Math.exp(0)) / (Math.exp(2) - Math.exp(0))
-        return Math.max(0.01, pickVal(4 * mean, this.params.duration[1]))
+        return Math.max(0.01, pickVal(4 * valExp(mean), this.params.duration[1]))
+      }
+
+      Grains.prototype.getVolume = function() {
+        return valExp(this.params.volume, 2.5)
       }
 
       Grains.prototype.getRatio = function() {
@@ -78,7 +81,7 @@
             var duration = self.getDuration()
             if (self.enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
             else {
-              self.mixer.gain.value = self.params.volume
+              self.mixer.gain.value = self.getVolume()
               duration = playSound(self.url, self.mixer, self.getPosition()
                 , duration, self.getRatio(), self.params.env)
               self.grainEvent.repeat(duration || 0.005)
@@ -93,7 +96,7 @@
             if ((self.grainCount % 2) === 0) {
               self.grainEvent.repeat((duration * (1 - self.params.density) * 4) || 0.005)
             } else {
-              self.mixer.gain.value = self.params.volume
+              self.mixer.gain.value = self.getVolume()
               duration = playSound(self.url, self.mixer, self.getPosition()
                 , duration, self.getRatio(), self.params.env)
               self.grainEvent.repeat(duration || 0.005)
@@ -272,6 +275,11 @@
 
       var floor = function(val, dec) {
         return Math.floor(val * Math.pow(10, dec)) / Math.pow(10, dec) 
+      }
+
+      var valExp = function(val, exp) {
+        exp = exp || 2
+        return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
       }
 
       var startPressed = function() {
