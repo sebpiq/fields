@@ -66,7 +66,7 @@
       }
 
       Grains.prototype.setMode = function(mode) {
-        log('MODE ' + mode)
+        log('MODE ' + this.url + ' ' + mode)
         if (this.grainEvent) this.grainEvent.clear()
         if (mode === 'off') return
         
@@ -124,11 +124,11 @@
         , clock
         , buffers = {}
         , grainsDict = {
-          '1': new Grains('sounds/uk_terns.wav'),
-          '2': new Grains('sounds/wood_contact.wav'),
-          '3': new Grains('sounds/violin_fields.wav'), // ambient violins
-          '4': new Grains('sounds/field_bowed.wav'), // bowed violin
-          '5': new Grains('sounds/Fields_noise.wav')
+          '1': new Grains('sounds/uk_terns'),
+          '2': new Grains('sounds/wood_cracks'),
+          '3': new Grains('sounds/violin_fields'), // ambient violins
+          '4': new Grains('sounds/field_bowed'), // bowed violin
+          '5': new Grains('sounds/Fields_noise')
         }
 
       var onConnected = function() {
@@ -194,9 +194,8 @@
       }
 
       var onMessage = function(address, args) {
-        if (address === '/sys/subscribed') {
-          log('subscribed ' + args[0])
-        } else {
+        if (address === '/sys/subscribed') 1 // log('subscribed ' + args[0])
+        else {
           var tokens = address.split('/').slice(1)
             , mode = tokens[0]
           if (mode === 'grains') {
@@ -253,15 +252,37 @@
       }
 
       var loadBuffer = function(url, done) {
+        loadFile(url + '.ogg', function(err, blob) {
+          if (err) return done(err)
+          decodeBlob(blob, function(err, buffer) {
+            if (!err) return done(null, buffer)
+
+            loadFile(url + '.mp3', function(err, blob) {
+              if (err) return done(err)
+              decodeBlob(blob, function(err, buffer) {
+                if (!err) return done(null, buffer)
+                else done(err)
+              })
+            })
+
+          })
+        })
+      }
+
+      var decodeBlob = function(blob, done) {
+        audioContext.decodeAudioData(blob, function(buffer) {
+          done(null, buffer)
+        }, function(err) {
+          done(err || new Error('decoding error'), null)
+        })
+      }
+
+      var loadFile = function(url, done) {
         var request = new XMLHttpRequest()
         request.open('GET', url, true)
         request.responseType = 'arraybuffer'
         request.onload = function() {
-          audioContext.decodeAudioData(request.response, function(buffer) {
-            done(null, buffer)
-          }, function(err) {
-            done(err || new Error('decoding error'), null)
-          })
+          done(null, request.response)
         }
         request.onerror = function(err) {
           done(err || new Error('unexpected request error'), null)
