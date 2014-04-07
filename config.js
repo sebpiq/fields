@@ -1,5 +1,7 @@
 module.exports = {
   
+  usersLimit: 30,
+
   pages: [
     { rootUrl: '/', dirName: './pages' }
   ],

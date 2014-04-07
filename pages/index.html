@@ -6,6 +6,8 @@
     <style>
       body {
         font-size: 40px;
+        background-color: LightGrey;
+        padding: 40px;
       }
 
       #notSupported {
@@ -15,7 +17,39 @@
       }
 
       #console {
-        background-color: LightGrey;
+        background-color: #9fffff;
+      }
+
+      #pending {
+        display: none;
+      }
+
+      #status {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+      }
+
+      #startButton {
+        width: 100%;
+        font-size: 100%;
+        color: blue;
+        background-color: white;
+        border: 1px solid black;
+        padding: 1em 1em;
+      }
+
+      .imgP {
+        text-align: center;
+      }
+
+      h1 {
+        width: 100%;
+        text-align: center;
+      }
+
+      p {
+        color: #444;
       }
 
       button {
@@ -141,7 +175,14 @@
           '5': new Grains('sounds/fields_waves_boosted')
         }
 
+      var onServerFull = function() {
+        $('#pending').show().html('The system is full at the moment. You are in the queue and will be join as soon as there is space.')
+        $('#status').html('status: waiting')
+      }
+
       var onConnected = function() {
+        $('#pending').hide()
+        $('#status').html('status: connected')
         var id, grains
         for (id in grainsDict) {
           grains = grainsDict[id]
@@ -152,23 +193,18 @@
             }
           })(grains))
         }
-
         doSubscribe()
         doResend()
       }
 
-      // TODO
-      var onServerFull = function() {
-
-      }
-
       var onConnectionLost = function() {
-        for (id in grainsDict) {
-          grainsDict[id].setMode('off')
-        }        
+        $('#status').html('status: reconnecting ...')
+        for (id in grainsDict) grainsDict[id].setMode('off')        
       }
 
       var onReconnected = function() {
+        $('#pending').hide()
+        $('#status').html('status: connected')
         doSubscribe()
         doResend()
         for (id in grainsDict) {
@@ -328,6 +364,8 @@
         osc.start(0)
         osc.stop(1)
         rhizome.start()
+        $('#instructions').fadeOut(3000)
+        $('#status').html('status: connecting ...')
       }
     </script>
     <script>
@@ -349,10 +387,21 @@
   </head>
 
   <body>
+    <div id="pending"></div>
     <div id="instructions">
+      <h1>Fields)_(</h1>
+      <p>Hello, welcome to <b>)))Fields(((</b>. To ensure a full experience, here are a few instructions.</p>
+      <p><b>1.</b> put the volume of the device to maximum.</p>
+      <p><b>2.</b> make sure your phone is not on mute.</p>
+      <p class="imgP"><img src="images/unmute.gif"/></p>
+      <p><b>3.</b> if your device go to sleep mode, wake it up.</p>
+      <p><b>4.</b> if your device seems to be stuck, reload the page and reconnect.</p>
+      <p><b>5.</b> when you're ready, press the start button below.</p>
+
       <button id="startButton" onclick="startPressed();">Start</button>
     </div>
     <div id="console"></div>
+    <div id="status"></div>
     <script>
       if (!isSupported()) {
         log('Device not supported')
