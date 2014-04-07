@@ -5,7 +5,17 @@
   <head>
     <style>
       body {
-        font-size: 30px;
+        font-size: 40px;
+      }
+
+      #notSupported {
+        padding: 30px;
+        font-size: 150%;
+        color: red;
+      }
+
+      #console {
+        background-color: LightGrey;
       }
 
       button {
@@ -110,10 +120,10 @@
 
       Grains.prototype.loadBuffer = function(done) {
         var self = this
-        loadBuffer(this.url, function(err, buffer) {
+        loadBuffer(this.url, function(err, buffer, url) {
           if (err) log(err)
           else {
-            log('loaded ' + self.url + ' , samples : ' + buffer.length)
+            log('loaded ' + url + ' , samples : ' + buffer.length)
             buffers[self.url] = buffer
             done()
           }
@@ -125,10 +135,10 @@
         , buffers = {}
         , grainsDict = {
           '1': new Grains('sounds/uk_terns'),
-          '2': new Grains('sounds/wood_cracks'),
+          '2': new Grains('sounds/wood_cracks_boosted'),
           '3': new Grains('sounds/violin_fields'), // ambient violins
-          '4': new Grains('sounds/field_bowed'), // bowed violin
-          '5': new Grains('sounds/Fields_noise')
+          '4': new Grains('sounds/fields_drops'), // bowed violin
+          '5': new Grains('sounds/fields_waves_boosted')
         }
 
       var onConnected = function() {
@@ -255,13 +265,13 @@
         loadFile(url + '.ogg', function(err, blob) {
           if (err) return done(err)
           decodeBlob(blob, function(err, buffer) {
-            if (!err) return done(null, buffer)
+            if (!err) return done(null, buffer, url + '.ogg')
 
             loadFile(url + '.mp3', function(err, blob) {
               if (err) return done(err)
               decodeBlob(blob, function(err, buffer) {
-                if (!err) return done(null, buffer)
-                else done(err)
+                if (!err) return done(null, buffer, url + '.mp3')
+                else done(new Error('cant decode ' + url))
               })
             })
 
@@ -339,11 +349,17 @@
   </head>
 
   <body>
-    <button id="startButton" onclick="startPressed();">Start</button>
+    <div id="instructions">
+      <button id="startButton" onclick="startPressed();">Start</button>
+    </div>
     <div id="console"></div>
     <script>
-      if (!isSupported()) log('Device not supported')
-      else log('Device is supported')
+      if (!isSupported()) {
+        log('Device not supported')
+        $('#instructions').html('<div id="notSupported">Sorry, but this web browser is not supported by our system. You should try with a recent version of Chrome or Firefox.</div>')
+      } else {
+        log('Device is supported')
+      }
     </script>
 
   </body>
