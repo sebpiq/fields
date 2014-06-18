@@ -1,0 +1,30 @@
+.instrument {
+  margin-bottom: 1em;
+}
+
+      .step {
+        width: 3em;
+        height: 3em;
+        display: inline-block;
+        background-color: black;
+        margin-right: 1em
+      }
+
+      .step.active {
+        background-color: red;
+      }
+
+      .step.current {
+        background-color: grey;
+      }
+
+
+      .toggle {
+        background-color: orange;
+        width: 3em;
+        height: 3em;
+      }
+
+      .toggle.active {
+        background-color: green;
+      }

@@ -1,0 +1,51 @@
+body {
+  font-size: 40px;
+  background-color: LightGrey;
+  padding: 40px;
+}
+
+#notSupported {
+  padding: 30px;
+  font-size: 150%;
+  color: red;
+}
+
+#console {
+  background-color: #9fffff;
+}
+
+#pending {
+  display: none;
+}
+
+#status {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+}
+
+#startButton {
+  width: 100%;
+  font-size: 100%;
+  color: blue;
+  background-color: white;
+  border: 1px solid black;
+  padding: 1em 1em;
+}
+
+.imgP {
+  text-align: center;
+}
+
+h1 {
+  width: 100%;
+  text-align: center;
+}
+
+p {
+  color: #444;
+}
+
+button {
+  font-size: 100px;
+}

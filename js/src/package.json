@@ -1,0 +1,24 @@
+{
+  "name": "fields",
+  "version": "0.0.0",
+  "author": "Sébastien Piquemal <sebpiq@gmail.com>",
+  "description": "Fields",
+  "repository": {
+    "type": "git",
+    "url": "git@bitbucket.org:sebpiq/fields-_.git"
+  },
+  "dependencies" : {
+    "gulp": "3.6.x",
+    "gulp-browserify": "0.5.x",
+    "gulp-util": "2.2.x",
+    "gulp-concat": "2.2.x",
+    "gulp-rename": "1.2.x",
+    "gulp-uglify": "0.2.x",
+    "gulp-less": "1.2.x",
+    "run-sequence": "0.3.x",
+    "async": "0.9.x"
+  },  
+  "engines": {
+    "node": ">=0.10"
+  }
+}
