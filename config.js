@@ -1,9 +1,11 @@
+var path = require('path')
+
 module.exports = {
   
   usersLimit: 30,
 
   pages: [
-    { rootUrl: '/', dirName: './pages' }
+    { rootUrl: '/', dirName: path.join(__dirname, 'pages') }
   ],
 
   clients: [
