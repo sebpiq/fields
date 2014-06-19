@@ -29,8 +29,12 @@ fields.controls.start = function() {
       rhizome.send('/' + instrumentId + '/' + action)
     })
 
+    // Volume control
+    var _sendVolume = rhizome.utils.throttle(100, function(args) {
+      rhizome.send('/' + instrumentId + '/volume', args)
+    })    
     var volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
-      rhizome.send('/' + instrumentId + '/volume', [ val ])
+      _sendVolume([ val ])
     }).addClass('volume')
 
     controlsInstances[instrumentId] = controls

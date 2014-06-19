@@ -421,24 +421,46 @@ exports.controls = function(instrumentId, url) {
 var Controls = function(instrumentId, url) {
   this.container = $('<div>', { class: 'instrument granulator' })
 
+  var throttleTime = 100
+
+  // Duration 
+  var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/duration', args)
+  })
   widgets.xyPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    rhizome.send('/' + instrumentId + '/duration', [mean, vari])
+    _sendDuration([ mean, vari ])
   }).appendTo(this.container)
 
+  // Position
+  var _sendPosition = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/position', args)
+  })
   widgets.xyPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    rhizome.send('/' + instrumentId + '/position', [mean, vari])
+    _sendPosition([ mean, vari ])
   }).appendTo(this.container)
 
+  // Ratio
+  var _sendRatio = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/ratio', args)
+  })
   widgets.xyPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    rhizome.send('/' + instrumentId + '/ratio', [mean, vari])
+    _sendRatio([ mean, vari ])
   }).appendTo(this.container)
 
+  // Density
+  var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/density', args)
+  })
   widgets.slider({ title: 'density' }, function(val) {
-    rhizome.send('/' + instrumentId + '/density', [val])
+    _sendDensity([ val ])
   }).appendTo(this.container)
 
+  // Env
+  var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/env', args)
+  })
   widgets.slider({ title: 'enveloppe' }, function(val) {
-    rhizome.send('/' + instrumentId + '/env', [val])
+    _sendEnv([ val ])
   }).appendTo(this.container)
 }
 
