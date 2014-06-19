@@ -16,7 +16,8 @@
     "gulp-uglify": "0.2.x",
     "gulp-less": "1.2.x",
     "run-sequence": "0.3.x",
-    "async": "0.9.x"
+    "async": "0.9.x",
+    "underscore": "1.6.x"
   },  
   "engines": {
     "node": ">=0.10"

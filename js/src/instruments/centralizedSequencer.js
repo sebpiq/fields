@@ -1,6 +1,8 @@
 var async = require('async')
+  , _ = require('underscore')
   , waaUtils = require('../utils/waa')
   , widgets = require('../utils/widgets')
+  , base = require('./base')
 
 exports.sound = function(instrumentId, stepCount, tracks) {
   var sound = new Sound(stepCount, tracks)
@@ -9,6 +11,8 @@ exports.sound = function(instrumentId, stepCount, tracks) {
 }
 
 var Sound = function(stepCount, tracks) {
+  base.BaseSound.apply(this)
+
   // Picks one track randomly
   this.trackId = rhizome.userId % tracks.length
   this.soundUrl = tracks[this.trackId]
@@ -17,7 +21,7 @@ var Sound = function(stepCount, tracks) {
   this.started = false
 }
 
-_.extend(Sound.prototype, {
+_.extend(Sound.prototype, base.BaseSound.prototype, {
 
   load: function(done) {
     var self = this
@@ -29,14 +33,11 @@ _.extend(Sound.prototype, {
     })
   },
 
-  start: function() { this.started = true },
-  stop: function() { this.started = false },
-
   setParameter: function(param, args) {
     if (param === 'note') {
       if (args[0] === this.trackId && this.started) {
         this.bufferNode = audioContext.createBufferSource()
-        this.bufferNode.connect(audioContext.destination)
+        this.bufferNode.connect(this.mixer)
         this.bufferNode.buffer = this.buffer
         this.bufferNode.start(0)
       } 
@@ -46,26 +47,48 @@ _.extend(Sound.prototype, {
 })
 
 exports.controls = function(instrumentId, stepCount, tracks) {
-  var trackCount = tracks.length
-    , container = $('<div>', { class: 'instrument centralizedSequencer' }).appendTo('body')
-    , currentStep = -1
-
-  fields.controls.clock.setTimeout(function() {
-    currentStep = (currentStep + 1) % stepCount
-
-    // Send message if step is active
-    _.forEach(tracks, function(track, trackId) {
-      if (container.find('.track-' + trackId + ' .step-' + currentStep).hasClass('active'))
-        rhizome.send('/' + instrumentId + '/note', [ trackId ])
-    })
-
-    // light up the current step
-    container.find('.step').removeClass('current')
-    container.find('.step-' + currentStep).addClass('current')
-
-  }, 1).repeat(1)
-
-  widgets.grid(container, 'normal', tracks.length, stepCount)
-
-  return container
+  return new Controls(instrumentId, stepCount, tracks)
 }
+
+var Controls = function(instrumentId, stepCount, tracks) {
+  this.instrumentId = instrumentId
+  this.trackCount = tracks.length
+  this.tracks = tracks
+  this.stepCount = stepCount
+  this.container = $('<div>', { class: 'instrument centralizedSequencer' })
+  this.currentStep = -1
+  this.tickEvent = null
+  this.started = false
+
+  widgets.grid('normal', tracks.length, stepCount).appendTo(this.container)
+}
+
+_.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  _start: function() {
+    var self = this
+    this.currentStep = -1
+
+    this.tickEvent = fields.controls.clock.setTimeout(function() {
+      self.currentStep = (self.currentStep + 1) % self.stepCount
+
+      // Send message if step is active
+      _.forEach(self.tracks, function(track, trackId) {
+        if (self.container.find('.track-' + trackId + ' .step-' + self.currentStep).hasClass('active'))
+          rhizome.send('/' + self.instrumentId + '/note', [ trackId ])
+      })
+
+      // light up the current step
+      self.container.find('.step').removeClass('current')
+      self.container.find('.step-' + self.currentStep).addClass('current')
+
+    }, 0.2).repeat(0.2)
+  },
+
+  _stop: function() {
+    this.tickEvent.clear()
+  }
+
+
+
+})

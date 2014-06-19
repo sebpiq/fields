@@ -7,49 +7,30 @@
 
     <script src="js/AudioContextMonkeyPatch.js"></script>
     <script src="js/jquery-2.1.0.js"></script>
-    <script src="js/underscore.js"></script>
     <script src="js/WAAClock-0.3.1.js"></script>
+    <script src="js/touchmouse.js"></script>
+
     <script src="/rhizome/rhizome.js"></script>
 
     <script src="js/fields.js"></script>
     <script src="js/fields.controls.js"></script>
     <script src="js/fields.instruments.js"></script>
     <script src="js/config.js"></script>
-    <script>
-
-      $(function() {
-        fields.controls.start()
-      })
-
-    </script>
-    <script>
-      var log = function(msg) {
-        $('<div>', { class: 'log' })
-          .html(msg)
-          .prependTo('#console')
-      }
-      //if (typeof rhizome !== 'undefined') rhizome.log = log
-
-      var isSupported = function() {
-        if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
-          if (window.AudioContext) return true
-          else return false
-        } else return false
-        return false
-      }
-    </script>
   </head>
 
   <body>
+    <div id="console"></div>
     <script>
-      if (!isSupported()) {
-        log('Device not supported')
-        $('#instructions').html('<div id="notSupported">Sorry, but this web browser is not supported by our system. You should try with a recent version of Chrome or Firefox.</div>')
-      } else {
-        log('Device is supported')
-      }
+      $(document).on('touchmove',function(e){ e.preventDefault() })
+      $(function() {
+        //try {
+          fields.controls.start()
+        /*} catch(e) {
+          fields.log(e)
+          throw e
+        }*/
+      })
     </script>
-
   </body>
   
 </html>

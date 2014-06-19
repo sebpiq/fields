@@ -1,30 +1,107 @@
+.disable-selection-mixin {
+  /* Disable text selection */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+body {
+  background-color: black;
+  color: white;
+  padding: 2em;
+}
+.tabsHeader {
+  width: 90%;
+}
+.tabsHeader .tabButton {
+  display: inline-block;
+  font-size: 200%;
+  padding: 1em;
+  text-align: center;
+  width: 5em;
+  border: solid 1px transparent;
+  border-bottom: solid 1px white;
+  margin-right: 0.3em;
+  margin-bottom: 0.3em;
+}
+.tabsHeader .tabButton.active {
+  border-color: white;
+}
+.tabsContainer > div {
+  display: none;
+}
+.tabsContainer > div.active {
+  display: block;
+}
 .instrument {
   margin-bottom: 1em;
 }
-
-      .step {
-        width: 3em;
-        height: 3em;
-        display: inline-block;
-        background-color: black;
-        margin-right: 1em
-      }
-
-      .step.active {
-        background-color: red;
-      }
-
-      .step.current {
-        background-color: grey;
-      }
-
-
-      .toggle {
-        background-color: orange;
-        width: 3em;
-        height: 3em;
-      }
-
-      .toggle.active {
-        background-color: green;
-      }
+.grid .step {
+  width: 7%;
+  height: 5em;
+  display: inline-block;
+  background-color: grey;
+  margin-right: 1em;
+}
+.grid .step.active {
+  background-color: red;
+}
+.grid .step.current {
+  background-color: white;
+}
+.toggle {
+  background-color: orange;
+  width: 7%;
+  height: 5em;
+}
+.toggle.active {
+  background-color: green;
+}
+.cursor-mixin {
+  position: relative;
+  display: inline-block;
+  width: 3.5em;
+  height: 3.5em;
+  background-color: rgba(255, 0, 0, 0.5);
+}
+.xyPad {
+  height: 10em;
+  background-color: grey;
+  padding: 1em;
+}
+.xyPad .inner {
+  background-color: LightGrey;
+  width: 100%;
+  height: 100%;
+}
+.xyPad .inner .cursor {
+  position: relative;
+  display: inline-block;
+  width: 3.5em;
+  height: 3.5em;
+  background-color: rgba(255, 0, 0, 0.5);
+}
+.xyPad .title {
+  font-size: 120%;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.slider {
+  background-color: grey;
+}
+.slider .cursor {
+  position: relative;
+  display: inline-block;
+  width: 3.5em;
+  height: 3.5em;
+  background-color: rgba(255, 0, 0, 0.5);
+}
+.slider.volume .cursor {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.slider,
+.xyPad {
+  margin-top: 0.2em;
+}

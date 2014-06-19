@@ -1,102 +1,150 @@
-var Grains = function(url) {
+var _ = require('underscore')
+  , waaUtils = require('../utils/waa')
+  , widgets = require('../utils/widgets')
+  , math = require('../utils/math')
+  , base = require('./base')
+
+exports.sound = function(instrumentId, url) {
+  return new Sound(instrumentId, url)
+}
+
+var Sound = function(instrumentId, url) {
+  base.BaseSound.apply(this)
   this.params = {
     position: [0, 0],
     duration: [0.1, 0],
-    ratio: [0.5, 0],
-    env: 1,
-    volume: 0,
-    density: 0,
-    mode: 'off'
+    ratio: [1, 0],
+    env: 0,
+    density: 0
   }
   this.url = url
-  this.mixer = null
-  this.grainCount = 0 // grain counter
-  this.ready = false // true when the samples are loaded
+  this.instrumentId = instrumentId
+  this.started = false
 }
 
-Grains.prototype.getPosition = function() {
-  var mean = this.params.position[0]
-    * (buffers[this.url].length / audioContext.sampleRate)
-  return 0 + pickVal(mean, this.params.position[1])
-}
+_.extend(Sound.prototype, base.BaseSound.prototype, {
 
-Grains.prototype.getDuration = function() {
-  var mean = this.params.duration[0]
-  return Math.max(0.01, pickVal(4 * valExp(mean), this.params.duration[1]))
-}
+  load: function(done) {
+    var self = this
+    waaUtils.loadBuffer(this.url, function(err, buffer) {  
+      if (!err) self.buffer = buffer
+      fields.log(self.instrumentId + ' loaded, ' 
+        + 'buffer length :' + self.buffer.length)
+      done(err)
+    })       
+  },
 
-Grains.prototype.getVolume = function() {
-  return valExp(this.params.volume, 2.5)
-}
+  _start: function() {
+    if (this.grainEvent) this.grainEvent.clear()
+    
+    var self = this
+    this.clock = new WAAClock(fields.sound.audioContext)
 
-Grains.prototype.getRatio = function() {
-  var meanRatio = this.params.ratio[0]
-  if (this.params.quantize_ratio) {
-    return meanRatio * ratios[Math.floor(Math.random() * 0.99 * ratios.length)]
-  } else return Math.max(0.05, pickVal(meanRatio, this.params.ratio[1]))
-}
-var ratios = [0.5, 0.75, 1]
-
-// Returns true for silence, false for grain.
-// There is twice as much chance as expected from the density 
-// to pick up a silence, but silences should be twice shorter.
-Grains.prototype.enjoyTheSilence = function() {
-  var pick1 = Math.random() > this.params.density
-    , pick2 = Math.random() > this.params.density
-  return pick1 || pick2
-}
-
-Grains.prototype.setMode = function(mode) {
-  log('MODE ' + this.url + ' ' + mode)
-  if (this.grainEvent) this.grainEvent.clear()
-  if (mode === 'off') return
-  
-  var self = this
-    , repeatFunc
-  this.mixer = audioContext.createGain()
-  this.mixer.connect(audioContext.destination)
-
-  // If grains, the silence is randomized according to density
-  if (mode === 'grains') {
-    repeatFunc = function() {
-      var duration = self.getDuration()
-      if (self.enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
+    this.grainEvent = this.clock.setTimeout(function() {
+      var duration = self._getDuration()
+      if (self._enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
       else {
-        self.mixer.gain.value = self.getVolume()
-        duration = playSound(self.url, self.mixer, self.getPosition()
-          , duration, self.getRatio(), self.params.env)
+        duration = self._playSound(self.url, self.mixer, self._getPosition()
+          , duration, self._getRatio(), self.params.env)
         self.grainEvent.repeat(duration || 0.005)
       }
-    }
+    }, 0.1).repeat(0.1)
+  },
 
-  // If we are looping, we play 1 grain silence, 1 grain sound
-  } else if (mode === 'loop') {
-    repeatFunc = function() {
-      var duration = self.getDuration()
-      self.grainCount++
-      if ((self.grainCount % 2) === 0) {
-        self.grainEvent.repeat((duration * (1 - self.params.density) * 4) || 0.005)
-      } else {
-        self.mixer.gain.value = self.getVolume()
-        duration = playSound(self.url, self.mixer, self.getPosition()
-          , duration, self.getRatio(), self.params.env)
-        self.grainEvent.repeat(duration || 0.005)
-      }
-    }
+  _stop: function() {
+    if (this.grainEvent) this.grainEvent.clear()
+    this.clock // TODO
+  },
+
+  setParameter: function(param, args) {
+    this.params[param] = args
+  },
+
+  _getPosition: function() {
+    var mean = this.params.position[0]
+      * (this.buffer.length / fields.sound.audioContext.sampleRate)
+    return math.pickVal(mean, this.params.position[1])
+  },
+
+  _getDuration: function() {
+    var mean = this.params.duration[0]
+    return Math.max(0.01, math.pickVal(4 * math.valExp(mean), this.params.duration[1]))
+  },
+
+  _getRatio: function() {
+    var ratios = [0.5, 0.75, 1]
+    var meanRatio = this.params.ratio[0]
+    if (this.params.quantize_ratio) {
+      return meanRatio * ratios[Math.floor(Math.random() * 0.99 * ratios.length)]
+    } else return Math.max(0.05, math.pickVal(meanRatio, this.params.ratio[1]))
+  },
+
+  // Returns true for silence, false for grain.
+  // There is twice as much chance as expected from the density 
+  // to pick up a silence, but silences should be twice shorter.
+  _enjoyTheSilence: function() {
+    var pick1 = Math.random() > this.params.density
+      , pick2 = Math.random() > this.params.density
+    return pick1 || pick2
+  },
+
+
+  // TODO: somehow this doesn't work when duration * ratio is bigger than buffer even if recalculating duration.
+  _playSound: function(url, sink, start, duration, ratio, env) {
+    var bufDuration = this.buffer.length / fields.sound.audioContext.sampleRate
+      , availDur = bufDuration - start
+
+    duration = Math.min(availDur / ratio, duration)
+    if (duration <= 0) return 0
+
+    var bufferNode = fields.sound.audioContext.createBufferSource()
+      , gainNode = fields.sound.audioContext.createGain()
+
+    bufferNode.playbackRate.value = ratio
+    bufferNode.buffer = this.buffer
+
+    var rampDur = Math.max(duration * (env / 2), 0.002)
+    gainNode.gain.setValueAtTime(0, fields.sound.audioContext.currentTime)
+    gainNode.gain.linearRampToValueAtTime(1, fields.sound.audioContext.currentTime + rampDur)
+    gainNode.gain.linearRampToValueAtTime(1, fields.sound.audioContext.currentTime + duration - rampDur)
+    gainNode.gain.linearRampToValueAtTime(0, fields.sound.audioContext.currentTime + duration)
+
+    bufferNode.connect(gainNode)
+    gainNode.connect(sink)
+    bufferNode.start(0, start, duration)
+
+    return duration
   }
 
-  this.grainEvent = clock.setTimeout(repeatFunc, 0.1)
-  this.grainEvent.repeat(0.1)
+})
+
+exports.controls = function(instrumentId, url) {
+  return new Controls(instrumentId, url)
 }
 
-Grains.prototype.loadBuffer = function(done) {
-  var self = this
-  loadBuffer(this.url, function(err, buffer, url) {
-    if (err) log(err)
-    else {
-      log('loaded ' + url + ' , samples : ' + buffer.length)
-      buffers[self.url] = buffer
-      done()
-    }
-  })        
+var Controls = function(instrumentId, url) {
+  this.container = $('<div>', { class: 'instrument granulator' })
+
+  widgets.xyPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+    rhizome.send('/' + instrumentId + '/duration', [mean, vari])
+  }).appendTo(this.container)
+
+  widgets.xyPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+    rhizome.send('/' + instrumentId + '/position', [mean, vari])
+  }).appendTo(this.container)
+
+  widgets.xyPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+    rhizome.send('/' + instrumentId + '/ratio', [mean, vari])
+  }).appendTo(this.container)
+
+  widgets.slider({ title: 'density' }, function(val) {
+    rhizome.send('/' + instrumentId + '/density', [val])
+  }).appendTo(this.container)
+
+  widgets.slider({ title: 'enveloppe' }, function(val) {
+    rhizome.send('/' + instrumentId + '/env', [val])
+  }).appendTo(this.container)
 }
+
+_.extend(Controls.prototype, base.BaseControls.prototype, {
+})

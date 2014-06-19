@@ -1,7 +1,8 @@
-var async = require('async')
+var _ = require('underscore')
+  , async = require('async')
   , waaUtils = require('../utils/waa')
   , widgets = require('../utils/widgets')
-
+  , base = require('./base')
 
 exports.sound = function(instrumentId, stepCount, tracks, tempo) {
   var sound = new Sound(stepCount, tracks, tempo)
@@ -9,8 +10,9 @@ exports.sound = function(instrumentId, stepCount, tracks, tempo) {
   return sound
 }
 
-
 var Sound = function(stepCount, tracks, tempo) {
+  base.BaseSound.apply(this)
+
   this.stepCount = stepCount
   this.tracks = tracks
   this.buffers = []
@@ -21,7 +23,7 @@ var Sound = function(stepCount, tracks, tempo) {
   this.started = false
 }
 
-_.extend(Sound.prototype, {
+_.extend(Sound.prototype, base.BaseSound.prototype, {
 
   load: function(done) {
     var self = this
@@ -34,13 +36,11 @@ _.extend(Sound.prototype, {
     })
   },
 
-  start: function() {
-    this.started = true
+  _start: function() {
     this._playSequence()
   },
 
-  stop: function() {
-    this.started = false
+  _stop: function() {
     this.bufferNode.stop(0)
     this.bufferNode = null
   },
@@ -93,7 +93,7 @@ _.extend(Sound.prototype, {
     // Create the buffer node
     if (this.bufferNode) this.bufferNode.stop(0)
     this.bufferNode = fields.sound.audioContext.createBufferSource()
-    this.bufferNode.connect(fields.sound.audioContext.destination)
+    this.bufferNode.connect(this.mixer)
     this.bufferNode.loop = true
     this.bufferNode.buffer = loopBuffer
     this.bufferNode.start(0)
@@ -101,13 +101,20 @@ _.extend(Sound.prototype, {
 
 })
 
-
 exports.controls = function(instrumentId, stepCount, tracks) {
+  return new Controls(instrumentId, stepCount, tracks)
+}
+
+var Controls = function(instrumentId, stepCount, tracks) {
+  this.stepCount = stepCount
+  this.tracks = tracks
+
   var trackCount = tracks.length
-    , container = $('<div>', { class: 'instrument distributedSequencer' }).appendTo('body')
+    , container = $('<div>', { class: 'instrument distributedSequencer' })
     , sendButton = $('<button>', { class: 'sendButton' }).appendTo(container).html('Send')
-    , grid = widgets.grid(container, 'toggle', tracks.length, stepCount)
-  
+    , grid = widgets.grid('toggle', tracks.length, stepCount)
+  grid.appendTo(container)
+
   sendButton.click(function() {
     var sequence = []
     grid.find('.track').each(function(i, track) {
@@ -121,5 +128,10 @@ exports.controls = function(instrumentId, stepCount, tracks) {
     rhizome.send('/' + instrumentId + '/sequence', sequence)
   })
 
-  return container
+  this.container = container
+
 }
+
+_.extend(Controls.prototype, base.BaseControls.prototype, {
+
+})

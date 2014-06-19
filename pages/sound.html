@@ -4,11 +4,12 @@
   
   <head>
     <link href="css/sound.css" rel="stylesheet" type="text/css" />
-    <!--<script src="js/d3.js"></script>-->
+
     <script src="js/AudioContextMonkeyPatch.js"></script>
     <script src="js/jquery-2.1.0.js"></script>
-    <script src="js/underscore.js"></script>
     <script src="js/WAAClock-0.3.1.js"></script>
+    <script src="js/touchmouse.js"></script>
+
     <script src="/rhizome/rhizome.js"></script>
 
     <script src="js/fields.js"></script>
@@ -17,8 +18,13 @@
     <script src="js/config.js"></script>
     <script>
       $(function() {
-        fields.sound.start()
+        $('#startButton').click(function() {
+          fields.sound.start()
+        })
       })
+      //$(function() {
+      //  fields.sound.start()
+      //})
     </script>
   </head>
 
@@ -34,7 +40,7 @@
       <p><b>4.</b> if your device seems to be stuck, reload the page and reconnect.</p>
       <p><b>5.</b> when you're ready, press the start button below.</p>
 
-      <button id="startButton" onclick="startPressed();">Start</button>
+      <button id="startButton">Start</button>
     </div>
     <div id="console"></div>
     <div id="status"></div>
