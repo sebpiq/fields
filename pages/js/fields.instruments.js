@@ -54,7 +54,7 @@ _.extend(Controls.prototype, {
   _stop: function() {}
 
 })
-},{"underscore":9}],2:[function(require,module,exports){
+},{"underscore":10}],2:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../utils/waa')
@@ -149,7 +149,7 @@ _.extend(Controls.prototype, base.BaseControls.prototype, {
 
 
 })
-},{"../utils/waa":11,"../utils/widgets":12,"./base":1,"async":7,"underscore":9}],3:[function(require,module,exports){
+},{"../utils/waa":12,"../utils/widgets":13,"./base":1,"async":8,"underscore":10}],3:[function(require,module,exports){
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../utils/waa')
@@ -287,13 +287,14 @@ var Controls = function(instrumentId, stepCount, tracks) {
 _.extend(Controls.prototype, base.BaseControls.prototype, {
 
 })
-},{"../utils/waa":11,"../utils/widgets":12,"./base":1,"async":7,"underscore":9}],4:[function(require,module,exports){
+},{"../utils/waa":12,"../utils/widgets":13,"./base":1,"async":8,"underscore":10}],4:[function(require,module,exports){
 fields.instruments = {}
 fields.instruments.distributedSequencer = require('./distributedSequencer')
 fields.instruments.centralizedSequencer = require('./centralizedSequencer')
 fields.instruments.granulator = require('./granulator')
 fields.instruments.whiteNoise = require('./whiteNoise')
-},{"./centralizedSequencer":2,"./distributedSequencer":3,"./granulator":5,"./whiteNoise":6}],5:[function(require,module,exports){
+fields.instruments.trigger = require('./trigger')
+},{"./centralizedSequencer":2,"./distributedSequencer":3,"./granulator":5,"./trigger":6,"./whiteNoise":7}],5:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
   , widgets = require('../utils/widgets')
@@ -466,7 +467,58 @@ var Controls = function(instrumentId, url) {
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
 })
-},{"../utils/math":10,"../utils/waa":11,"../utils/widgets":12,"./base":1,"underscore":9}],6:[function(require,module,exports){
+},{"../utils/math":11,"../utils/waa":12,"../utils/widgets":13,"./base":1,"underscore":10}],6:[function(require,module,exports){
+var _ = require('underscore')
+  , waaUtils = require('../utils/waa')
+  , widgets = require('../utils/widgets')
+  , math = require('../utils/math')
+  , base = require('./base')
+
+exports.sound = function(instrumentId, url) {
+  return new Sound(instrumentId, url)
+}
+
+var Sound = function(instrumentId, url) {
+  base.BaseSound.apply(this)
+  this.url = url
+  this.instrumentId = instrumentId
+}
+
+_.extend(Sound.prototype, base.BaseSound.prototype, {
+
+  load: function(done) {
+    var self = this
+    waaUtils.loadBuffer(this.url, function(err, buffer) {  
+      if (!err) self.buffer = buffer
+      fields.log(self.instrumentId + ' loaded, ' 
+        + 'buffer length :' + self.buffer.length)
+      done(err)
+    })       
+  },
+
+  _start: function() {
+    this.bufferNode = fields.sound.audioContext.createBufferSource()
+    this.bufferNode.buffer = this.buffer
+    this.bufferNode.connect(this.mixer)
+    this.bufferNode.start(0)
+  },
+
+  _stop: function() {},
+
+  setParameter: function(param, args) {},
+
+})
+
+exports.controls = function(instrumentId, url) {
+  return new Controls(instrumentId, url)
+}
+
+var Controls = function(instrumentId, url) {
+  this.container = $('<div>', { class: 'instrument trigger' })
+}
+
+_.extend(Controls.prototype, base.BaseControls.prototype, {})
+},{"../utils/math":11,"../utils/waa":12,"../utils/widgets":13,"./base":1,"underscore":10}],7:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../utils/waa')
@@ -517,7 +569,7 @@ var Controls = function() {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {})
-},{"../utils/waa":11,"./base":1,"async":7,"underscore":9}],7:[function(require,module,exports){
+},{"../utils/waa":12,"./base":1,"async":8,"underscore":10}],8:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -1644,7 +1696,7 @@ _.extend(Controls.prototype, base.BaseControls.prototype, {})
 }());
 
 }).call(this,require("1YiZ5S"))
-},{"1YiZ5S":8}],8:[function(require,module,exports){
+},{"1YiZ5S":9}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1709,7 +1761,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3054,7 +3106,7 @@ process.chdir = function (dir) {
   }
 }).call(this);
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 exports.pickVal = function(mean, variance) {
   return mean + mean * variance * (1 - 2 * Math.random())
 }
@@ -3068,7 +3120,7 @@ exports.valExp = function(val, exp) {
   return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
 }
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
@@ -3203,7 +3255,7 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var _ = require('underscore')
 
 var mouseDown = false
@@ -3313,4 +3365,4 @@ exports.slider = function(opts, onMove) {
 
   return slider 
 }
-},{"underscore":9}]},{},[4])
+},{"underscore":10}]},{},[4])
