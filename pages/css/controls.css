@@ -10,14 +10,23 @@ body {
 body {
   background-color: black;
   color: white;
-  padding: 2em;
+  font-size: 50px;
+  font-family: courier;
+}
+button {
+  min-width: 5em;
+  min-height: 3em;
+  font-size: 200%;
 }
 .tabsHeader {
-  width: 90%;
+  width: 80%;
+  background-color: #111;
+  padding: 1em;
+  margin-bottom: 1em;
 }
 .tabsHeader .tabButton {
   display: inline-block;
-  font-size: 200%;
+  font-size: 100%;
   padding: 1em;
   text-align: center;
   width: 5em;
@@ -37,6 +46,11 @@ body {
 }
 .instrument {
   margin-bottom: 1em;
+  background-color: #111;
+  padding: 1em;
+}
+.instrument > div {
+  margin-bottom: 0.3em;
 }
 .grid .step {
   width: 7%;

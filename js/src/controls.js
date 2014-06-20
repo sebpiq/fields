@@ -21,6 +21,7 @@ fields.controls.start = function() {
       , config = p[1]
       , instrument = fields.instruments[config.instrument]
       , controls = instrument.controls.apply(instrument, [instrumentId].concat(config.args))
+      , title = $('<h2>').html(instrumentId)
     
     var onOff = widgets.toggle(function(active) {
       var action = active ? 'start' : 'stop'
@@ -36,27 +37,23 @@ fields.controls.start = function() {
       _sendVolume([ val ])
     }).addClass('volume')
 
+    // Adding default controls to the container
     controlsInstances[instrumentId] = controls
     controls.container.prepend(volumeSlider)
     controls.container.prepend(onOff)
     controls.container.appendTo(tabsContainer)
+    controls.container.prepend(title)
 
     // Managing tabs
     $('<div>', { class: 'tabButton' })
       .appendTo(tabsHeader)
       .html(instrumentId)
       .click(function() {
-        tabsContainer.find('>div').removeClass('active')
-        tabsHeader.find('>div').removeClass('active')
-        controls.container.addClass('active')
-        $(this).addClass('active')
+        controls.container.toggleClass('active')
+        $(this).toggleClass('active')
       })
 
   }).values()
-
-  // Activate the first tab
-  tabsContainer.find('>div:first-child').addClass('active')
-  tabsHeader.find('>div:first-child').addClass('active')
 }
 
 // Message scheme :
