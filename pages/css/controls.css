@@ -10,7 +10,7 @@ body {
 body {
   background-color: black;
   color: white;
-  font-size: 50px;
+  font-size: 20px;
   font-family: courier;
 }
 button {
@@ -78,7 +78,7 @@ button {
   display: inline-block;
   width: 3.5em;
   height: 3.5em;
-  background-color: rgba(255, 0, 0, 0.5);
+  background: rgba(255, 0, 0, 0.5) no-repeat center;
 }
 .xyPad {
   height: 10em;
@@ -95,7 +95,9 @@ button {
   display: inline-block;
   width: 3.5em;
   height: 3.5em;
-  background-color: rgba(255, 0, 0, 0.5);
+  background: rgba(255, 0, 0, 0.5) no-repeat center;
+  background-image: url('../images/crosshair.png');
+  background-size: 50%;
 }
 .xyPad .title {
   font-size: 120%;
@@ -105,12 +107,22 @@ button {
 .slider {
   background-color: grey;
 }
-.slider .cursor {
+.slider .inner {
+  background-color: LightGrey;
+}
+.slider .inner .cursor {
   position: relative;
   display: inline-block;
   width: 3.5em;
   height: 3.5em;
-  background-color: rgba(255, 0, 0, 0.5);
+  background: rgba(255, 0, 0, 0.5) no-repeat center;
+  background-image: url('../images/slider.png');
+  background-size: auto 80%;
+}
+.slider .title {
+  font-size: 120%;
+  text-transform: uppercase;
+  font-weight: bold;
 }
 .slider.volume .cursor {
   background-color: rgba(0, 0, 0, 0.5);

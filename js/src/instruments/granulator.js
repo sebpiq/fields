@@ -4,12 +4,14 @@ var _ = require('underscore')
   , math = require('../utils/math')
   , base = require('./base')
 
+var paramList = ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state']
+
 exports.sound = function(instrumentId, url) {
   return new Sound(instrumentId, url)
 }
 
 var Sound = function(instrumentId, url) {
-  base.BaseSound.apply(this)
+  base.BaseSound.call(this, instrumentId)
   this.params = {
     position: [0, 0],
     duration: [0.1, 0],
@@ -18,8 +20,6 @@ var Sound = function(instrumentId, url) {
     density: 0
   }
   this.url = url
-  this.instrumentId = instrumentId
-  this.started = false
 }
 
 _.extend(Sound.prototype, base.BaseSound.prototype, {
@@ -27,9 +27,12 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
   load: function(done) {
     var self = this
     waaUtils.loadBuffer(this.url, function(err, buffer) {  
-      if (!err) self.buffer = buffer
-      fields.log(self.instrumentId + ' loaded, ' 
-        + 'buffer length :' + self.buffer.length)
+      if (!err) {
+        self.buffer = buffer
+        fields.log(self.instrumentId + ' loaded, ' 
+          + 'buffer length :' + self.buffer.length)
+        self.restoreParams(paramList)
+      }
       done(err)
     })       
   },
@@ -123,50 +126,78 @@ exports.controls = function(instrumentId, url) {
 }
 
 var Controls = function(instrumentId, url) {
+  base.BaseControls.call(this, instrumentId)
   this.container = $('<div>', { class: 'instrument granulator' })
-
   var throttleTime = 100
 
   // Duration 
   var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/duration', args)
   })
-  widgets.xyPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.durationPad = widgets.xyPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendDuration([ mean, vari ])
-  }).appendTo(this.container)
+  })
+  this.durationPad.elem.appendTo(this.container)
 
   // Position
   var _sendPosition = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/position', args)
   })
-  widgets.xyPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.positionPad = widgets.xyPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendPosition([ mean, vari ])
-  }).appendTo(this.container)
+  })
+  this.positionPad.elem.appendTo(this.container)
 
   // Ratio
   var _sendRatio = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/ratio', args)
   })
-  widgets.xyPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.ratioPad = widgets.xyPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendRatio([ mean, vari ])
-  }).appendTo(this.container)
+  })
+  this.ratioPad.elem.appendTo(this.container)
 
   // Density
   var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/density', args)
   })
-  widgets.slider({ title: 'density' }, function(val) {
+  this.densitySlider = widgets.slider({ title: 'density' }, function(val) {
     _sendDensity([ val ])
-  }).appendTo(this.container)
+  })
+  this.densitySlider.elem.appendTo(this.container)
 
   // Env
   var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/env', args)
   })
-  widgets.slider({ title: 'enveloppe' }, function(val) {
+  this.envSlider = widgets.slider({ title: 'enveloppe' }, function(val) {
     _sendEnv([ val ])
-  }).appendTo(this.container)
+  })
+  this.envSlider.elem.appendTo(this.container)
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  show: function() {
+    this.durationPad.refresh()
+    this.positionPad.refresh()
+    this.ratioPad.refresh()
+    this.densitySlider.refresh()
+    this.envSlider.refresh()
+  },
+
+  load: function(done) {
+    this.restoreParams(paramList)
+    done()
+  },
+
+  setParameter: function(param, args) {
+    if (param === 'duration') this.durationPad.setPosition(args)
+    else if (param === 'position') this.positionPad.setPosition(args)
+    else if (param === 'ratio') this.ratioPad.setPosition(args)
+    else if (param === 'density') this.densitySlider.setVal(args[0])
+    else if (param === 'env') this.envSlider.setVal(args[0])
+    else fields.log('Unknown parameter ' + param)
+  }
+
 })

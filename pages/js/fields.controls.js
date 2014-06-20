@@ -1,1 +1,2972 @@
-!function n(t,e,r){function i(o,a){if(!e[o]){if(!t[o]){var c="function"==typeof require&&require;if(!a&&c)return c(o,!0);if(u)return u(o,!0);throw new Error("Cannot find module '"+o+"'")}var l=e[o]={exports:{}};t[o][0].call(l.exports,function(n){var e=t[o][1][n];return i(e?e:n)},l,l.exports,n,t,e,r)}return e[o].exports}for(var u="function"==typeof require&&require,o=0;o<r.length;o++)i(r[o]);return i}({1:[function(n){window.fields.controls={};var t={},e=n("./utils/waa"),r=n("./utils/widgets"),i=(n("./utils/math"),n("underscore"));fields.controls.start=function(){fields.controls.audioContext=e.kickStartWAA(),fields.controls.clock=new WAAClock(fields.controls.audioContext),rhizome.start();var n=$("<div>",{"class":"tabsHeader"}).appendTo("body"),u=$("<div>",{"class":"tabsContainer"}).appendTo("body");i.chain(fields.config).pairs().forEach(function(e){var i=e[0],o=e[1],a=fields.instruments[o.instrument],c=a.controls.apply(a,[i].concat(o.args)),l=$("<h2>").html(i),s=r.toggle(function(n){var e=n?"start":"stop";t[i][e](),rhizome.send("/"+i+"/"+e)}),f=rhizome.utils.throttle(100,function(n){rhizome.send("/"+i+"/volume",n)}),p=r.slider({title:"Volume"},function(n){f([n])}).addClass("volume");t[i]=c,c.container.prepend(p),c.container.prepend(s),c.container.appendTo(u),c.container.prepend(l),$("<div>",{"class":"tabButton"}).appendTo(n).html(i).click(function(){c.container.toggleClass("active"),$(this).toggleClass("active")})}).values()},rhizome.on("message",function(n,t){fields.log(n+" "+t)}),rhizome.on("connected",function(){}),rhizome.on("server full",function(){}),rhizome.on("connection lost",function(){}),rhizome.on("reconnected",function(){})},{"./utils/math":3,"./utils/waa":4,"./utils/widgets":5,underscore:2}],2:[function(n,t,e){(function(){var n=this,r=n._,i={},u=Array.prototype,o=Object.prototype,a=Function.prototype,c=u.push,l=u.slice,s=u.concat,f=o.toString,p=o.hasOwnProperty,h=u.forEach,d=u.map,v=u.reduce,g=u.reduceRight,m=u.filter,y=u.every,x=u.some,w=u.indexOf,b=u.lastIndexOf,M=Array.isArray,E=Object.keys,T=a.bind,_=function(n){return n instanceof _?n:this instanceof _?void(this._wrapped=n):new _(n)};"undefined"!=typeof e?("undefined"!=typeof t&&t.exports&&(e=t.exports=_),e._=_):n._=_,_.VERSION="1.6.0";var A=_.each=_.forEach=function(n,t,e){if(null==n)return n;if(h&&n.forEach===h)n.forEach(t,e);else if(n.length===+n.length){for(var r=0,u=n.length;u>r;r++)if(t.call(e,n[r],r,n)===i)return}else for(var o=_.keys(n),r=0,u=o.length;u>r;r++)if(t.call(e,n[o[r]],o[r],n)===i)return;return n};_.map=_.collect=function(n,t,e){var r=[];return null==n?r:d&&n.map===d?n.map(t,e):(A(n,function(n,i,u){r.push(t.call(e,n,i,u))}),r)};var j="Reduce of empty array with no initial value";_.reduce=_.foldl=_.inject=function(n,t,e,r){var i=arguments.length>2;if(null==n&&(n=[]),v&&n.reduce===v)return r&&(t=_.bind(t,r)),i?n.reduce(t,e):n.reduce(t);if(A(n,function(n,u,o){i?e=t.call(r,e,n,u,o):(e=n,i=!0)}),!i)throw new TypeError(j);return e},_.reduceRight=_.foldr=function(n,t,e,r){var i=arguments.length>2;if(null==n&&(n=[]),g&&n.reduceRight===g)return r&&(t=_.bind(t,r)),i?n.reduceRight(t,e):n.reduceRight(t);var u=n.length;if(u!==+u){var o=_.keys(n);u=o.length}if(A(n,function(a,c,l){c=o?o[--u]:--u,i?e=t.call(r,e,n[c],c,l):(e=n[c],i=!0)}),!i)throw new TypeError(j);return e},_.find=_.detect=function(n,t,e){var r;return k(n,function(n,i,u){return t.call(e,n,i,u)?(r=n,!0):void 0}),r},_.filter=_.select=function(n,t,e){var r=[];return null==n?r:m&&n.filter===m?n.filter(t,e):(A(n,function(n,i,u){t.call(e,n,i,u)&&r.push(n)}),r)},_.reject=function(n,t,e){return _.filter(n,function(n,r,i){return!t.call(e,n,r,i)},e)},_.every=_.all=function(n,t,e){t||(t=_.identity);var r=!0;return null==n?r:y&&n.every===y?n.every(t,e):(A(n,function(n,u,o){return(r=r&&t.call(e,n,u,o))?void 0:i}),!!r)};var k=_.some=_.any=function(n,t,e){t||(t=_.identity);var r=!1;return null==n?r:x&&n.some===x?n.some(t,e):(A(n,function(n,u,o){return r||(r=t.call(e,n,u,o))?i:void 0}),!!r)};_.contains=_.include=function(n,t){return null==n?!1:w&&n.indexOf===w?-1!=n.indexOf(t):k(n,function(n){return n===t})},_.invoke=function(n,t){var e=l.call(arguments,2),r=_.isFunction(t);return _.map(n,function(n){return(r?t:n[t]).apply(n,e)})},_.pluck=function(n,t){return _.map(n,_.property(t))},_.where=function(n,t){return _.filter(n,_.matches(t))},_.findWhere=function(n,t){return _.find(n,_.matches(t))},_.max=function(n,t,e){if(!t&&_.isArray(n)&&n[0]===+n[0]&&n.length<65535)return Math.max.apply(Math,n);var r=-1/0,i=-1/0;return A(n,function(n,u,o){var a=t?t.call(e,n,u,o):n;a>i&&(r=n,i=a)}),r},_.min=function(n,t,e){if(!t&&_.isArray(n)&&n[0]===+n[0]&&n.length<65535)return Math.min.apply(Math,n);var r=1/0,i=1/0;return A(n,function(n,u,o){var a=t?t.call(e,n,u,o):n;i>a&&(r=n,i=a)}),r},_.shuffle=function(n){var t,e=0,r=[];return A(n,function(n){t=_.random(e++),r[e-1]=r[t],r[t]=n}),r},_.sample=function(n,t,e){return null==t||e?(n.length!==+n.length&&(n=_.values(n)),n[_.random(n.length-1)]):_.shuffle(n).slice(0,Math.max(0,t))};var O=function(n){return null==n?_.identity:_.isFunction(n)?n:_.property(n)};_.sortBy=function(n,t,e){return t=O(t),_.pluck(_.map(n,function(n,r,i){return{value:n,index:r,criteria:t.call(e,n,r,i)}}).sort(function(n,t){var e=n.criteria,r=t.criteria;if(e!==r){if(e>r||void 0===e)return 1;if(r>e||void 0===r)return-1}return n.index-t.index}),"value")};var $=function(n){return function(t,e,r){var i={};return e=O(e),A(t,function(u,o){var a=e.call(r,u,o,t);n(i,a,u)}),i}};_.groupBy=$(function(n,t,e){_.has(n,t)?n[t].push(e):n[t]=[e]}),_.indexBy=$(function(n,t,e){n[t]=e}),_.countBy=$(function(n,t){_.has(n,t)?n[t]++:n[t]=1}),_.sortedIndex=function(n,t,e,r){e=O(e);for(var i=e.call(r,t),u=0,o=n.length;o>u;){var a=u+o>>>1;e.call(r,n[a])<i?u=a+1:o=a}return u},_.toArray=function(n){return n?_.isArray(n)?l.call(n):n.length===+n.length?_.map(n,_.identity):_.values(n):[]},_.size=function(n){return null==n?0:n.length===+n.length?n.length:_.keys(n).length},_.first=_.head=_.take=function(n,t,e){return null==n?void 0:null==t||e?n[0]:0>t?[]:l.call(n,0,t)},_.initial=function(n,t,e){return l.call(n,0,n.length-(null==t||e?1:t))},_.last=function(n,t,e){return null==n?void 0:null==t||e?n[n.length-1]:l.call(n,Math.max(n.length-t,0))},_.rest=_.tail=_.drop=function(n,t,e){return l.call(n,null==t||e?1:t)},_.compact=function(n){return _.filter(n,_.identity)};var C=function(n,t,e){return t&&_.every(n,_.isArray)?s.apply(e,n):(A(n,function(n){_.isArray(n)||_.isArguments(n)?t?c.apply(e,n):C(n,t,e):e.push(n)}),e)};_.flatten=function(n,t){return C(n,t,[])},_.without=function(n){return _.difference(n,l.call(arguments,1))},_.partition=function(n,t){var e=[],r=[];return A(n,function(n){(t(n)?e:r).push(n)}),[e,r]},_.uniq=_.unique=function(n,t,e,r){_.isFunction(t)&&(r=e,e=t,t=!1);var i=e?_.map(n,e,r):n,u=[],o=[];return A(i,function(e,r){(t?r&&o[o.length-1]===e:_.contains(o,e))||(o.push(e),u.push(n[r]))}),u},_.union=function(){return _.uniq(_.flatten(arguments,!0))},_.intersection=function(n){var t=l.call(arguments,1);return _.filter(_.uniq(n),function(n){return _.every(t,function(t){return _.contains(t,n)})})},_.difference=function(n){var t=s.apply(u,l.call(arguments,1));return _.filter(n,function(n){return!_.contains(t,n)})},_.zip=function(){for(var n=_.max(_.pluck(arguments,"length").concat(0)),t=new Array(n),e=0;n>e;e++)t[e]=_.pluck(arguments,""+e);return t},_.object=function(n,t){if(null==n)return{};for(var e={},r=0,i=n.length;i>r;r++)t?e[n[r]]=t[r]:e[n[r][0]]=n[r][1];return e},_.indexOf=function(n,t,e){if(null==n)return-1;var r=0,i=n.length;if(e){if("number"!=typeof e)return r=_.sortedIndex(n,t),n[r]===t?r:-1;r=0>e?Math.max(0,i+e):e}if(w&&n.indexOf===w)return n.indexOf(t,e);for(;i>r;r++)if(n[r]===t)return r;return-1},_.lastIndexOf=function(n,t,e){if(null==n)return-1;var r=null!=e;if(b&&n.lastIndexOf===b)return r?n.lastIndexOf(t,e):n.lastIndexOf(t);for(var i=r?e:n.length;i--;)if(n[i]===t)return i;return-1},_.range=function(n,t,e){arguments.length<=1&&(t=n||0,n=0),e=arguments[2]||1;for(var r=Math.max(Math.ceil((t-n)/e),0),i=0,u=new Array(r);r>i;)u[i++]=n,n+=e;return u};var F=function(){};_.bind=function(n,t){var e,r;if(T&&n.bind===T)return T.apply(n,l.call(arguments,1));if(!_.isFunction(n))throw new TypeError;return e=l.call(arguments,2),r=function(){if(!(this instanceof r))return n.apply(t,e.concat(l.call(arguments)));F.prototype=n.prototype;var i=new F;F.prototype=null;var u=n.apply(i,e.concat(l.call(arguments)));return Object(u)===u?u:i}},_.partial=function(n){var t=l.call(arguments,1);return function(){for(var e=0,r=t.slice(),i=0,u=r.length;u>i;i++)r[i]===_&&(r[i]=arguments[e++]);for(;e<arguments.length;)r.push(arguments[e++]);return n.apply(this,r)}},_.bindAll=function(n){var t=l.call(arguments,1);if(0===t.length)throw new Error("bindAll must be passed function names");return A(t,function(t){n[t]=_.bind(n[t],n)}),n},_.memoize=function(n,t){var e={};return t||(t=_.identity),function(){var r=t.apply(this,arguments);return _.has(e,r)?e[r]:e[r]=n.apply(this,arguments)}},_.delay=function(n,t){var e=l.call(arguments,2);return setTimeout(function(){return n.apply(null,e)},t)},_.defer=function(n){return _.delay.apply(_,[n,1].concat(l.call(arguments,1)))},_.throttle=function(n,t,e){var r,i,u,o=null,a=0;e||(e={});var c=function(){a=e.leading===!1?0:_.now(),o=null,u=n.apply(r,i),r=i=null};return function(){var l=_.now();a||e.leading!==!1||(a=l);var s=t-(l-a);return r=this,i=arguments,0>=s?(clearTimeout(o),o=null,a=l,u=n.apply(r,i),r=i=null):o||e.trailing===!1||(o=setTimeout(c,s)),u}},_.debounce=function(n,t,e){var r,i,u,o,a,c=function(){var l=_.now()-o;t>l?r=setTimeout(c,t-l):(r=null,e||(a=n.apply(u,i),u=i=null))};return function(){u=this,i=arguments,o=_.now();var l=e&&!r;return r||(r=setTimeout(c,t)),l&&(a=n.apply(u,i),u=i=null),a}},_.once=function(n){var t,e=!1;return function(){return e?t:(e=!0,t=n.apply(this,arguments),n=null,t)}},_.wrap=function(n,t){return _.partial(t,n)},_.compose=function(){var n=arguments;return function(){for(var t=arguments,e=n.length-1;e>=0;e--)t=[n[e].apply(this,t)];return t[0]}},_.after=function(n,t){return function(){return--n<1?t.apply(this,arguments):void 0}},_.keys=function(n){if(!_.isObject(n))return[];if(E)return E(n);var t=[];for(var e in n)_.has(n,e)&&t.push(e);return t},_.values=function(n){for(var t=_.keys(n),e=t.length,r=new Array(e),i=0;e>i;i++)r[i]=n[t[i]];return r},_.pairs=function(n){for(var t=_.keys(n),e=t.length,r=new Array(e),i=0;e>i;i++)r[i]=[t[i],n[t[i]]];return r},_.invert=function(n){for(var t={},e=_.keys(n),r=0,i=e.length;i>r;r++)t[n[e[r]]]=e[r];return t},_.functions=_.methods=function(n){var t=[];for(var e in n)_.isFunction(n[e])&&t.push(e);return t.sort()},_.extend=function(n){return A(l.call(arguments,1),function(t){if(t)for(var e in t)n[e]=t[e]}),n},_.pick=function(n){var t={},e=s.apply(u,l.call(arguments,1));return A(e,function(e){e in n&&(t[e]=n[e])}),t},_.omit=function(n){var t={},e=s.apply(u,l.call(arguments,1));for(var r in n)_.contains(e,r)||(t[r]=n[r]);return t},_.defaults=function(n){return A(l.call(arguments,1),function(t){if(t)for(var e in t)void 0===n[e]&&(n[e]=t[e])}),n},_.clone=function(n){return _.isObject(n)?_.isArray(n)?n.slice():_.extend({},n):n},_.tap=function(n,t){return t(n),n};var S=function(n,t,e,r){if(n===t)return 0!==n||1/n==1/t;if(null==n||null==t)return n===t;n instanceof _&&(n=n._wrapped),t instanceof _&&(t=t._wrapped);var i=f.call(n);if(i!=f.call(t))return!1;switch(i){case"[object String]":return n==String(t);case"[object Number]":return n!=+n?t!=+t:0==n?1/n==1/t:n==+t;case"[object Date]":case"[object Boolean]":return+n==+t;case"[object RegExp]":return n.source==t.source&&n.global==t.global&&n.multiline==t.multiline&&n.ignoreCase==t.ignoreCase}if("object"!=typeof n||"object"!=typeof t)return!1;for(var u=e.length;u--;)if(e[u]==n)return r[u]==t;var o=n.constructor,a=t.constructor;if(o!==a&&!(_.isFunction(o)&&o instanceof o&&_.isFunction(a)&&a instanceof a)&&"constructor"in n&&"constructor"in t)return!1;e.push(n),r.push(t);var c=0,l=!0;if("[object Array]"==i){if(c=n.length,l=c==t.length)for(;c--&&(l=S(n[c],t[c],e,r)););}else{for(var s in n)if(_.has(n,s)&&(c++,!(l=_.has(t,s)&&S(n[s],t[s],e,r))))break;if(l){for(s in t)if(_.has(t,s)&&!c--)break;l=!c}}return e.pop(),r.pop(),l};_.isEqual=function(n,t){return S(n,t,[],[])},_.isEmpty=function(n){if(null==n)return!0;if(_.isArray(n)||_.isString(n))return 0===n.length;for(var t in n)if(_.has(n,t))return!1;return!0},_.isElement=function(n){return!(!n||1!==n.nodeType)},_.isArray=M||function(n){return"[object Array]"==f.call(n)},_.isObject=function(n){return n===Object(n)},A(["Arguments","Function","String","Number","Date","RegExp"],function(n){_["is"+n]=function(t){return f.call(t)=="[object "+n+"]"}}),_.isArguments(arguments)||(_.isArguments=function(n){return!(!n||!_.has(n,"callee"))}),"function"!=typeof/./&&(_.isFunction=function(n){return"function"==typeof n}),_.isFinite=function(n){return isFinite(n)&&!isNaN(parseFloat(n))},_.isNaN=function(n){return _.isNumber(n)&&n!=+n},_.isBoolean=function(n){return n===!0||n===!1||"[object Boolean]"==f.call(n)},_.isNull=function(n){return null===n},_.isUndefined=function(n){return void 0===n},_.has=function(n,t){return p.call(n,t)},_.noConflict=function(){return n._=r,this},_.identity=function(n){return n},_.constant=function(n){return function(){return n}},_.property=function(n){return function(t){return t[n]}},_.matches=function(n){return function(t){if(t===n)return!0;for(var e in n)if(n[e]!==t[e])return!1;return!0}},_.times=function(n,t,e){for(var r=Array(Math.max(0,n)),i=0;n>i;i++)r[i]=t.call(e,i);return r},_.random=function(n,t){return null==t&&(t=n,n=0),n+Math.floor(Math.random()*(t-n+1))},_.now=Date.now||function(){return(new Date).getTime()};var R={escape:{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#x27;"}};R.unescape=_.invert(R.escape);var q={escape:new RegExp("["+_.keys(R.escape).join("")+"]","g"),unescape:new RegExp("("+_.keys(R.unescape).join("|")+")","g")};_.each(["escape","unescape"],function(n){_[n]=function(t){return null==t?"":(""+t).replace(q[n],function(t){return R[n][t]})}}),_.result=function(n,t){if(null==n)return void 0;var e=n[t];return _.isFunction(e)?e.call(n):e},_.mixin=function(n){A(_.functions(n),function(t){var e=_[t]=n[t];_.prototype[t]=function(){var n=[this._wrapped];return c.apply(n,arguments),I.call(this,e.apply(_,n))}})};var N=0;_.uniqueId=function(n){var t=++N+"";return n?n+t:t},_.templateSettings={evaluate:/<%([\s\S]+?)%>/g,interpolate:/<%=([\s\S]+?)%>/g,escape:/<%-([\s\S]+?)%>/g};var z=/(.)^/,D={"'":"'","\\":"\\","\r":"r","\n":"n","	":"t","\u2028":"u2028","\u2029":"u2029"},B=/\\|'|\r|\n|\t|\u2028|\u2029/g;_.template=function(n,t,e){var r;e=_.defaults({},e,_.templateSettings);var i=new RegExp([(e.escape||z).source,(e.interpolate||z).source,(e.evaluate||z).source].join("|")+"|$","g"),u=0,o="__p+='";n.replace(i,function(t,e,r,i,a){return o+=n.slice(u,a).replace(B,function(n){return"\\"+D[n]}),e&&(o+="'+\n((__t=("+e+"))==null?'':_.escape(__t))+\n'"),r&&(o+="'+\n((__t=("+r+"))==null?'':__t)+\n'"),i&&(o+="';\n"+i+"\n__p+='"),u=a+t.length,t}),o+="';\n",e.variable||(o="with(obj||{}){\n"+o+"}\n"),o="var __t,__p='',__j=Array.prototype.join,print=function(){__p+=__j.call(arguments,'');};\n"+o+"return __p;\n";try{r=new Function(e.variable||"obj","_",o)}catch(a){throw a.source=o,a}if(t)return r(t,_);var c=function(n){return r.call(this,n,_)};return c.source="function("+(e.variable||"obj")+"){\n"+o+"}",c},_.chain=function(n){return _(n).chain()};var I=function(n){return this._chain?_(n).chain():n};_.mixin(_),A(["pop","push","reverse","shift","sort","splice","unshift"],function(n){var t=u[n];_.prototype[n]=function(){var e=this._wrapped;return t.apply(e,arguments),"shift"!=n&&"splice"!=n||0!==e.length||delete e[0],I.call(this,e)}}),A(["concat","join","slice"],function(n){var t=u[n];_.prototype[n]=function(){return I.call(this,t.apply(this._wrapped,arguments))}}),_.extend(_.prototype,{chain:function(){return this._chain=!0,this},value:function(){return this._wrapped}}),"function"==typeof define&&define.amd&&define("underscore",[],function(){return _})}).call(this)},{}],3:[function(n,t,e){e.pickVal=function(n,t){return n+n*t*(1-2*Math.random())},e.floor=function(n,t){return Math.floor(n*Math.pow(10,t))/Math.pow(10,t)},e.valExp=function(n,t){return t=t||2,(Math.exp(n*t)-Math.exp(0))/(Math.exp(t)-Math.exp(0))}},{}],4:[function(n,t,e){e.kickStartWAA=function(){audioContext=new AudioContext;var n=audioContext.createOscillator(),t=audioContext.createGain();return t.gain.value=0,n.connect(t),t.connect(audioContext.destination),n.start(0),n.stop(1),audioContext};var r=e.loadBuffer=function(n,t){a(n,function(e,r){return e?t(e):void o(r,function(e,r){return e?(e instanceof l&&(e.message+=" "+n),t(e)):void t(null,r)})})},u=(e.formatSupport=function(n){var t,e=[],i=[["wav","sounds/format-support/sample.wav"],["mp3","sounds/format-support/sample.mp3"],["ogg","sounds/format-support/sample.ogg"]],u=function(o,a,c){var s;if(a){if(!(a instanceof l))return n(a);s=!1}else s=1===c.numberOfChannels&&50===Math.round(1e3*c.duration)?!0:!1;s===!0&&e.push(o),i.length>0?(t=i.pop(),r(t[1],u.bind(this,t[0]))):n(null,e)};t=i.pop(),r(t[1],u.bind(this,t[0]))},[]);e.plotBuffer=function(n,t){var e=100,r=n.getChannelData(0),o=n.sampleRate,a=t.attr("width")||300,c=t.attr("height")||300,l=[];for(i=0,length=n.length;length>i;i+=e)l.push([i/o,r[i]]);var s=d3.scale.linear().range([0,a]),f=d3.scale.linear().range([c,0]),p=d3.svg.line().x(function(n){return s(n[0])}).y(function(n){return f(n[1])});s.domain(d3.extent(l,function(n){return n[0]})),f.domain(d3.extent(l,function(n){return n[1]})),t.append("path").datum(l).attr("class","plot plot-"+u.length%2).attr("d",p),u.push(n)};var o=function(n,t){audioContext.decodeAudioData(n,function(n){t(null,n)},function(n){t(n||new l("decoding error"),null)})},a=function(n,t){var e=new XMLHttpRequest;e.open("GET",n,!0),e.responseType="arraybuffer",e.onload=function(){200===e.status?t(null,e.response):t(new c(e.statusText))},e.onerror=function(n){t(n||new Error("unexpected request error"),null)},e.send()},c=function(n){this.message=n||""};c.prototype=Object.create(Error.prototype),c.prototype.name="HTTPError";var l=function(n){this.message=n||""};l.prototype=Object.create(Error.prototype),l.prototype.name="DecodeError"},{}],5:[function(n,t,e){var r=n("underscore"),i=!1;$(function(){$("body").on(TouchMouseEvent.DOWN,function(){i=!0}).on(TouchMouseEvent.UP,function(){i=!1})}),e.grid=function(n,t,e){var i=$("<div>",{"class":"grid"});return r.forEach(r.range(t),function(t){var u=$("<div>",{"class":"track track-"+t}).appendTo(i);r.forEach(r.range(e),function(t){$("<div>",{"class":"step step-"+t}).appendTo(u).click(function(){var e=$(this).attr("class");"toggle"===n&&i.find(".step-"+t).removeClass("active"),$(this).attr("class",e).toggleClass("active")})})}),i},e.toggle=function(n){return $("<div>",{"class":"toggle"}).click(function(){$(this).toggleClass("active"),n.call(this,$(this).hasClass("active"))})},e.xyPad=function(n,t){var e=$("<div>",{"class":"xyPad"}),r=$("<div>",{"class":"inner"}).appendTo(e),i=$("<div>",{"class":"cursor"}).appendTo(r),u=$('<div><span class="title">'+(n.title||"")+"</span> "+(n.xLabel||"X")+': <span class="x">0</span> | '+(n.yLabel||"Y")+': <span class="y">1</span></div>',{"class":"valueFeedback"}).appendTo(e),o=.07*$(document).width();e.css({padding:o/2}),i.css({width:o,height:o,left:-o/2,top:-o/2});var a=function(n){var e=Math.max(Math.min(n.pageX-r.get(0).offsetLeft,r.width()),0),a=Math.max(Math.min(n.pageY-r.get(0).offsetTop,r.height()),0),c=Math.min(1-a/r.height(),1),l=Math.min(e/r.width(),1);i.css({left:e-o/2,top:a-o/2}),u.find(".x").html(l.toString().slice(0,4)),u.find(".y").html(c.toString().slice(0,4)),t(l,c)};return e.on(TouchMouseEvent.DOWN,function(){e.on(TouchMouseEvent.MOVE,a)}),r.on(TouchMouseEvent.DOWN,a),$("body").on(TouchMouseEvent.UP,function(){e.off(TouchMouseEvent.MOVE)}),e},e.slider=function(n,t){var e=$("<div>",{"class":"slider"}),r=$("<div>",{"class":"inner"}).appendTo(e),i=$("<div>",{"class":"cursor"}).appendTo(r),u=$('<div><span class="title">'+(n.title||"")+'</span>: <span class="val">0</span>',{"class":"valueFeedback"}).appendTo(e),o=.07*$(document).width();return e.css({paddingLeft:o/2,paddingRight:o/2}),i.css({width:o,height:o,left:-o/2}),e.on(TouchMouseEvent.DOWN,function(){e.on(TouchMouseEvent.MOVE,function(n){var a=Math.max(Math.min(n.pageX-r.get(0).offsetLeft,r.width()),0),c=Math.min(a/e.width(),1);i.css({left:a-o/2}),u.find(".val").html(c.toString().slice(0,4)),t(c)})}),$("body").on(TouchMouseEvent.UP,function(){e.off(TouchMouseEvent.MOVE)}),e}},{underscore:2}]},{},[1]);
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+window.fields.controls = {}
+fields.log = console.log.bind(console)
+
+var async = require('async')
+  , _ = require('underscore')
+  , waaUtils = require('./utils/waa')
+  , widgets = require('./utils/widgets')
+  , math = require('./utils/math')
+
+var controlsInstances = {}
+
+// Start things when the user presses a button
+fields.controls.start = function() {
+  fields.controls.audioContext = waaUtils.kickStartWAA()
+  fields.controls.clock = new WAAClock(fields.controls.audioContext)
+  rhizome.start()
+
+  var tabsHeader = $('<div>', { class: 'tabsHeader' }).appendTo('body')
+    , tabsContainer = $('<div>', { class: 'tabsContainer' }).appendTo('body')
+
+  _.chain(fields.config).pairs().forEach(function(p) {
+    var instrumentId = p[0]
+      , config = p[1]
+      , instrument = fields.instruments[config.instrument]
+      , controls = instrument.controls.apply(instrument, [instrumentId].concat(config.args))
+      , title = $('<h2>').html(instrumentId)
+    
+    // On/off button
+    controls.onOffToggle = widgets.toggle(function(state) {
+      var action = state === 1 ? 'start' : 'stop'
+      controlsInstances[instrumentId][action]()
+      rhizome.send('/' + instrumentId + '/state', [state])
+    })
+
+    // Volume control
+    var _sendVolume = rhizome.utils.throttle(100, function(args) {
+      rhizome.send('/' + instrumentId + '/volume', args)
+    })    
+    controls.volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
+      _sendVolume([ val ])
+    })
+    controls.volumeSlider.elem.addClass('volume')
+
+    // Adding default controls to the container
+    controlsInstances[instrumentId] = controls
+    controls.container.prepend(controls.volumeSlider.elem)
+    controls.container.prepend(controls.onOffToggle.elem)
+    controls.container.appendTo(tabsContainer)
+    controls.container.prepend(title)
+
+    // Managing tabs
+    $('<div>', { class: 'tabButton' })
+      .appendTo(tabsHeader)
+      .html(instrumentId)
+      .click(function() {
+        controls.container.toggleClass('active')
+        controls.volumeSlider.refresh()
+        controls.show()
+        $(this).toggleClass('active')
+      })
+  }).values()
+}
+
+// Message scheme :
+//  /<instrument id>/<parameter> [args]
+rhizome.on('message', function(address, args) {
+  if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
+  else {
+    fields.log('MESSAGE : ' + address + ' ' + args)
+
+    var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
+      , controls = controlsInstances[parts[1]]
+      , parameter = parts[2]
+
+    // This is used only to resend values, and if there was no arg there is presumably no value
+    // to restore.
+    if (args.length) {
+      if (parameter === 'state')
+        controls.onOffToggle.setState(args[0])
+      else if (parameter === 'volume')
+        controls.volumeSlider.setVal(args[0])
+      else controls.setParameter(parameter, args)
+    }
+  }
+})
+
+rhizome.on('connected', function() {
+  // Loading all the controls
+  async.forEach(_.values(controlsInstances), function(controls, next) {
+    controls.load(next)
+  }, function(err) {
+    if (err) fields.log('error loading controls : ' + err)
+  })
+})
+
+rhizome.on('server full', function() {})
+rhizome.on('connection lost', function() {})
+rhizome.on('reconnected', function() {})
+},{"./utils/math":5,"./utils/waa":6,"./utils/widgets":7,"async":2,"underscore":4}],2:[function(require,module,exports){
+(function (process){
+/*!
+ * async
+ * https://github.com/caolan/async
+ *
+ * Copyright 2010-2014 Caolan McMahon
+ * Released under the MIT license
+ */
+/*jshint onevar: false, indent:4 */
+/*global setImmediate: false, setTimeout: false, console: false */
+(function () {
+
+    var async = {};
+
+    // global on the server, window in the browser
+    var root, previous_async;
+
+    root = this;
+    if (root != null) {
+      previous_async = root.async;
+    }
+
+    async.noConflict = function () {
+        root.async = previous_async;
+        return async;
+    };
+
+    function only_once(fn) {
+        var called = false;
+        return function() {
+            if (called) throw new Error("Callback was already called.");
+            called = true;
+            fn.apply(root, arguments);
+        }
+    }
+
+    //// cross-browser compatiblity functions ////
+
+    var _toString = Object.prototype.toString;
+
+    var _isArray = Array.isArray || function (obj) {
+        return _toString.call(obj) === '[object Array]';
+    };
+
+    var _each = function (arr, iterator) {
+        if (arr.forEach) {
+            return arr.forEach(iterator);
+        }
+        for (var i = 0; i < arr.length; i += 1) {
+            iterator(arr[i], i, arr);
+        }
+    };
+
+    var _map = function (arr, iterator) {
+        if (arr.map) {
+            return arr.map(iterator);
+        }
+        var results = [];
+        _each(arr, function (x, i, a) {
+            results.push(iterator(x, i, a));
+        });
+        return results;
+    };
+
+    var _reduce = function (arr, iterator, memo) {
+        if (arr.reduce) {
+            return arr.reduce(iterator, memo);
+        }
+        _each(arr, function (x, i, a) {
+            memo = iterator(memo, x, i, a);
+        });
+        return memo;
+    };
+
+    var _keys = function (obj) {
+        if (Object.keys) {
+            return Object.keys(obj);
+        }
+        var keys = [];
+        for (var k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                keys.push(k);
+            }
+        }
+        return keys;
+    };
+
+    //// exported async module functions ////
+
+    //// nextTick implementation with browser-compatible fallback ////
+    if (typeof process === 'undefined' || !(process.nextTick)) {
+        if (typeof setImmediate === 'function') {
+            async.nextTick = function (fn) {
+                // not a direct alias for IE10 compatibility
+                setImmediate(fn);
+            };
+            async.setImmediate = async.nextTick;
+        }
+        else {
+            async.nextTick = function (fn) {
+                setTimeout(fn, 0);
+            };
+            async.setImmediate = async.nextTick;
+        }
+    }
+    else {
+        async.nextTick = process.nextTick;
+        if (typeof setImmediate !== 'undefined') {
+            async.setImmediate = function (fn) {
+              // not a direct alias for IE10 compatibility
+              setImmediate(fn);
+            };
+        }
+        else {
+            async.setImmediate = async.nextTick;
+        }
+    }
+
+    async.each = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        _each(arr, function (x) {
+            iterator(x, only_once(done) );
+        });
+        function done(err) {
+          if (err) {
+              callback(err);
+              callback = function () {};
+          }
+          else {
+              completed += 1;
+              if (completed >= arr.length) {
+                  callback();
+              }
+          }
+        }
+    };
+    async.forEach = async.each;
+
+    async.eachSeries = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        var iterate = function () {
+            iterator(arr[completed], function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed >= arr.length) {
+                        callback();
+                    }
+                    else {
+                        iterate();
+                    }
+                }
+            });
+        };
+        iterate();
+    };
+    async.forEachSeries = async.eachSeries;
+
+    async.eachLimit = function (arr, limit, iterator, callback) {
+        var fn = _eachLimit(limit);
+        fn.apply(null, [arr, iterator, callback]);
+    };
+    async.forEachLimit = async.eachLimit;
+
+    var _eachLimit = function (limit) {
+
+        return function (arr, iterator, callback) {
+            callback = callback || function () {};
+            if (!arr.length || limit <= 0) {
+                return callback();
+            }
+            var completed = 0;
+            var started = 0;
+            var running = 0;
+
+            (function replenish () {
+                if (completed >= arr.length) {
+                    return callback();
+                }
+
+                while (running < limit && started < arr.length) {
+                    started += 1;
+                    running += 1;
+                    iterator(arr[started - 1], function (err) {
+                        if (err) {
+                            callback(err);
+                            callback = function () {};
+                        }
+                        else {
+                            completed += 1;
+                            running -= 1;
+                            if (completed >= arr.length) {
+                                callback();
+                            }
+                            else {
+                                replenish();
+                            }
+                        }
+                    });
+                }
+            })();
+        };
+    };
+
+
+    var doParallel = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.each].concat(args));
+        };
+    };
+    var doParallelLimit = function(limit, fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [_eachLimit(limit)].concat(args));
+        };
+    };
+    var doSeries = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.eachSeries].concat(args));
+        };
+    };
+
+
+    var _asyncMap = function (eachfn, arr, iterator, callback) {
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        if (!callback) {
+            eachfn(arr, function (x, callback) {
+                iterator(x.value, function (err) {
+                    callback(err);
+                });
+            });
+        } else {
+            var results = [];
+            eachfn(arr, function (x, callback) {
+                iterator(x.value, function (err, v) {
+                    results[x.index] = v;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+    async.map = doParallel(_asyncMap);
+    async.mapSeries = doSeries(_asyncMap);
+    async.mapLimit = function (arr, limit, iterator, callback) {
+        return _mapLimit(limit)(arr, iterator, callback);
+    };
+
+    var _mapLimit = function(limit) {
+        return doParallelLimit(limit, _asyncMap);
+    };
+
+    // reduce only has a series version, as doing reduce in parallel won't
+    // work in many situations.
+    async.reduce = function (arr, memo, iterator, callback) {
+        async.eachSeries(arr, function (x, callback) {
+            iterator(memo, x, function (err, v) {
+                memo = v;
+                callback(err);
+            });
+        }, function (err) {
+            callback(err, memo);
+        });
+    };
+    // inject alias
+    async.inject = async.reduce;
+    // foldl alias
+    async.foldl = async.reduce;
+
+    async.reduceRight = function (arr, memo, iterator, callback) {
+        var reversed = _map(arr, function (x) {
+            return x;
+        }).reverse();
+        async.reduce(reversed, memo, iterator, callback);
+    };
+    // foldr alias
+    async.foldr = async.reduceRight;
+
+    var _filter = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.filter = doParallel(_filter);
+    async.filterSeries = doSeries(_filter);
+    // select alias
+    async.select = async.filter;
+    async.selectSeries = async.filterSeries;
+
+    var _reject = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (!v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.reject = doParallel(_reject);
+    async.rejectSeries = doSeries(_reject);
+
+    var _detect = function (eachfn, arr, iterator, main_callback) {
+        eachfn(arr, function (x, callback) {
+            iterator(x, function (result) {
+                if (result) {
+                    main_callback(x);
+                    main_callback = function () {};
+                }
+                else {
+                    callback();
+                }
+            });
+        }, function (err) {
+            main_callback();
+        });
+    };
+    async.detect = doParallel(_detect);
+    async.detectSeries = doSeries(_detect);
+
+    async.some = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (v) {
+                    main_callback(true);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(false);
+        });
+    };
+    // any alias
+    async.any = async.some;
+
+    async.every = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (!v) {
+                    main_callback(false);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(true);
+        });
+    };
+    // all alias
+    async.all = async.every;
+
+    async.sortBy = function (arr, iterator, callback) {
+        async.map(arr, function (x, callback) {
+            iterator(x, function (err, criteria) {
+                if (err) {
+                    callback(err);
+                }
+                else {
+                    callback(null, {value: x, criteria: criteria});
+                }
+            });
+        }, function (err, results) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                var fn = function (left, right) {
+                    var a = left.criteria, b = right.criteria;
+                    return a < b ? -1 : a > b ? 1 : 0;
+                };
+                callback(null, _map(results.sort(fn), function (x) {
+                    return x.value;
+                }));
+            }
+        });
+    };
+
+    async.auto = function (tasks, callback) {
+        callback = callback || function () {};
+        var keys = _keys(tasks);
+        var remainingTasks = keys.length
+        if (!remainingTasks) {
+            return callback();
+        }
+
+        var results = {};
+
+        var listeners = [];
+        var addListener = function (fn) {
+            listeners.unshift(fn);
+        };
+        var removeListener = function (fn) {
+            for (var i = 0; i < listeners.length; i += 1) {
+                if (listeners[i] === fn) {
+                    listeners.splice(i, 1);
+                    return;
+                }
+            }
+        };
+        var taskComplete = function () {
+            remainingTasks--
+            _each(listeners.slice(0), function (fn) {
+                fn();
+            });
+        };
+
+        addListener(function () {
+            if (!remainingTasks) {
+                var theCallback = callback;
+                // prevent final callback from calling itself if it errors
+                callback = function () {};
+
+                theCallback(null, results);
+            }
+        });
+
+        _each(keys, function (k) {
+            var task = _isArray(tasks[k]) ? tasks[k]: [tasks[k]];
+            var taskCallback = function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (args.length <= 1) {
+                    args = args[0];
+                }
+                if (err) {
+                    var safeResults = {};
+                    _each(_keys(results), function(rkey) {
+                        safeResults[rkey] = results[rkey];
+                    });
+                    safeResults[k] = args;
+                    callback(err, safeResults);
+                    // stop subsequent errors hitting callback multiple times
+                    callback = function () {};
+                }
+                else {
+                    results[k] = args;
+                    async.setImmediate(taskComplete);
+                }
+            };
+            var requires = task.slice(0, Math.abs(task.length - 1)) || [];
+            var ready = function () {
+                return _reduce(requires, function (a, x) {
+                    return (a && results.hasOwnProperty(x));
+                }, true) && !results.hasOwnProperty(k);
+            };
+            if (ready()) {
+                task[task.length - 1](taskCallback, results);
+            }
+            else {
+                var listener = function () {
+                    if (ready()) {
+                        removeListener(listener);
+                        task[task.length - 1](taskCallback, results);
+                    }
+                };
+                addListener(listener);
+            }
+        });
+    };
+
+    async.retry = function(times, task, callback) {
+        var DEFAULT_TIMES = 5;
+        var attempts = [];
+        // Use defaults if times not passed
+        if (typeof times === 'function') {
+            callback = task;
+            task = times;
+            times = DEFAULT_TIMES;
+        }
+        // Make sure times is a number
+        times = parseInt(times, 10) || DEFAULT_TIMES;
+        var wrappedTask = function(wrappedCallback, wrappedResults) {
+            var retryAttempt = function(task, finalAttempt) {
+                return function(seriesCallback) {
+                    task(function(err, result){
+                        seriesCallback(!err || finalAttempt, {err: err, result: result});
+                    }, wrappedResults);
+                };
+            };
+            while (times) {
+                attempts.push(retryAttempt(task, !(times-=1)));
+            }
+            async.series(attempts, function(done, data){
+                data = data[data.length - 1];
+                (wrappedCallback || callback)(data.err, data.result);
+            });
+        }
+        // If a callback is passed, run this as a controll flow
+        return callback ? wrappedTask() : wrappedTask
+    };
+
+    async.waterfall = function (tasks, callback) {
+        callback = callback || function () {};
+        if (!_isArray(tasks)) {
+          var err = new Error('First argument to waterfall must be an array of functions');
+          return callback(err);
+        }
+        if (!tasks.length) {
+            return callback();
+        }
+        var wrapIterator = function (iterator) {
+            return function (err) {
+                if (err) {
+                    callback.apply(null, arguments);
+                    callback = function () {};
+                }
+                else {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    var next = iterator.next();
+                    if (next) {
+                        args.push(wrapIterator(next));
+                    }
+                    else {
+                        args.push(callback);
+                    }
+                    async.setImmediate(function () {
+                        iterator.apply(null, args);
+                    });
+                }
+            };
+        };
+        wrapIterator(async.iterator(tasks))();
+    };
+
+    var _parallel = function(eachfn, tasks, callback) {
+        callback = callback || function () {};
+        if (_isArray(tasks)) {
+            eachfn.map(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            eachfn.each(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.parallel = function (tasks, callback) {
+        _parallel({ map: async.map, each: async.each }, tasks, callback);
+    };
+
+    async.parallelLimit = function(tasks, limit, callback) {
+        _parallel({ map: _mapLimit(limit), each: _eachLimit(limit) }, tasks, callback);
+    };
+
+    async.series = function (tasks, callback) {
+        callback = callback || function () {};
+        if (_isArray(tasks)) {
+            async.mapSeries(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            async.eachSeries(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.iterator = function (tasks) {
+        var makeCallback = function (index) {
+            var fn = function () {
+                if (tasks.length) {
+                    tasks[index].apply(null, arguments);
+                }
+                return fn.next();
+            };
+            fn.next = function () {
+                return (index < tasks.length - 1) ? makeCallback(index + 1): null;
+            };
+            return fn;
+        };
+        return makeCallback(0);
+    };
+
+    async.apply = function (fn) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return function () {
+            return fn.apply(
+                null, args.concat(Array.prototype.slice.call(arguments))
+            );
+        };
+    };
+
+    var _concat = function (eachfn, arr, fn, callback) {
+        var r = [];
+        eachfn(arr, function (x, cb) {
+            fn(x, function (err, y) {
+                r = r.concat(y || []);
+                cb(err);
+            });
+        }, function (err) {
+            callback(err, r);
+        });
+    };
+    async.concat = doParallel(_concat);
+    async.concatSeries = doSeries(_concat);
+
+    async.whilst = function (test, iterator, callback) {
+        if (test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.whilst(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doWhilst = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            var args = Array.prototype.slice.call(arguments, 1);
+            if (test.apply(null, args)) {
+                async.doWhilst(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.until = function (test, iterator, callback) {
+        if (!test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.until(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doUntil = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            var args = Array.prototype.slice.call(arguments, 1);
+            if (!test.apply(null, args)) {
+                async.doUntil(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.queue = function (worker, concurrency) {
+        if (concurrency === undefined) {
+            concurrency = 1;
+        }
+        function _insert(q, data, pos, callback) {
+          if (!q.started){
+            q.started = true;
+          }
+          if (!_isArray(data)) {
+              data = [data];
+          }
+          if(data.length == 0) {
+             // call drain immediately if there are no tasks
+             return async.setImmediate(function() {
+                 if (q.drain) {
+                     q.drain();
+                 }
+             });
+          }
+          _each(data, function(task) {
+              var item = {
+                  data: task,
+                  callback: typeof callback === 'function' ? callback : null
+              };
+
+              if (pos) {
+                q.tasks.unshift(item);
+              } else {
+                q.tasks.push(item);
+              }
+
+              if (q.saturated && q.tasks.length === q.concurrency) {
+                  q.saturated();
+              }
+              async.setImmediate(q.process);
+          });
+        }
+
+        var workers = 0;
+        var q = {
+            tasks: [],
+            concurrency: concurrency,
+            saturated: null,
+            empty: null,
+            drain: null,
+            started: false,
+            paused: false,
+            push: function (data, callback) {
+              _insert(q, data, false, callback);
+            },
+            kill: function () {
+              q.drain = null;
+              q.tasks = [];
+            },
+            unshift: function (data, callback) {
+              _insert(q, data, true, callback);
+            },
+            process: function () {
+                if (!q.paused && workers < q.concurrency && q.tasks.length) {
+                    var task = q.tasks.shift();
+                    if (q.empty && q.tasks.length === 0) {
+                        q.empty();
+                    }
+                    workers += 1;
+                    var next = function () {
+                        workers -= 1;
+                        if (task.callback) {
+                            task.callback.apply(task, arguments);
+                        }
+                        if (q.drain && q.tasks.length + workers === 0) {
+                            q.drain();
+                        }
+                        q.process();
+                    };
+                    var cb = only_once(next);
+                    worker(task.data, cb);
+                }
+            },
+            length: function () {
+                return q.tasks.length;
+            },
+            running: function () {
+                return workers;
+            },
+            idle: function() {
+                return q.tasks.length + workers === 0;
+            },
+            pause: function () {
+                if (q.paused === true) { return; }
+                q.paused = true;
+                q.process();
+            },
+            resume: function () {
+                if (q.paused === false) { return; }
+                q.paused = false;
+                q.process();
+            }
+        };
+        return q;
+    };
+    
+    async.priorityQueue = function (worker, concurrency) {
+        
+        function _compareTasks(a, b){
+          return a.priority - b.priority;
+        };
+        
+        function _binarySearch(sequence, item, compare) {
+          var beg = -1,
+              end = sequence.length - 1;
+          while (beg < end) {
+            var mid = beg + ((end - beg + 1) >>> 1);
+            if (compare(item, sequence[mid]) >= 0) {
+              beg = mid;
+            } else {
+              end = mid - 1;
+            }
+          }
+          return beg;
+        }
+        
+        function _insert(q, data, priority, callback) {
+          if (!q.started){
+            q.started = true;
+          }
+          if (!_isArray(data)) {
+              data = [data];
+          }
+          if(data.length == 0) {
+             // call drain immediately if there are no tasks
+             return async.setImmediate(function() {
+                 if (q.drain) {
+                     q.drain();
+                 }
+             });
+          }
+          _each(data, function(task) {
+              var item = {
+                  data: task,
+                  priority: priority,
+                  callback: typeof callback === 'function' ? callback : null
+              };
+              
+              q.tasks.splice(_binarySearch(q.tasks, item, _compareTasks) + 1, 0, item);
+
+              if (q.saturated && q.tasks.length === q.concurrency) {
+                  q.saturated();
+              }
+              async.setImmediate(q.process);
+          });
+        }
+        
+        // Start with a normal queue
+        var q = async.queue(worker, concurrency);
+        
+        // Override push to accept second parameter representing priority
+        q.push = function (data, priority, callback) {
+          _insert(q, data, priority, callback);
+        };
+        
+        // Remove unshift function
+        delete q.unshift;
+
+        return q;
+    };
+
+    async.cargo = function (worker, payload) {
+        var working     = false,
+            tasks       = [];
+
+        var cargo = {
+            tasks: tasks,
+            payload: payload,
+            saturated: null,
+            empty: null,
+            drain: null,
+            drained: true,
+            push: function (data, callback) {
+                if (!_isArray(data)) {
+                    data = [data];
+                }
+                _each(data, function(task) {
+                    tasks.push({
+                        data: task,
+                        callback: typeof callback === 'function' ? callback : null
+                    });
+                    cargo.drained = false;
+                    if (cargo.saturated && tasks.length === payload) {
+                        cargo.saturated();
+                    }
+                });
+                async.setImmediate(cargo.process);
+            },
+            process: function process() {
+                if (working) return;
+                if (tasks.length === 0) {
+                    if(cargo.drain && !cargo.drained) cargo.drain();
+                    cargo.drained = true;
+                    return;
+                }
+
+                var ts = typeof payload === 'number'
+                            ? tasks.splice(0, payload)
+                            : tasks.splice(0, tasks.length);
+
+                var ds = _map(ts, function (task) {
+                    return task.data;
+                });
+
+                if(cargo.empty) cargo.empty();
+                working = true;
+                worker(ds, function () {
+                    working = false;
+
+                    var args = arguments;
+                    _each(ts, function (data) {
+                        if (data.callback) {
+                            data.callback.apply(null, args);
+                        }
+                    });
+
+                    process();
+                });
+            },
+            length: function () {
+                return tasks.length;
+            },
+            running: function () {
+                return working;
+            }
+        };
+        return cargo;
+    };
+
+    var _console_fn = function (name) {
+        return function (fn) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            fn.apply(null, args.concat([function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (typeof console !== 'undefined') {
+                    if (err) {
+                        if (console.error) {
+                            console.error(err);
+                        }
+                    }
+                    else if (console[name]) {
+                        _each(args, function (x) {
+                            console[name](x);
+                        });
+                    }
+                }
+            }]));
+        };
+    };
+    async.log = _console_fn('log');
+    async.dir = _console_fn('dir');
+    /*async.info = _console_fn('info');
+    async.warn = _console_fn('warn');
+    async.error = _console_fn('error');*/
+
+    async.memoize = function (fn, hasher) {
+        var memo = {};
+        var queues = {};
+        hasher = hasher || function (x) {
+            return x;
+        };
+        var memoized = function () {
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            var key = hasher.apply(null, args);
+            if (key in memo) {
+                async.nextTick(function () {
+                    callback.apply(null, memo[key]);
+                });
+            }
+            else if (key in queues) {
+                queues[key].push(callback);
+            }
+            else {
+                queues[key] = [callback];
+                fn.apply(null, args.concat([function () {
+                    memo[key] = arguments;
+                    var q = queues[key];
+                    delete queues[key];
+                    for (var i = 0, l = q.length; i < l; i++) {
+                      q[i].apply(null, arguments);
+                    }
+                }]));
+            }
+        };
+        memoized.memo = memo;
+        memoized.unmemoized = fn;
+        return memoized;
+    };
+
+    async.unmemoize = function (fn) {
+      return function () {
+        return (fn.unmemoized || fn).apply(null, arguments);
+      };
+    };
+
+    async.times = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.map(counter, iterator, callback);
+    };
+
+    async.timesSeries = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.mapSeries(counter, iterator, callback);
+    };
+
+    async.seq = function (/* functions... */) {
+        var fns = arguments;
+        return function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            async.reduce(fns, args, function (newargs, fn, cb) {
+                fn.apply(that, newargs.concat([function () {
+                    var err = arguments[0];
+                    var nextargs = Array.prototype.slice.call(arguments, 1);
+                    cb(err, nextargs);
+                }]))
+            },
+            function (err, results) {
+                callback.apply(that, [err].concat(results));
+            });
+        };
+    };
+
+    async.compose = function (/* functions... */) {
+      return async.seq.apply(null, Array.prototype.reverse.call(arguments));
+    };
+
+    var _applyEach = function (eachfn, fns /*args...*/) {
+        var go = function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            return eachfn(fns, function (fn, cb) {
+                fn.apply(that, args.concat([cb]));
+            },
+            callback);
+        };
+        if (arguments.length > 2) {
+            var args = Array.prototype.slice.call(arguments, 2);
+            return go.apply(this, args);
+        }
+        else {
+            return go;
+        }
+    };
+    async.applyEach = doParallel(_applyEach);
+    async.applyEachSeries = doSeries(_applyEach);
+
+    async.forever = function (fn, callback) {
+        function next(err) {
+            if (err) {
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+            fn(next);
+        }
+        next();
+    };
+
+    // Node.js
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = async;
+    }
+    // AMD / RequireJS
+    else if (typeof define !== 'undefined' && define.amd) {
+        define([], function () {
+            return async;
+        });
+    }
+    // included directly via <script> tag
+    else {
+        root.async = async;
+    }
+
+}());
+
+}).call(this,require("IrXUsu"))
+},{"IrXUsu":3}],3:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
+    }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            var source = ev.source;
+            if ((source === window || source === null) && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
+},{}],4:[function(require,module,exports){
+//     Underscore.js 1.6.0
+//     http://underscorejs.org
+//     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+//     Underscore may be freely distributed under the MIT license.
+
+(function() {
+
+  // Baseline setup
+  // --------------
+
+  // Establish the root object, `window` in the browser, or `exports` on the server.
+  var root = this;
+
+  // Save the previous value of the `_` variable.
+  var previousUnderscore = root._;
+
+  // Establish the object that gets returned to break out of a loop iteration.
+  var breaker = {};
+
+  // Save bytes in the minified (but not gzipped) version:
+  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
+
+  // Create quick reference variables for speed access to core prototypes.
+  var
+    push             = ArrayProto.push,
+    slice            = ArrayProto.slice,
+    concat           = ArrayProto.concat,
+    toString         = ObjProto.toString,
+    hasOwnProperty   = ObjProto.hasOwnProperty;
+
+  // All **ECMAScript 5** native function implementations that we hope to use
+  // are declared here.
+  var
+    nativeForEach      = ArrayProto.forEach,
+    nativeMap          = ArrayProto.map,
+    nativeReduce       = ArrayProto.reduce,
+    nativeReduceRight  = ArrayProto.reduceRight,
+    nativeFilter       = ArrayProto.filter,
+    nativeEvery        = ArrayProto.every,
+    nativeSome         = ArrayProto.some,
+    nativeIndexOf      = ArrayProto.indexOf,
+    nativeLastIndexOf  = ArrayProto.lastIndexOf,
+    nativeIsArray      = Array.isArray,
+    nativeKeys         = Object.keys,
+    nativeBind         = FuncProto.bind;
+
+  // Create a safe reference to the Underscore object for use below.
+  var _ = function(obj) {
+    if (obj instanceof _) return obj;
+    if (!(this instanceof _)) return new _(obj);
+    this._wrapped = obj;
+  };
+
+  // Export the Underscore object for **Node.js**, with
+  // backwards-compatibility for the old `require()` API. If we're in
+  // the browser, add `_` as a global object via a string identifier,
+  // for Closure Compiler "advanced" mode.
+  if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = _;
+    }
+    exports._ = _;
+  } else {
+    root._ = _;
+  }
+
+  // Current version.
+  _.VERSION = '1.6.0';
+
+  // Collection Functions
+  // --------------------
+
+  // The cornerstone, an `each` implementation, aka `forEach`.
+  // Handles objects with the built-in `forEach`, arrays, and raw objects.
+  // Delegates to **ECMAScript 5**'s native `forEach` if available.
+  var each = _.each = _.forEach = function(obj, iterator, context) {
+    if (obj == null) return obj;
+    if (nativeForEach && obj.forEach === nativeForEach) {
+      obj.forEach(iterator, context);
+    } else if (obj.length === +obj.length) {
+      for (var i = 0, length = obj.length; i < length; i++) {
+        if (iterator.call(context, obj[i], i, obj) === breaker) return;
+      }
+    } else {
+      var keys = _.keys(obj);
+      for (var i = 0, length = keys.length; i < length; i++) {
+        if (iterator.call(context, obj[keys[i]], keys[i], obj) === breaker) return;
+      }
+    }
+    return obj;
+  };
+
+  // Return the results of applying the iterator to each element.
+  // Delegates to **ECMAScript 5**'s native `map` if available.
+  _.map = _.collect = function(obj, iterator, context) {
+    var results = [];
+    if (obj == null) return results;
+    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
+    each(obj, function(value, index, list) {
+      results.push(iterator.call(context, value, index, list));
+    });
+    return results;
+  };
+
+  var reduceError = 'Reduce of empty array with no initial value';
+
+  // **Reduce** builds up a single result from a list of values, aka `inject`,
+  // or `foldl`. Delegates to **ECMAScript 5**'s native `reduce` if available.
+  _.reduce = _.foldl = _.inject = function(obj, iterator, memo, context) {
+    var initial = arguments.length > 2;
+    if (obj == null) obj = [];
+    if (nativeReduce && obj.reduce === nativeReduce) {
+      if (context) iterator = _.bind(iterator, context);
+      return initial ? obj.reduce(iterator, memo) : obj.reduce(iterator);
+    }
+    each(obj, function(value, index, list) {
+      if (!initial) {
+        memo = value;
+        initial = true;
+      } else {
+        memo = iterator.call(context, memo, value, index, list);
+      }
+    });
+    if (!initial) throw new TypeError(reduceError);
+    return memo;
+  };
+
+  // The right-associative version of reduce, also known as `foldr`.
+  // Delegates to **ECMAScript 5**'s native `reduceRight` if available.
+  _.reduceRight = _.foldr = function(obj, iterator, memo, context) {
+    var initial = arguments.length > 2;
+    if (obj == null) obj = [];
+    if (nativeReduceRight && obj.reduceRight === nativeReduceRight) {
+      if (context) iterator = _.bind(iterator, context);
+      return initial ? obj.reduceRight(iterator, memo) : obj.reduceRight(iterator);
+    }
+    var length = obj.length;
+    if (length !== +length) {
+      var keys = _.keys(obj);
+      length = keys.length;
+    }
+    each(obj, function(value, index, list) {
+      index = keys ? keys[--length] : --length;
+      if (!initial) {
+        memo = obj[index];
+        initial = true;
+      } else {
+        memo = iterator.call(context, memo, obj[index], index, list);
+      }
+    });
+    if (!initial) throw new TypeError(reduceError);
+    return memo;
+  };
+
+  // Return the first value which passes a truth test. Aliased as `detect`.
+  _.find = _.detect = function(obj, predicate, context) {
+    var result;
+    any(obj, function(value, index, list) {
+      if (predicate.call(context, value, index, list)) {
+        result = value;
+        return true;
+      }
+    });
+    return result;
+  };
+
+  // Return all the elements that pass a truth test.
+  // Delegates to **ECMAScript 5**'s native `filter` if available.
+  // Aliased as `select`.
+  _.filter = _.select = function(obj, predicate, context) {
+    var results = [];
+    if (obj == null) return results;
+    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(predicate, context);
+    each(obj, function(value, index, list) {
+      if (predicate.call(context, value, index, list)) results.push(value);
+    });
+    return results;
+  };
+
+  // Return all the elements for which a truth test fails.
+  _.reject = function(obj, predicate, context) {
+    return _.filter(obj, function(value, index, list) {
+      return !predicate.call(context, value, index, list);
+    }, context);
+  };
+
+  // Determine whether all of the elements match a truth test.
+  // Delegates to **ECMAScript 5**'s native `every` if available.
+  // Aliased as `all`.
+  _.every = _.all = function(obj, predicate, context) {
+    predicate || (predicate = _.identity);
+    var result = true;
+    if (obj == null) return result;
+    if (nativeEvery && obj.every === nativeEvery) return obj.every(predicate, context);
+    each(obj, function(value, index, list) {
+      if (!(result = result && predicate.call(context, value, index, list))) return breaker;
+    });
+    return !!result;
+  };
+
+  // Determine if at least one element in the object matches a truth test.
+  // Delegates to **ECMAScript 5**'s native `some` if available.
+  // Aliased as `any`.
+  var any = _.some = _.any = function(obj, predicate, context) {
+    predicate || (predicate = _.identity);
+    var result = false;
+    if (obj == null) return result;
+    if (nativeSome && obj.some === nativeSome) return obj.some(predicate, context);
+    each(obj, function(value, index, list) {
+      if (result || (result = predicate.call(context, value, index, list))) return breaker;
+    });
+    return !!result;
+  };
+
+  // Determine if the array or object contains a given value (using `===`).
+  // Aliased as `include`.
+  _.contains = _.include = function(obj, target) {
+    if (obj == null) return false;
+    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
+    return any(obj, function(value) {
+      return value === target;
+    });
+  };
+
+  // Invoke a method (with arguments) on every item in a collection.
+  _.invoke = function(obj, method) {
+    var args = slice.call(arguments, 2);
+    var isFunc = _.isFunction(method);
+    return _.map(obj, function(value) {
+      return (isFunc ? method : value[method]).apply(value, args);
+    });
+  };
+
+  // Convenience version of a common use case of `map`: fetching a property.
+  _.pluck = function(obj, key) {
+    return _.map(obj, _.property(key));
+  };
+
+  // Convenience version of a common use case of `filter`: selecting only objects
+  // containing specific `key:value` pairs.
+  _.where = function(obj, attrs) {
+    return _.filter(obj, _.matches(attrs));
+  };
+
+  // Convenience version of a common use case of `find`: getting the first object
+  // containing specific `key:value` pairs.
+  _.findWhere = function(obj, attrs) {
+    return _.find(obj, _.matches(attrs));
+  };
+
+  // Return the maximum element or (element-based computation).
+  // Can't optimize arrays of integers longer than 65,535 elements.
+  // See [WebKit Bug 80797](https://bugs.webkit.org/show_bug.cgi?id=80797)
+  _.max = function(obj, iterator, context) {
+    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
+      return Math.max.apply(Math, obj);
+    }
+    var result = -Infinity, lastComputed = -Infinity;
+    each(obj, function(value, index, list) {
+      var computed = iterator ? iterator.call(context, value, index, list) : value;
+      if (computed > lastComputed) {
+        result = value;
+        lastComputed = computed;
+      }
+    });
+    return result;
+  };
+
+  // Return the minimum element (or element-based computation).
+  _.min = function(obj, iterator, context) {
+    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
+      return Math.min.apply(Math, obj);
+    }
+    var result = Infinity, lastComputed = Infinity;
+    each(obj, function(value, index, list) {
+      var computed = iterator ? iterator.call(context, value, index, list) : value;
+      if (computed < lastComputed) {
+        result = value;
+        lastComputed = computed;
+      }
+    });
+    return result;
+  };
+
+  // Shuffle an array, using the modern version of the
+  // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
+  _.shuffle = function(obj) {
+    var rand;
+    var index = 0;
+    var shuffled = [];
+    each(obj, function(value) {
+      rand = _.random(index++);
+      shuffled[index - 1] = shuffled[rand];
+      shuffled[rand] = value;
+    });
+    return shuffled;
+  };
+
+  // Sample **n** random values from a collection.
+  // If **n** is not specified, returns a single random element.
+  // The internal `guard` argument allows it to work with `map`.
+  _.sample = function(obj, n, guard) {
+    if (n == null || guard) {
+      if (obj.length !== +obj.length) obj = _.values(obj);
+      return obj[_.random(obj.length - 1)];
+    }
+    return _.shuffle(obj).slice(0, Math.max(0, n));
+  };
+
+  // An internal function to generate lookup iterators.
+  var lookupIterator = function(value) {
+    if (value == null) return _.identity;
+    if (_.isFunction(value)) return value;
+    return _.property(value);
+  };
+
+  // Sort the object's values by a criterion produced by an iterator.
+  _.sortBy = function(obj, iterator, context) {
+    iterator = lookupIterator(iterator);
+    return _.pluck(_.map(obj, function(value, index, list) {
+      return {
+        value: value,
+        index: index,
+        criteria: iterator.call(context, value, index, list)
+      };
+    }).sort(function(left, right) {
+      var a = left.criteria;
+      var b = right.criteria;
+      if (a !== b) {
+        if (a > b || a === void 0) return 1;
+        if (a < b || b === void 0) return -1;
+      }
+      return left.index - right.index;
+    }), 'value');
+  };
+
+  // An internal function used for aggregate "group by" operations.
+  var group = function(behavior) {
+    return function(obj, iterator, context) {
+      var result = {};
+      iterator = lookupIterator(iterator);
+      each(obj, function(value, index) {
+        var key = iterator.call(context, value, index, obj);
+        behavior(result, key, value);
+      });
+      return result;
+    };
+  };
+
+  // Groups the object's values by a criterion. Pass either a string attribute
+  // to group by, or a function that returns the criterion.
+  _.groupBy = group(function(result, key, value) {
+    _.has(result, key) ? result[key].push(value) : result[key] = [value];
+  });
+
+  // Indexes the object's values by a criterion, similar to `groupBy`, but for
+  // when you know that your index values will be unique.
+  _.indexBy = group(function(result, key, value) {
+    result[key] = value;
+  });
+
+  // Counts instances of an object that group by a certain criterion. Pass
+  // either a string attribute to count by, or a function that returns the
+  // criterion.
+  _.countBy = group(function(result, key) {
+    _.has(result, key) ? result[key]++ : result[key] = 1;
+  });
+
+  // Use a comparator function to figure out the smallest index at which
+  // an object should be inserted so as to maintain order. Uses binary search.
+  _.sortedIndex = function(array, obj, iterator, context) {
+    iterator = lookupIterator(iterator);
+    var value = iterator.call(context, obj);
+    var low = 0, high = array.length;
+    while (low < high) {
+      var mid = (low + high) >>> 1;
+      iterator.call(context, array[mid]) < value ? low = mid + 1 : high = mid;
+    }
+    return low;
+  };
+
+  // Safely create a real, live array from anything iterable.
+  _.toArray = function(obj) {
+    if (!obj) return [];
+    if (_.isArray(obj)) return slice.call(obj);
+    if (obj.length === +obj.length) return _.map(obj, _.identity);
+    return _.values(obj);
+  };
+
+  // Return the number of elements in an object.
+  _.size = function(obj) {
+    if (obj == null) return 0;
+    return (obj.length === +obj.length) ? obj.length : _.keys(obj).length;
+  };
+
+  // Array Functions
+  // ---------------
+
+  // Get the first element of an array. Passing **n** will return the first N
+  // values in the array. Aliased as `head` and `take`. The **guard** check
+  // allows it to work with `_.map`.
+  _.first = _.head = _.take = function(array, n, guard) {
+    if (array == null) return void 0;
+    if ((n == null) || guard) return array[0];
+    if (n < 0) return [];
+    return slice.call(array, 0, n);
+  };
+
+  // Returns everything but the last entry of the array. Especially useful on
+  // the arguments object. Passing **n** will return all the values in
+  // the array, excluding the last N. The **guard** check allows it to work with
+  // `_.map`.
+  _.initial = function(array, n, guard) {
+    return slice.call(array, 0, array.length - ((n == null) || guard ? 1 : n));
+  };
+
+  // Get the last element of an array. Passing **n** will return the last N
+  // values in the array. The **guard** check allows it to work with `_.map`.
+  _.last = function(array, n, guard) {
+    if (array == null) return void 0;
+    if ((n == null) || guard) return array[array.length - 1];
+    return slice.call(array, Math.max(array.length - n, 0));
+  };
+
+  // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
+  // Especially useful on the arguments object. Passing an **n** will return
+  // the rest N values in the array. The **guard**
+  // check allows it to work with `_.map`.
+  _.rest = _.tail = _.drop = function(array, n, guard) {
+    return slice.call(array, (n == null) || guard ? 1 : n);
+  };
+
+  // Trim out all falsy values from an array.
+  _.compact = function(array) {
+    return _.filter(array, _.identity);
+  };
+
+  // Internal implementation of a recursive `flatten` function.
+  var flatten = function(input, shallow, output) {
+    if (shallow && _.every(input, _.isArray)) {
+      return concat.apply(output, input);
+    }
+    each(input, function(value) {
+      if (_.isArray(value) || _.isArguments(value)) {
+        shallow ? push.apply(output, value) : flatten(value, shallow, output);
+      } else {
+        output.push(value);
+      }
+    });
+    return output;
+  };
+
+  // Flatten out an array, either recursively (by default), or just one level.
+  _.flatten = function(array, shallow) {
+    return flatten(array, shallow, []);
+  };
+
+  // Return a version of the array that does not contain the specified value(s).
+  _.without = function(array) {
+    return _.difference(array, slice.call(arguments, 1));
+  };
+
+  // Split an array into two arrays: one whose elements all satisfy the given
+  // predicate, and one whose elements all do not satisfy the predicate.
+  _.partition = function(array, predicate) {
+    var pass = [], fail = [];
+    each(array, function(elem) {
+      (predicate(elem) ? pass : fail).push(elem);
+    });
+    return [pass, fail];
+  };
+
+  // Produce a duplicate-free version of the array. If the array has already
+  // been sorted, you have the option of using a faster algorithm.
+  // Aliased as `unique`.
+  _.uniq = _.unique = function(array, isSorted, iterator, context) {
+    if (_.isFunction(isSorted)) {
+      context = iterator;
+      iterator = isSorted;
+      isSorted = false;
+    }
+    var initial = iterator ? _.map(array, iterator, context) : array;
+    var results = [];
+    var seen = [];
+    each(initial, function(value, index) {
+      if (isSorted ? (!index || seen[seen.length - 1] !== value) : !_.contains(seen, value)) {
+        seen.push(value);
+        results.push(array[index]);
+      }
+    });
+    return results;
+  };
+
+  // Produce an array that contains the union: each distinct element from all of
+  // the passed-in arrays.
+  _.union = function() {
+    return _.uniq(_.flatten(arguments, true));
+  };
+
+  // Produce an array that contains every item shared between all the
+  // passed-in arrays.
+  _.intersection = function(array) {
+    var rest = slice.call(arguments, 1);
+    return _.filter(_.uniq(array), function(item) {
+      return _.every(rest, function(other) {
+        return _.contains(other, item);
+      });
+    });
+  };
+
+  // Take the difference between one array and a number of other arrays.
+  // Only the elements present in just the first array will remain.
+  _.difference = function(array) {
+    var rest = concat.apply(ArrayProto, slice.call(arguments, 1));
+    return _.filter(array, function(value){ return !_.contains(rest, value); });
+  };
+
+  // Zip together multiple lists into a single array -- elements that share
+  // an index go together.
+  _.zip = function() {
+    var length = _.max(_.pluck(arguments, 'length').concat(0));
+    var results = new Array(length);
+    for (var i = 0; i < length; i++) {
+      results[i] = _.pluck(arguments, '' + i);
+    }
+    return results;
+  };
+
+  // Converts lists into objects. Pass either a single array of `[key, value]`
+  // pairs, or two parallel arrays of the same length -- one of keys, and one of
+  // the corresponding values.
+  _.object = function(list, values) {
+    if (list == null) return {};
+    var result = {};
+    for (var i = 0, length = list.length; i < length; i++) {
+      if (values) {
+        result[list[i]] = values[i];
+      } else {
+        result[list[i][0]] = list[i][1];
+      }
+    }
+    return result;
+  };
+
+  // If the browser doesn't supply us with indexOf (I'm looking at you, **MSIE**),
+  // we need this function. Return the position of the first occurrence of an
+  // item in an array, or -1 if the item is not included in the array.
+  // Delegates to **ECMAScript 5**'s native `indexOf` if available.
+  // If the array is large and already in sort order, pass `true`
+  // for **isSorted** to use binary search.
+  _.indexOf = function(array, item, isSorted) {
+    if (array == null) return -1;
+    var i = 0, length = array.length;
+    if (isSorted) {
+      if (typeof isSorted == 'number') {
+        i = (isSorted < 0 ? Math.max(0, length + isSorted) : isSorted);
+      } else {
+        i = _.sortedIndex(array, item);
+        return array[i] === item ? i : -1;
+      }
+    }
+    if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item, isSorted);
+    for (; i < length; i++) if (array[i] === item) return i;
+    return -1;
+  };
+
+  // Delegates to **ECMAScript 5**'s native `lastIndexOf` if available.
+  _.lastIndexOf = function(array, item, from) {
+    if (array == null) return -1;
+    var hasIndex = from != null;
+    if (nativeLastIndexOf && array.lastIndexOf === nativeLastIndexOf) {
+      return hasIndex ? array.lastIndexOf(item, from) : array.lastIndexOf(item);
+    }
+    var i = (hasIndex ? from : array.length);
+    while (i--) if (array[i] === item) return i;
+    return -1;
+  };
+
+  // Generate an integer Array containing an arithmetic progression. A port of
+  // the native Python `range()` function. See
+  // [the Python documentation](http://docs.python.org/library/functions.html#range).
+  _.range = function(start, stop, step) {
+    if (arguments.length <= 1) {
+      stop = start || 0;
+      start = 0;
+    }
+    step = arguments[2] || 1;
+
+    var length = Math.max(Math.ceil((stop - start) / step), 0);
+    var idx = 0;
+    var range = new Array(length);
+
+    while(idx < length) {
+      range[idx++] = start;
+      start += step;
+    }
+
+    return range;
+  };
+
+  // Function (ahem) Functions
+  // ------------------
+
+  // Reusable constructor function for prototype setting.
+  var ctor = function(){};
+
+  // Create a function bound to a given object (assigning `this`, and arguments,
+  // optionally). Delegates to **ECMAScript 5**'s native `Function.bind` if
+  // available.
+  _.bind = function(func, context) {
+    var args, bound;
+    if (nativeBind && func.bind === nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
+    if (!_.isFunction(func)) throw new TypeError;
+    args = slice.call(arguments, 2);
+    return bound = function() {
+      if (!(this instanceof bound)) return func.apply(context, args.concat(slice.call(arguments)));
+      ctor.prototype = func.prototype;
+      var self = new ctor;
+      ctor.prototype = null;
+      var result = func.apply(self, args.concat(slice.call(arguments)));
+      if (Object(result) === result) return result;
+      return self;
+    };
+  };
+
+  // Partially apply a function by creating a version that has had some of its
+  // arguments pre-filled, without changing its dynamic `this` context. _ acts
+  // as a placeholder, allowing any combination of arguments to be pre-filled.
+  _.partial = function(func) {
+    var boundArgs = slice.call(arguments, 1);
+    return function() {
+      var position = 0;
+      var args = boundArgs.slice();
+      for (var i = 0, length = args.length; i < length; i++) {
+        if (args[i] === _) args[i] = arguments[position++];
+      }
+      while (position < arguments.length) args.push(arguments[position++]);
+      return func.apply(this, args);
+    };
+  };
+
+  // Bind a number of an object's methods to that object. Remaining arguments
+  // are the method names to be bound. Useful for ensuring that all callbacks
+  // defined on an object belong to it.
+  _.bindAll = function(obj) {
+    var funcs = slice.call(arguments, 1);
+    if (funcs.length === 0) throw new Error('bindAll must be passed function names');
+    each(funcs, function(f) { obj[f] = _.bind(obj[f], obj); });
+    return obj;
+  };
+
+  // Memoize an expensive function by storing its results.
+  _.memoize = function(func, hasher) {
+    var memo = {};
+    hasher || (hasher = _.identity);
+    return function() {
+      var key = hasher.apply(this, arguments);
+      return _.has(memo, key) ? memo[key] : (memo[key] = func.apply(this, arguments));
+    };
+  };
+
+  // Delays a function for the given number of milliseconds, and then calls
+  // it with the arguments supplied.
+  _.delay = function(func, wait) {
+    var args = slice.call(arguments, 2);
+    return setTimeout(function(){ return func.apply(null, args); }, wait);
+  };
+
+  // Defers a function, scheduling it to run after the current call stack has
+  // cleared.
+  _.defer = function(func) {
+    return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
+  };
+
+  // Returns a function, that, when invoked, will only be triggered at most once
+  // during a given window of time. Normally, the throttled function will run
+  // as much as it can, without ever going more than once per `wait` duration;
+  // but if you'd like to disable the execution on the leading edge, pass
+  // `{leading: false}`. To disable execution on the trailing edge, ditto.
+  _.throttle = function(func, wait, options) {
+    var context, args, result;
+    var timeout = null;
+    var previous = 0;
+    options || (options = {});
+    var later = function() {
+      previous = options.leading === false ? 0 : _.now();
+      timeout = null;
+      result = func.apply(context, args);
+      context = args = null;
+    };
+    return function() {
+      var now = _.now();
+      if (!previous && options.leading === false) previous = now;
+      var remaining = wait - (now - previous);
+      context = this;
+      args = arguments;
+      if (remaining <= 0) {
+        clearTimeout(timeout);
+        timeout = null;
+        previous = now;
+        result = func.apply(context, args);
+        context = args = null;
+      } else if (!timeout && options.trailing !== false) {
+        timeout = setTimeout(later, remaining);
+      }
+      return result;
+    };
+  };
+
+  // Returns a function, that, as long as it continues to be invoked, will not
+  // be triggered. The function will be called after it stops being called for
+  // N milliseconds. If `immediate` is passed, trigger the function on the
+  // leading edge, instead of the trailing.
+  _.debounce = function(func, wait, immediate) {
+    var timeout, args, context, timestamp, result;
+
+    var later = function() {
+      var last = _.now() - timestamp;
+      if (last < wait) {
+        timeout = setTimeout(later, wait - last);
+      } else {
+        timeout = null;
+        if (!immediate) {
+          result = func.apply(context, args);
+          context = args = null;
+        }
+      }
+    };
+
+    return function() {
+      context = this;
+      args = arguments;
+      timestamp = _.now();
+      var callNow = immediate && !timeout;
+      if (!timeout) {
+        timeout = setTimeout(later, wait);
+      }
+      if (callNow) {
+        result = func.apply(context, args);
+        context = args = null;
+      }
+
+      return result;
+    };
+  };
+
+  // Returns a function that will be executed at most one time, no matter how
+  // often you call it. Useful for lazy initialization.
+  _.once = function(func) {
+    var ran = false, memo;
+    return function() {
+      if (ran) return memo;
+      ran = true;
+      memo = func.apply(this, arguments);
+      func = null;
+      return memo;
+    };
+  };
+
+  // Returns the first function passed as an argument to the second,
+  // allowing you to adjust arguments, run code before and after, and
+  // conditionally execute the original function.
+  _.wrap = function(func, wrapper) {
+    return _.partial(wrapper, func);
+  };
+
+  // Returns a function that is the composition of a list of functions, each
+  // consuming the return value of the function that follows.
+  _.compose = function() {
+    var funcs = arguments;
+    return function() {
+      var args = arguments;
+      for (var i = funcs.length - 1; i >= 0; i--) {
+        args = [funcs[i].apply(this, args)];
+      }
+      return args[0];
+    };
+  };
+
+  // Returns a function that will only be executed after being called N times.
+  _.after = function(times, func) {
+    return function() {
+      if (--times < 1) {
+        return func.apply(this, arguments);
+      }
+    };
+  };
+
+  // Object Functions
+  // ----------------
+
+  // Retrieve the names of an object's properties.
+  // Delegates to **ECMAScript 5**'s native `Object.keys`
+  _.keys = function(obj) {
+    if (!_.isObject(obj)) return [];
+    if (nativeKeys) return nativeKeys(obj);
+    var keys = [];
+    for (var key in obj) if (_.has(obj, key)) keys.push(key);
+    return keys;
+  };
+
+  // Retrieve the values of an object's properties.
+  _.values = function(obj) {
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var values = new Array(length);
+    for (var i = 0; i < length; i++) {
+      values[i] = obj[keys[i]];
+    }
+    return values;
+  };
+
+  // Convert an object into a list of `[key, value]` pairs.
+  _.pairs = function(obj) {
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var pairs = new Array(length);
+    for (var i = 0; i < length; i++) {
+      pairs[i] = [keys[i], obj[keys[i]]];
+    }
+    return pairs;
+  };
+
+  // Invert the keys and values of an object. The values must be serializable.
+  _.invert = function(obj) {
+    var result = {};
+    var keys = _.keys(obj);
+    for (var i = 0, length = keys.length; i < length; i++) {
+      result[obj[keys[i]]] = keys[i];
+    }
+    return result;
+  };
+
+  // Return a sorted list of the function names available on the object.
+  // Aliased as `methods`
+  _.functions = _.methods = function(obj) {
+    var names = [];
+    for (var key in obj) {
+      if (_.isFunction(obj[key])) names.push(key);
+    }
+    return names.sort();
+  };
+
+  // Extend a given object with all the properties in passed-in object(s).
+  _.extend = function(obj) {
+    each(slice.call(arguments, 1), function(source) {
+      if (source) {
+        for (var prop in source) {
+          obj[prop] = source[prop];
+        }
+      }
+    });
+    return obj;
+  };
+
+  // Return a copy of the object only containing the whitelisted properties.
+  _.pick = function(obj) {
+    var copy = {};
+    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
+    each(keys, function(key) {
+      if (key in obj) copy[key] = obj[key];
+    });
+    return copy;
+  };
+
+   // Return a copy of the object without the blacklisted properties.
+  _.omit = function(obj) {
+    var copy = {};
+    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
+    for (var key in obj) {
+      if (!_.contains(keys, key)) copy[key] = obj[key];
+    }
+    return copy;
+  };
+
+  // Fill in a given object with default properties.
+  _.defaults = function(obj) {
+    each(slice.call(arguments, 1), function(source) {
+      if (source) {
+        for (var prop in source) {
+          if (obj[prop] === void 0) obj[prop] = source[prop];
+        }
+      }
+    });
+    return obj;
+  };
+
+  // Create a (shallow-cloned) duplicate of an object.
+  _.clone = function(obj) {
+    if (!_.isObject(obj)) return obj;
+    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
+  };
+
+  // Invokes interceptor with the obj, and then returns obj.
+  // The primary purpose of this method is to "tap into" a method chain, in
+  // order to perform operations on intermediate results within the chain.
+  _.tap = function(obj, interceptor) {
+    interceptor(obj);
+    return obj;
+  };
+
+  // Internal recursive comparison function for `isEqual`.
+  var eq = function(a, b, aStack, bStack) {
+    // Identical objects are equal. `0 === -0`, but they aren't identical.
+    // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+    if (a === b) return a !== 0 || 1 / a == 1 / b;
+    // A strict comparison is necessary because `null == undefined`.
+    if (a == null || b == null) return a === b;
+    // Unwrap any wrapped objects.
+    if (a instanceof _) a = a._wrapped;
+    if (b instanceof _) b = b._wrapped;
+    // Compare `[[Class]]` names.
+    var className = toString.call(a);
+    if (className != toString.call(b)) return false;
+    switch (className) {
+      // Strings, numbers, dates, and booleans are compared by value.
+      case '[object String]':
+        // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+        // equivalent to `new String("5")`.
+        return a == String(b);
+      case '[object Number]':
+        // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
+        // other numeric values.
+        return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
+      case '[object Date]':
+      case '[object Boolean]':
+        // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+        // millisecond representations. Note that invalid dates with millisecond representations
+        // of `NaN` are not equivalent.
+        return +a == +b;
+      // RegExps are compared by their source patterns and flags.
+      case '[object RegExp]':
+        return a.source == b.source &&
+               a.global == b.global &&
+               a.multiline == b.multiline &&
+               a.ignoreCase == b.ignoreCase;
+    }
+    if (typeof a != 'object' || typeof b != 'object') return false;
+    // Assume equality for cyclic structures. The algorithm for detecting cyclic
+    // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+    var length = aStack.length;
+    while (length--) {
+      // Linear search. Performance is inversely proportional to the number of
+      // unique nested structures.
+      if (aStack[length] == a) return bStack[length] == b;
+    }
+    // Objects with different constructors are not equivalent, but `Object`s
+    // from different frames are.
+    var aCtor = a.constructor, bCtor = b.constructor;
+    if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
+                             _.isFunction(bCtor) && (bCtor instanceof bCtor))
+                        && ('constructor' in a && 'constructor' in b)) {
+      return false;
+    }
+    // Add the first object to the stack of traversed objects.
+    aStack.push(a);
+    bStack.push(b);
+    var size = 0, result = true;
+    // Recursively compare objects and arrays.
+    if (className == '[object Array]') {
+      // Compare array lengths to determine if a deep comparison is necessary.
+      size = a.length;
+      result = size == b.length;
+      if (result) {
+        // Deep compare the contents, ignoring non-numeric properties.
+        while (size--) {
+          if (!(result = eq(a[size], b[size], aStack, bStack))) break;
+        }
+      }
+    } else {
+      // Deep compare objects.
+      for (var key in a) {
+        if (_.has(a, key)) {
+          // Count the expected number of properties.
+          size++;
+          // Deep compare each member.
+          if (!(result = _.has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
+        }
+      }
+      // Ensure that both objects contain the same number of properties.
+      if (result) {
+        for (key in b) {
+          if (_.has(b, key) && !(size--)) break;
+        }
+        result = !size;
+      }
+    }
+    // Remove the first object from the stack of traversed objects.
+    aStack.pop();
+    bStack.pop();
+    return result;
+  };
+
+  // Perform a deep comparison to check if two objects are equal.
+  _.isEqual = function(a, b) {
+    return eq(a, b, [], []);
+  };
+
+  // Is a given array, string, or object empty?
+  // An "empty" object has no enumerable own-properties.
+  _.isEmpty = function(obj) {
+    if (obj == null) return true;
+    if (_.isArray(obj) || _.isString(obj)) return obj.length === 0;
+    for (var key in obj) if (_.has(obj, key)) return false;
+    return true;
+  };
+
+  // Is a given value a DOM element?
+  _.isElement = function(obj) {
+    return !!(obj && obj.nodeType === 1);
+  };
+
+  // Is a given value an array?
+  // Delegates to ECMA5's native Array.isArray
+  _.isArray = nativeIsArray || function(obj) {
+    return toString.call(obj) == '[object Array]';
+  };
+
+  // Is a given variable an object?
+  _.isObject = function(obj) {
+    return obj === Object(obj);
+  };
+
+  // Add some isType methods: isArguments, isFunction, isString, isNumber, isDate, isRegExp.
+  each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'], function(name) {
+    _['is' + name] = function(obj) {
+      return toString.call(obj) == '[object ' + name + ']';
+    };
+  });
+
+  // Define a fallback version of the method in browsers (ahem, IE), where
+  // there isn't any inspectable "Arguments" type.
+  if (!_.isArguments(arguments)) {
+    _.isArguments = function(obj) {
+      return !!(obj && _.has(obj, 'callee'));
+    };
+  }
+
+  // Optimize `isFunction` if appropriate.
+  if (typeof (/./) !== 'function') {
+    _.isFunction = function(obj) {
+      return typeof obj === 'function';
+    };
+  }
+
+  // Is a given object a finite number?
+  _.isFinite = function(obj) {
+    return isFinite(obj) && !isNaN(parseFloat(obj));
+  };
+
+  // Is the given value `NaN`? (NaN is the only number which does not equal itself).
+  _.isNaN = function(obj) {
+    return _.isNumber(obj) && obj != +obj;
+  };
+
+  // Is a given value a boolean?
+  _.isBoolean = function(obj) {
+    return obj === true || obj === false || toString.call(obj) == '[object Boolean]';
+  };
+
+  // Is a given value equal to null?
+  _.isNull = function(obj) {
+    return obj === null;
+  };
+
+  // Is a given variable undefined?
+  _.isUndefined = function(obj) {
+    return obj === void 0;
+  };
+
+  // Shortcut function for checking if an object has a given property directly
+  // on itself (in other words, not on a prototype).
+  _.has = function(obj, key) {
+    return hasOwnProperty.call(obj, key);
+  };
+
+  // Utility Functions
+  // -----------------
+
+  // Run Underscore.js in *noConflict* mode, returning the `_` variable to its
+  // previous owner. Returns a reference to the Underscore object.
+  _.noConflict = function() {
+    root._ = previousUnderscore;
+    return this;
+  };
+
+  // Keep the identity function around for default iterators.
+  _.identity = function(value) {
+    return value;
+  };
+
+  _.constant = function(value) {
+    return function () {
+      return value;
+    };
+  };
+
+  _.property = function(key) {
+    return function(obj) {
+      return obj[key];
+    };
+  };
+
+  // Returns a predicate for checking whether an object has a given set of `key:value` pairs.
+  _.matches = function(attrs) {
+    return function(obj) {
+      if (obj === attrs) return true; //avoid comparing an object to itself.
+      for (var key in attrs) {
+        if (attrs[key] !== obj[key])
+          return false;
+      }
+      return true;
+    }
+  };
+
+  // Run a function **n** times.
+  _.times = function(n, iterator, context) {
+    var accum = Array(Math.max(0, n));
+    for (var i = 0; i < n; i++) accum[i] = iterator.call(context, i);
+    return accum;
+  };
+
+  // Return a random integer between min and max (inclusive).
+  _.random = function(min, max) {
+    if (max == null) {
+      max = min;
+      min = 0;
+    }
+    return min + Math.floor(Math.random() * (max - min + 1));
+  };
+
+  // A (possibly faster) way to get the current timestamp as an integer.
+  _.now = Date.now || function() { return new Date().getTime(); };
+
+  // List of HTML entities for escaping.
+  var entityMap = {
+    escape: {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;'
+    }
+  };
+  entityMap.unescape = _.invert(entityMap.escape);
+
+  // Regexes containing the keys and values listed immediately above.
+  var entityRegexes = {
+    escape:   new RegExp('[' + _.keys(entityMap.escape).join('') + ']', 'g'),
+    unescape: new RegExp('(' + _.keys(entityMap.unescape).join('|') + ')', 'g')
+  };
+
+  // Functions for escaping and unescaping strings to/from HTML interpolation.
+  _.each(['escape', 'unescape'], function(method) {
+    _[method] = function(string) {
+      if (string == null) return '';
+      return ('' + string).replace(entityRegexes[method], function(match) {
+        return entityMap[method][match];
+      });
+    };
+  });
+
+  // If the value of the named `property` is a function then invoke it with the
+  // `object` as context; otherwise, return it.
+  _.result = function(object, property) {
+    if (object == null) return void 0;
+    var value = object[property];
+    return _.isFunction(value) ? value.call(object) : value;
+  };
+
+  // Add your own custom functions to the Underscore object.
+  _.mixin = function(obj) {
+    each(_.functions(obj), function(name) {
+      var func = _[name] = obj[name];
+      _.prototype[name] = function() {
+        var args = [this._wrapped];
+        push.apply(args, arguments);
+        return result.call(this, func.apply(_, args));
+      };
+    });
+  };
+
+  // Generate a unique integer id (unique within the entire client session).
+  // Useful for temporary DOM ids.
+  var idCounter = 0;
+  _.uniqueId = function(prefix) {
+    var id = ++idCounter + '';
+    return prefix ? prefix + id : id;
+  };
+
+  // By default, Underscore uses ERB-style template delimiters, change the
+  // following template settings to use alternative delimiters.
+  _.templateSettings = {
+    evaluate    : /<%([\s\S]+?)%>/g,
+    interpolate : /<%=([\s\S]+?)%>/g,
+    escape      : /<%-([\s\S]+?)%>/g
+  };
+
+  // When customizing `templateSettings`, if you don't want to define an
+  // interpolation, evaluation or escaping regex, we need one that is
+  // guaranteed not to match.
+  var noMatch = /(.)^/;
+
+  // Certain characters need to be escaped so that they can be put into a
+  // string literal.
+  var escapes = {
+    "'":      "'",
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\t':     't',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  };
+
+  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+
+  // JavaScript micro-templating, similar to John Resig's implementation.
+  // Underscore templating handles arbitrary delimiters, preserves whitespace,
+  // and correctly escapes quotes within interpolated code.
+  _.template = function(text, data, settings) {
+    var render;
+    settings = _.defaults({}, settings, _.templateSettings);
+
+    // Combine delimiters into one regular expression via alternation.
+    var matcher = new RegExp([
+      (settings.escape || noMatch).source,
+      (settings.interpolate || noMatch).source,
+      (settings.evaluate || noMatch).source
+    ].join('|') + '|$', 'g');
+
+    // Compile the template source, escaping string literals appropriately.
+    var index = 0;
+    var source = "__p+='";
+    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+      source += text.slice(index, offset)
+        .replace(escaper, function(match) { return '\\' + escapes[match]; });
+
+      if (escape) {
+        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+      }
+      if (interpolate) {
+        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+      }
+      if (evaluate) {
+        source += "';\n" + evaluate + "\n__p+='";
+      }
+      index = offset + match.length;
+      return match;
+    });
+    source += "';\n";
+
+    // If a variable is not specified, place data values in local scope.
+    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
+
+    source = "var __t,__p='',__j=Array.prototype.join," +
+      "print=function(){__p+=__j.call(arguments,'');};\n" +
+      source + "return __p;\n";
+
+    try {
+      render = new Function(settings.variable || 'obj', '_', source);
+    } catch (e) {
+      e.source = source;
+      throw e;
+    }
+
+    if (data) return render(data, _);
+    var template = function(data) {
+      return render.call(this, data, _);
+    };
+
+    // Provide the compiled function source as a convenience for precompilation.
+    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
+
+    return template;
+  };
+
+  // Add a "chain" function, which will delegate to the wrapper.
+  _.chain = function(obj) {
+    return _(obj).chain();
+  };
+
+  // OOP
+  // ---------------
+  // If Underscore is called as a function, it returns a wrapped object that
+  // can be used OO-style. This wrapper holds altered versions of all the
+  // underscore functions. Wrapped objects may be chained.
+
+  // Helper function to continue chaining intermediate results.
+  var result = function(obj) {
+    return this._chain ? _(obj).chain() : obj;
+  };
+
+  // Add all of the Underscore functions to the wrapper object.
+  _.mixin(_);
+
+  // Add all mutator Array functions to the wrapper.
+  each(['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      var obj = this._wrapped;
+      method.apply(obj, arguments);
+      if ((name == 'shift' || name == 'splice') && obj.length === 0) delete obj[0];
+      return result.call(this, obj);
+    };
+  });
+
+  // Add all accessor Array functions to the wrapper.
+  each(['concat', 'join', 'slice'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      return result.call(this, method.apply(this._wrapped, arguments));
+    };
+  });
+
+  _.extend(_.prototype, {
+
+    // Start chaining a wrapped Underscore object.
+    chain: function() {
+      this._chain = true;
+      return this;
+    },
+
+    // Extracts the result from a wrapped and chained object.
+    value: function() {
+      return this._wrapped;
+    }
+
+  });
+
+  // AMD registration happens at the end for compatibility with AMD loaders
+  // that may not enforce next-turn semantics on modules. Even though general
+  // practice for AMD registration is to be anonymous, underscore registers
+  // as a named module because, like jQuery, it is a base library that is
+  // popular enough to be bundled in a third party lib, but not be part of
+  // an AMD load request. Those cases could generate an error when an
+  // anonymous define() is called outside of a loader request.
+  if (typeof define === 'function' && define.amd) {
+    define('underscore', [], function() {
+      return _;
+    });
+  }
+}).call(this);
+
+},{}],5:[function(require,module,exports){
+exports.pickVal = function(mean, variance) {
+  return mean + mean * variance * (1 - 2 * Math.random())
+}
+
+exports.floor = function(val, dec) {
+  return Math.floor(val * Math.pow(10, dec)) / Math.pow(10, dec) 
+}
+
+exports.valExp = function(val, exp) {
+  exp = exp || 2
+  return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
+}
+
+},{}],6:[function(require,module,exports){
+// This must be executed on a user action, and will return a working audio context.
+exports.kickStartWAA = function() {
+  audioContext = new AudioContext()
+  var osc = audioContext.createOscillator()
+    , gain = audioContext.createGain()
+  gain.gain.value = 0
+  osc.connect(gain)
+  gain.connect(audioContext.destination)
+  osc.start(0)
+  osc.stop(1)
+  return audioContext
+}
+
+// Loads an audio buffer from sound file at `url`.  
+var loadBuffer = exports.loadBuffer = function(url, done) {
+  loadFile(url, function(err, blob) {
+    if (err) return done(err)
+    decodeBlob(blob, function(err, buffer) {
+      if (err) {
+        if (err instanceof DecodeError) err.message += ' ' + url
+        return done(err)
+      }
+      done(null, buffer)
+    })
+  })
+}
+
+// Test for support of sound formats. Returns a list :
+// `['format1', 'format2', ...]`. Formats tested are 'ogg', 'mp3' and 'wav'.
+var formatSupport = exports.formatSupport = function(done) {
+  var results = []
+    , formatList = [
+      ['wav', 'sounds/format-support/sample.wav'],
+      ['mp3', 'sounds/format-support/sample.mp3'],
+      ['ogg', 'sounds/format-support/sample.ogg']
+    ]
+    , format
+
+  var cb = function(fileType, err, buffer) {
+    var support
+
+    // catch error only if decoding error
+    if (err) {
+      if (err instanceof DecodeError) support = false 
+      else return done(err)
+
+    // if no error, we test that the buffer is decoded as expected
+    } else if (buffer.numberOfChannels === 1 && Math.round(buffer.duration * 1000) === 50)
+      support = true
+
+    // if buffer doesn't contain expected data we consider the format not supported
+    else support = false
+
+    // Add format to `results` if supported, then move on to next format
+    if (support === true) results.push(fileType)
+    if (formatList.length > 0) {
+      format = formatList.pop()
+      loadBuffer(format[1], cb.bind(this, format[0]))
+    } else done(null, results)
+  }
+  format = formatList.pop()
+  loadBuffer(format[1], cb.bind(this, format[0]))
+}
+
+// Simple helper to plot mono buffers. For debugging purpose only 
+var plottedBuffers = []
+exports.plotBuffer = function(buffer, svg) {
+  var downsampleFactor = 100
+    , samples = buffer.getChannelData(0)
+    , sampleRate = buffer.sampleRate
+    , width = svg.attr('width') || 300
+    , height = svg.attr('height') || 300
+    , data = []
+
+  for (i = 0, length = buffer.length; i < length; i+=downsampleFactor)
+    data.push([i / sampleRate, samples[i]])
+
+  var x = d3.scale.linear()
+    .range([ 0, width ])
+
+  var y = d3.scale.linear()
+    .range([ height, 0 ])
+
+  var line = d3.svg.line()
+    .x(function(d) { return x(d[0]) })
+    .y(function(d) { return y(d[1]) })
+
+  x.domain(d3.extent(data, function(d) { return d[0] }))
+  y.domain(d3.extent(data, function(d) { return d[1] }))
+
+  svg.append('path')
+    .datum(data)
+    .attr('class', 'plot plot-' + plottedBuffers.length % 2)
+    .attr('d', line)
+
+  plottedBuffers.push(buffer)
+}
+
+// Decodes `blob` and calls `done(err, blob)` when done.
+var decodeBlob = function(blob, done) {
+  audioContext.decodeAudioData(blob, function(buffer) {
+    done(null, buffer)
+  }, function(err) {
+    done(err || new DecodeError('decoding error'), null)
+  })
+}
+
+// Loads the file at `url` and calls `done(err, blob)` when done.
+var loadFile = function(url, done) {
+  var request = new XMLHttpRequest()
+  request.open('GET', url, true)
+  request.responseType = 'arraybuffer'
+  request.onload = function(res) {
+    if (request.status === 200) done(null, request.response)
+    else done(new HTTPError(request.statusText))
+  }
+  request.onerror = function(err) {
+    done(err || new Error('unexpected request error'), null)
+  }
+  request.send()
+}
+
+var HTTPError = function HTTPError(message) {
+  this.message = (message || '')
+}
+HTTPError.prototype = Object.create(Error.prototype)
+HTTPError.prototype.name = 'HTTPError'
+
+var DecodeError = function DecodeError(message) {
+  this.message = (message || '')
+}
+DecodeError.prototype = Object.create(Error.prototype)
+DecodeError.prototype.name = 'DecodeError'
+
+},{}],7:[function(require,module,exports){
+var _ = require('underscore')
+
+var mouseDown = false
+
+$(function() {
+  $('body')
+    .on(TouchMouseEvent.DOWN, function() { mouseDown = true })
+    .on(TouchMouseEvent.UP, function() { mouseDown = false })
+})
+
+// `mode` can be :
+//  - 'toggle' only one track per step can be active
+//  - 'normal' there is no restriction in active steps
+exports.grid = function(mode, trackCount, stepCount) {
+  var grid = $('<div>', { class: 'grid' })
+
+  _.forEach(_.range(trackCount), function(trackId) {
+    var track = $('<div>', { class: 'track track-' + trackId }).appendTo(grid)
+    _.forEach(_.range(stepCount), function(stepId) {
+      $('<div>', { class: 'step step-' + stepId }).appendTo(track)
+        .click(function() {
+          var cls = $(this).attr('class')
+          if (mode === 'toggle')
+            grid.find('.step-' + stepId).removeClass('active')
+          $(this).attr('class', cls).toggleClass('active')
+        })
+    })
+  })
+
+  return {
+    elem: grid,
+
+    refresh: function() {},
+    
+    setSequence: function(sequence) {
+      var i, j
+      for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
+        $('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
+    },
+
+    getSequence: function() {
+      var sequence = []
+      grid.find('.track').each(function(i, track) {
+        $(track).find('.step').each(function(j, step) {
+          if ($(step).hasClass('active')) {
+            sequence.push(i)
+            sequence.push(j)
+          }
+        })
+      })
+      return sequence
+    }
+  }
+}
+
+// `onToggleClick(active)` is called when the toggle is clicked. 
+exports.toggle = function(onToggleClick) {
+  var toggle = $('<div>', { class: 'toggle' }).click(function() {
+    $(this).toggleClass('active')
+    onToggleClick.call(this, $(this).hasClass('active') ? 1 : 0)
+  })
+
+  return {
+    elem: toggle,
+
+    refresh: function() {},
+
+    setState: function(state) {
+      if (state === 1) toggle.addClass('active')
+    }
+  }
+}
+
+exports.xyPad = function(opts, onMove) {
+  var xyPad = $('<div>', { class: 'xyPad' })
+    , inner = $('<div>', { class: 'inner' }).appendTo(xyPad)
+    , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
+    , valueFeedback = $('<div><span class="title">' + (opts.title || '') + '</span> '
+      + (opts.xLabel || 'X') + ': <span class="x">0</span> | '
+      + (opts.yLabel || 'Y') + ': <span class="y">1</span></div>',
+        { class: 'valueFeedback' }).appendTo(xyPad)
+    , cursorSize = $(document).width() * 0.07
+
+  xyPad.css({ padding: cursorSize / 2 })
+  cursor.css({
+    width: cursorSize, height: cursorSize,
+    left: -cursorSize / 2, top: -cursorSize / 2
+  })
+
+  var moveOrClick = function(event) {
+    var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
+      , yPos = Math.max(Math.min(event.pageY - inner.get(0).offsetTop, inner.height()), 0)
+      , yVal = Math.min(1 - yPos / inner.height(), 1)
+      , xVal = Math.min(xPos / inner.width(), 1)
+    cursor.css({ left: xPos - cursorSize / 2, top: yPos - cursorSize / 2 })
+    valueFeedback.find('.x').html(xVal.toString().slice(0, 4))
+    valueFeedback.find('.y').html(yVal.toString().slice(0, 4))
+    onMove(xVal, yVal)
+  }
+
+  var setValueFeedback = function(pos) {
+    valueFeedback.find('.x').html(pos[0].toString().slice(0, 4))
+    valueFeedback.find('.y').html(pos[1].toString().slice(0, 4))
+  }
+
+  xyPad.on(TouchMouseEvent.DOWN, function() {
+    xyPad.on(TouchMouseEvent.MOVE, moveOrClick)
+  })
+  inner.on(TouchMouseEvent.DOWN, moveOrClick)
+
+  $('body').on(TouchMouseEvent.UP, function() {
+    xyPad.off(TouchMouseEvent.MOVE)
+  })
+
+  return {
+    elem: xyPad,
+
+    _position: [0, 0],
+
+    refresh: function() {
+      this.setPosition(this._position)
+    },
+
+    setPosition: function(pos) {
+      this._position = pos
+      setValueFeedback(pos)
+      cursor.css({
+        left: inner.width() * pos[0] - cursorSize / 2,
+        top: inner.height() * (1 - pos[1]) - cursorSize / 2
+      })
+    }
+  }
+}
+
+exports.slider = function(opts, onMove) {
+  var slider = $('<div>', { class: 'slider' })
+    , inner = $('<div>', { class: 'inner' }).appendTo(slider)
+    , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
+    , valueFeedback = $('<div><span class="title">' + (opts.title || '') + '</span>: '
+      + '<span class="val">0</span>',
+        { class: 'valueFeedback' }).appendTo(slider)
+    , cursorSize = $(document).width() * 0.07
+  slider.css({ paddingLeft: cursorSize / 2, paddingRight: cursorSize / 2 })
+  cursor.css({
+    width: cursorSize, height: cursorSize,
+    left: -cursorSize / 2
+  })
+
+  var moveOrClick = function(event) {
+    var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
+      , val = Math.min(xPos / slider.width(), 1)
+    cursor.css({ left: xPos - cursorSize / 2 })
+    setValueFeedback(val)
+    onMove(val)
+  }
+
+  slider.on(TouchMouseEvent.DOWN, function() {
+    slider.on(TouchMouseEvent.MOVE, moveOrClick)
+  })
+  inner.on(TouchMouseEvent.DOWN, moveOrClick)
+
+  $('body').on(TouchMouseEvent.UP, function() {
+    slider.off(TouchMouseEvent.MOVE)
+  })
+
+  var setValueFeedback = function(val) {
+    valueFeedback.find('.val').html(val.toString().slice(0, 4))
+  }
+
+  return {
+    elem: slider,
+
+    _val: 0,
+
+    refresh: function() {
+      this.setVal(this._val)
+    },
+
+    setVal: function(val) {
+      this._val = val
+      setValueFeedback(val)
+      cursor.css({ left: val * inner.width() - cursorSize / 2 })
+    }
+  } 
+}
+},{"underscore":4}]},{},[1])

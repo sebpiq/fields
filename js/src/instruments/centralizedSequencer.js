@@ -4,21 +4,21 @@ var async = require('async')
   , widgets = require('../utils/widgets')
   , base = require('./base')
 
+var paramList = ['volume', 'state']
+
 exports.sound = function(instrumentId, stepCount, tracks) {
-  var sound = new Sound(stepCount, tracks)
-  sound.instrumentId = instrumentId
+  var sound = new Sound(instrumentId, stepCount, tracks)
   return sound
 }
 
-var Sound = function(stepCount, tracks) {
-  base.BaseSound.apply(this)
+var Sound = function(instrumentId, stepCount, tracks) {
+  base.BaseSound.call(this, instrumentId)
 
   // Picks one track randomly
   this.trackId = rhizome.userId % tracks.length
   this.soundUrl = tracks[this.trackId]
   this.buffer = null
   this.bufferNode = null
-  this.started = false
 }
 
 _.extend(Sound.prototype, base.BaseSound.prototype, {
@@ -26,9 +26,12 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
   load: function(done) {
     var self = this
     waaUtils.loadBuffer(this.soundUrl, function(err, buffer) {
-      if (!err) self.buffer = buffer
-      fields.log(self.instrumentId + ' loaded, track ' +  self.trackId 
-        + ' buffer length :' + self.buffer.length)
+      if (!err) {
+        self.buffer = buffer
+        fields.log(self.instrumentId + ' loaded, track ' +  self.trackId 
+          + ' buffer length :' + self.buffer.length)
+        self.restoreParams(paramList)
+      }
       done(err)
     })
   },
@@ -51,19 +54,26 @@ exports.controls = function(instrumentId, stepCount, tracks) {
 }
 
 var Controls = function(instrumentId, stepCount, tracks) {
-  this.instrumentId = instrumentId
+  base.BaseControls.call(this, instrumentId)
   this.trackCount = tracks.length
   this.tracks = tracks
   this.stepCount = stepCount
   this.container = $('<div>', { class: 'instrument centralizedSequencer' })
   this.currentStep = -1
   this.tickEvent = null
-  this.started = false
 
-  widgets.grid('normal', tracks.length, stepCount).appendTo(this.container)
+  this.grid = widgets.grid('normal', tracks.length, stepCount)
+  this.grid.elem.appendTo(this.container)
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  load: function(done) {
+    this.restoreParams(paramList)
+    done()
+  },
+
+  setParameter: function(param, args) {},
 
   _start: function() {
     var self = this

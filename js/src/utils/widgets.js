@@ -27,15 +27,48 @@ exports.grid = function(mode, trackCount, stepCount) {
     })
   })
 
-  return grid
+  return {
+    elem: grid,
+
+    refresh: function() {},
+    
+    setSequence: function(sequence) {
+      var i, j
+      for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
+        $('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
+    },
+
+    getSequence: function() {
+      var sequence = []
+      grid.find('.track').each(function(i, track) {
+        $(track).find('.step').each(function(j, step) {
+          if ($(step).hasClass('active')) {
+            sequence.push(i)
+            sequence.push(j)
+          }
+        })
+      })
+      return sequence
+    }
+  }
 }
 
 // `onToggleClick(active)` is called when the toggle is clicked. 
 exports.toggle = function(onToggleClick) {
-  return $('<div>', { class: 'toggle' }).click(function() {
+  var toggle = $('<div>', { class: 'toggle' }).click(function() {
     $(this).toggleClass('active')
-    onToggleClick.call(this, $(this).hasClass('active'))
+    onToggleClick.call(this, $(this).hasClass('active') ? 1 : 0)
   })
+
+  return {
+    elem: toggle,
+
+    refresh: function() {},
+
+    setState: function(state) {
+      if (state === 1) toggle.addClass('active')
+    }
+  }
 }
 
 exports.xyPad = function(opts, onMove) {
@@ -47,6 +80,7 @@ exports.xyPad = function(opts, onMove) {
       + (opts.yLabel || 'Y') + ': <span class="y">1</span></div>',
         { class: 'valueFeedback' }).appendTo(xyPad)
     , cursorSize = $(document).width() * 0.07
+
   xyPad.css({ padding: cursorSize / 2 })
   cursor.css({
     width: cursorSize, height: cursorSize,
@@ -64,17 +98,38 @@ exports.xyPad = function(opts, onMove) {
     onMove(xVal, yVal)
   }
 
+  var setValueFeedback = function(pos) {
+    valueFeedback.find('.x').html(pos[0].toString().slice(0, 4))
+    valueFeedback.find('.y').html(pos[1].toString().slice(0, 4))
+  }
+
   xyPad.on(TouchMouseEvent.DOWN, function() {
     xyPad.on(TouchMouseEvent.MOVE, moveOrClick)
   })
-
   inner.on(TouchMouseEvent.DOWN, moveOrClick)
 
   $('body').on(TouchMouseEvent.UP, function() {
     xyPad.off(TouchMouseEvent.MOVE)
   })
 
-  return xyPad
+  return {
+    elem: xyPad,
+
+    _position: [0, 0],
+
+    refresh: function() {
+      this.setPosition(this._position)
+    },
+
+    setPosition: function(pos) {
+      this._position = pos
+      setValueFeedback(pos)
+      cursor.css({
+        left: inner.width() * pos[0] - cursorSize / 2,
+        top: inner.height() * (1 - pos[1]) - cursorSize / 2
+      })
+    }
+  }
 }
 
 exports.slider = function(opts, onMove) {
@@ -91,19 +146,40 @@ exports.slider = function(opts, onMove) {
     left: -cursorSize / 2
   })
 
+  var moveOrClick = function(event) {
+    var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
+      , val = Math.min(xPos / slider.width(), 1)
+    cursor.css({ left: xPos - cursorSize / 2 })
+    setValueFeedback(val)
+    onMove(val)
+  }
+
   slider.on(TouchMouseEvent.DOWN, function() {
-    slider.on(TouchMouseEvent.MOVE, function(event) {
-      var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
-        , val = Math.min(xPos / slider.width(), 1)
-      cursor.css({ left: xPos - cursorSize / 2 })
-      valueFeedback.find('.val').html(val.toString().slice(0, 4))
-      onMove(val)
-    })
+    slider.on(TouchMouseEvent.MOVE, moveOrClick)
   })
+  inner.on(TouchMouseEvent.DOWN, moveOrClick)
 
   $('body').on(TouchMouseEvent.UP, function() {
     slider.off(TouchMouseEvent.MOVE)
   })
 
-  return slider 
+  var setValueFeedback = function(val) {
+    valueFeedback.find('.val').html(val.toString().slice(0, 4))
+  }
+
+  return {
+    elem: slider,
+
+    _val: 0,
+
+    refresh: function() {
+      this.setVal(this._val)
+    },
+
+    setVal: function(val) {
+      this._val = val
+      setValueFeedback(val)
+      cursor.css({ left: val * inner.width() - cursorSize / 2 })
+    }
+  } 
 }

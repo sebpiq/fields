@@ -1,11 +1,13 @@
 window.fields.controls = {}
+fields.log = console.log.bind(console)
 
-var controlsInstances = {}
-
-var waaUtils = require('./utils/waa')
+var async = require('async')
+  , _ = require('underscore')
+  , waaUtils = require('./utils/waa')
   , widgets = require('./utils/widgets')
   , math = require('./utils/math')
-  , _ = require('underscore')
+
+var controlsInstances = {}
 
 // Start things when the user presses a button
 fields.controls.start = function() {
@@ -23,24 +25,26 @@ fields.controls.start = function() {
       , controls = instrument.controls.apply(instrument, [instrumentId].concat(config.args))
       , title = $('<h2>').html(instrumentId)
     
-    var onOff = widgets.toggle(function(active) {
-      var action = active ? 'start' : 'stop'
+    // On/off button
+    controls.onOffToggle = widgets.toggle(function(state) {
+      var action = state === 1 ? 'start' : 'stop'
       controlsInstances[instrumentId][action]()
-      rhizome.send('/' + instrumentId + '/' + action)
+      rhizome.send('/' + instrumentId + '/state', [state])
     })
 
     // Volume control
     var _sendVolume = rhizome.utils.throttle(100, function(args) {
       rhizome.send('/' + instrumentId + '/volume', args)
     })    
-    var volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
+    controls.volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
       _sendVolume([ val ])
-    }).addClass('volume')
+    })
+    controls.volumeSlider.elem.addClass('volume')
 
     // Adding default controls to the container
     controlsInstances[instrumentId] = controls
-    controls.container.prepend(volumeSlider)
-    controls.container.prepend(onOff)
+    controls.container.prepend(controls.volumeSlider.elem)
+    controls.container.prepend(controls.onOffToggle.elem)
     controls.container.appendTo(tabsContainer)
     controls.container.prepend(title)
 
@@ -50,19 +54,45 @@ fields.controls.start = function() {
       .html(instrumentId)
       .click(function() {
         controls.container.toggleClass('active')
+        controls.volumeSlider.refresh()
+        controls.show()
         $(this).toggleClass('active')
       })
-
   }).values()
 }
 
 // Message scheme :
 //  /<instrument id>/<parameter> [args]
 rhizome.on('message', function(address, args) {
-  fields.log(address + ' ' + args)
+  if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
+  else {
+    fields.log('MESSAGE : ' + address + ' ' + args)
+
+    var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
+      , controls = controlsInstances[parts[1]]
+      , parameter = parts[2]
+
+    // This is used only to resend values, and if there was no arg there is presumably no value
+    // to restore.
+    if (args.length) {
+      if (parameter === 'state')
+        controls.onOffToggle.setState(args[0])
+      else if (parameter === 'volume')
+        controls.volumeSlider.setVal(args[0])
+      else controls.setParameter(parameter, args)
+    }
+  }
 })
 
-rhizome.on('connected', function() {})
+rhizome.on('connected', function() {
+  // Loading all the controls
+  async.forEach(_.values(controlsInstances), function(controls, next) {
+    controls.load(next)
+  }, function(err) {
+    if (err) fields.log('error loading controls : ' + err)
+  })
+})
+
 rhizome.on('server full', function() {})
 rhizome.on('connection lost', function() {})
 rhizome.on('reconnected', function() {})

@@ -4,14 +4,15 @@ var _ = require('underscore')
   , widgets = require('../utils/widgets')
   , base = require('./base')
 
+var paramList = ['volume', 'sequence', 'state']
+
 exports.sound = function(instrumentId, stepCount, tracks, tempo) {
-  var sound = new Sound(stepCount, tracks, tempo)
-  sound.instrumentId = instrumentId
+  var sound = new Sound(instrumentId, stepCount, tracks, tempo)
   return sound
 }
 
-var Sound = function(stepCount, tracks, tempo) {
-  base.BaseSound.apply(this)
+var Sound = function(instrumentId, stepCount, tracks, tempo) {
+  base.BaseSound.call(this, instrumentId)
 
   this.stepCount = stepCount
   this.tracks = tracks
@@ -20,7 +21,6 @@ var Sound = function(stepCount, tracks, tempo) {
   this._setTempo(tempo)
   this.sequence = []
   this.bufferNode = null
-  this.started = false
 }
 
 _.extend(Sound.prototype, base.BaseSound.prototype, {
@@ -31,6 +31,7 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       if (!err) {
         self.buffers = buffers
         fields.log(self.instrumentId + ' loaded, tempo ' +  self.tempo)
+        self.restoreParams(paramList)
       }
       done(err)
     })
@@ -106,26 +107,20 @@ exports.controls = function(instrumentId, stepCount, tracks) {
 }
 
 var Controls = function(instrumentId, stepCount, tracks) {
+  base.BaseControls.call(this, instrumentId)
   this.stepCount = stepCount
   this.tracks = tracks
 
-  var trackCount = tracks.length
+  var self = this
+    , trackCount = tracks.length
     , container = $('<div>', { class: 'instrument distributedSequencer' })
     , sendButton = $('<button>', { class: 'sendButton' }).appendTo(container).html('Send')
-    , grid = widgets.grid('toggle', tracks.length, stepCount)
-  grid.appendTo(container)
+  
+  this.grid = widgets.grid('toggle', tracks.length, stepCount)
+  this.grid.elem.appendTo(container)
 
   sendButton.click(function() {
-    var sequence = []
-    grid.find('.track').each(function(i, track) {
-      $(track).find('.step').each(function(j, step) {
-        if ($(step).hasClass('active')) {
-          sequence.push(i)
-          sequence.push(j)
-        }
-      })
-    })
-    rhizome.send('/' + instrumentId + '/sequence', sequence)
+    rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
   })
 
   this.container = container
@@ -133,5 +128,15 @@ var Controls = function(instrumentId, stepCount, tracks) {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  setParameter: function(param, args) {
+    if (param === 'sequence') this.grid.setSequence(args)
+    else fields.log('distributedSequencer unknown parameter ' + param)
+  },
+
+  load: function(done) {
+    this.restoreParams(paramList)
+    done()
+  }
 
 })

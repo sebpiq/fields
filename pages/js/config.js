@@ -22,7 +22,7 @@ fields.config = {
       'sounds/wood_hits/3.wav',
       'sounds/wood_hits/2.wav',
       'sounds/wood_hits/1.wav'
-    ], 650]
+    ], 640]
   },
 
   'wood hits 2': {
@@ -47,7 +47,7 @@ fields.config = {
       'sounds/violin-seq/3.wav',
       'sounds/violin-seq/2.wav',
       'sounds/violin-seq/1.wav'
-    ], 600 + Math.random() * 8]
+    ], 640 + Math.random() * 8]
   },
 
   'wood-blocks': {
@@ -57,7 +57,7 @@ fields.config = {
       'sounds/wood-blocks/3.wav',
       'sounds/wood-blocks/2.wav',
       'sounds/wood-blocks/1.wav'
-    ], 600 + Math.random() * 8]
+    ], 640 + Math.random() * 8]
   },
 
   'drops': {

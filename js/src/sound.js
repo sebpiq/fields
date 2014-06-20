@@ -51,10 +51,10 @@ rhizome.on('message', function(address, args) {
       , instrument = soundInstances[parts[1]]
       , parameter = parts[2]
 
-    if (parameter === 'start')
-      instrument.start()
-    else if (parameter === 'stop')
-      instrument.stop()
+    if (parameter === 'state')
+      var state = args[0]
+      if (state === 0) instrument.stop()
+      else if (state === 1) instrument.start()
     else if (parameter === 'volume')
       instrument.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.002)
     else instrument.setParameter(parameter, args)

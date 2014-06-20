@@ -3,14 +3,15 @@ var async = require('async')
   , waaUtils = require('../utils/waa')
   , base = require('./base')
 
+var paramList = ['volume', 'state']
+
 exports.sound = function(instrumentId) {
-  var sound = new Sound()
-  sound.instrumentId = instrumentId
+  var sound = new Sound(instrumentId)
   return sound
 }
 
-var Sound = function() {
-  base.BaseSound.apply(this)
+var Sound = function(instrumentId) {
+  base.BaseSound.call(this, instrumentId)
   var sampleCount = 44100
   this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
   var noiseData = this.noiseBuffer.getChannelData(0)
@@ -20,7 +21,10 @@ var Sound = function() {
 
 _.extend(Sound.prototype, base.BaseSound.prototype, {
 
-  load: function(done) { done() },
+  load: function(done) {
+    this.restoreParams(paramList)
+    done()
+  },
 
   _start: function() {
     this.bufferNode = fields.sound.audioContext.createBufferSource()
@@ -39,12 +43,19 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
 })
 
 exports.controls = function(instrumentId) {
-  return new Controls()
+  return new Controls(instrumentId)
 }
 
-var Controls = function() {
-  base.BaseControls.apply(this)
+var Controls = function(instrumentId) {
+  base.BaseControls.call(this, instrumentId)
   this.container = $('<div>', { class: 'instrument whiteNoise' })
 }
 
-_.extend(Controls.prototype, base.BaseControls.prototype, {})
+_.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  load: function(done) {
+    this.restoreParams(paramList)
+    done()
+  }
+
+})
