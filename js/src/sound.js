@@ -81,14 +81,19 @@ rhizome.on('server full', function() {
   setStatus('waiting ...')
 })
 
+var muteTimeout
+
 rhizome.on('connection lost', function() {
   setStatus('waiting ...')
-  _.forEach(_.values(soundInstances), function(sound) {
-    sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
-  })  
+  muteTimeout = setTimeout(function() {
+    _.forEach(_.values(soundInstances), function(sound) {
+      sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
+    })
+  }, 8000)
 })
 
 rhizome.on('reconnected', function() {
+  if (muteTimeout) clearTimeout(muteTimeout)
   subscribeAll()
   _.forEach(_.values(soundInstances), function(sound) {
     sound.restore()
