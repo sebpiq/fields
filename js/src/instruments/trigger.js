@@ -39,6 +39,10 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
 
   _stop: function() {},
 
+  restore: function() {
+    this.restoreParams(paramList)
+  },
+
   setParameter: function(param, args) {},
 
 })

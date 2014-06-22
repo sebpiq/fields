@@ -38,6 +38,10 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
     this.bufferNode.stop(0)
   },
 
+  restore: function() {
+    this.restoreParams(paramList)
+  },
+  
   setParameter: function(param, args) {}
 
 })

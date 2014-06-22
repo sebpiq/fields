@@ -5,6 +5,17 @@ var waaUtils = require('./utils/waa')
 
 window.fields.sound = {}
 
+var setStatus = function(msg) {
+  $('#status').html('status : ' + msg)
+}
+
+var subscribeAll = function() {
+  // For all the instruments, subscribe to messages
+  _.chain(soundInstances).keys().forEach(function(instrumentId) {
+    rhizome.send('/sys/subscribe', ['/' + instrumentId])
+  }).values()
+}
+
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <sound instance> }`
 var soundInstances = {}
@@ -12,15 +23,22 @@ var soundInstances = {}
 // Start the whole system, when the user presses a button. 
 fields.sound.start = function() {
   fields.sound.audioContext = waaUtils.kickStartWAA()
-  rhizome.start()
-  $('#instructions').fadeOut(100)
-  $('#status').html('status: connecting ...')
+  fields.sound.clock = new WAAClock(fields.sound.audioContext)
+  fields.sound.clockUsers = 0
+
+  waaUtils.formatSupport(function(err, formats) {
+    fields.log('formats supported ' + formats)
+    fields.sound.supportedFormats = formats
+    rhizome.start()
+  })
+  $('#startButtonContainer').fadeOut(100)
+  setStatus('connecting ...')
 }
 
 rhizome.on('connected', function() {
 
   // For each instrument, create the sound engine
-  _.chain(fields.config).pairs().forEach(function(p) {
+  _.chain(fields.config()).pairs().forEach(function(p) {
     var instrumentId = p[0]
       , config = p[1]
       , instrument = fields.instruments[config.instrument]
@@ -35,10 +53,8 @@ rhizome.on('connected', function() {
     else fields.log('all instruments loaded')
   })
 
-  // For all the instruments, subscribe to messages
-  _.chain(soundInstances).keys().forEach(function(instrumentId) {
-    rhizome.send('/sys/subscribe', ['/' + instrumentId])
-  }).values()
+  subscribeAll()
+  setStatus('connected')
 })
 
 // Message scheme :
@@ -46,7 +62,7 @@ rhizome.on('connected', function() {
 rhizome.on('message', function(address, args) {
   if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
   else {
-    fields.log('message : ' + address + ' ' + args)
+    fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = soundInstances[parts[1]]
       , parameter = parts[2]
@@ -61,6 +77,21 @@ rhizome.on('message', function(address, args) {
   }
 })
 
-rhizome.on('server full', function() {})
-rhizome.on('connection lost', function() {})
-rhizome.on('reconnected', function() {})
+rhizome.on('server full', function() {
+  setStatus('waiting ...')
+})
+
+rhizome.on('connection lost', function() {
+  setStatus('waiting ...')
+  _.forEach(_.values(soundInstances), function(sound) {
+    sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
+  })  
+})
+
+rhizome.on('reconnected', function() {
+  subscribeAll()
+  _.forEach(_.values(soundInstances), function(sound) {
+    sound.restore()
+  })
+  setStatus('connected')
+})

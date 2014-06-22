@@ -30,7 +30,7 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, track ' +  self.trackId 
           + ' buffer length :' + self.buffer.length)
-        self.restoreParams(paramList)
+        self.restore()
       }
       done(err)
     })
@@ -45,6 +45,10 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         this.bufferNode.start(0)
       } 
     }
+  },
+
+  restore: function() {
+    this.restoreParams(paramList)
   }
 
 })
@@ -97,8 +101,10 @@ _.extend(Controls.prototype, base.BaseControls.prototype, {
 
   _stop: function() {
     this.tickEvent.clear()
+  },
+
+  restore: function() {
+    self.restoreParams(paramList)
   }
-
-
 
 })

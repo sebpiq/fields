@@ -17,7 +17,7 @@ watcher.on('change', function(event) {
 gulp.task('browserify-sound', function() {
   return gulp.src('./sound.js')
     .pipe(browserify())
-    //.pipe(uglify())
+    .pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.sound.js'))
     .pipe(gulp.dest('../../pages/js'))
@@ -26,7 +26,7 @@ gulp.task('browserify-sound', function() {
 gulp.task('browserify-controls', function() {
   return gulp.src('./controls.js')
     .pipe(browserify())
-    //.pipe(uglify())
+    .pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.controls.js'))
     .pipe(gulp.dest('../../pages/js'))
@@ -35,7 +35,7 @@ gulp.task('browserify-controls', function() {
 gulp.task('browserify-instruments', function() {
   return gulp.src('./instruments/index.js')
     .pipe(browserify())
-    //.pipe(uglify())
+    .pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.instruments.js'))
     .pipe(gulp.dest('../../pages/js'))
@@ -62,7 +62,7 @@ gulp.task('bundle-controls', function() {
       '../lib/AudioContextMonkeyPatch.js',
       '../lib/jquery-2.1.0.js',
       '../lib/touchmouse.js',
-      '../lib/WAAClock-0.3.1.js',
+      '../lib/WAAClock.js',
       './common.js', '../build/fields.controls.js', '../build/fields.instruments.js'
     ])
     .pipe(concat('bundle-controls.js', { newLine: ';' }))
@@ -93,12 +93,14 @@ gulp.task('uglify', function() {
 gulp.task('less-controls', function () {
   return gulp.src('./controls.less')
     .pipe(less())
+    .on('error', gutil.log)
     .pipe(gulp.dest('../../pages/css'))
 })
 
 gulp.task('less-sound', function () {
   return gulp.src('./sound.less')
     .pipe(less())
+    .on('error', gutil.log)
     .pipe(gulp.dest('../../pages/css'))
 })
 

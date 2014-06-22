@@ -31,7 +31,7 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       if (!err) {
         self.buffers = buffers
         fields.log(self.instrumentId + ' loaded, tempo ' +  self.tempo)
-        self.restoreParams(paramList)
+        self.restore(paramList)
       }
       done(err)
     })
@@ -44,6 +44,10 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
   _stop: function() {
     this.bufferNode.stop(0)
     this.bufferNode = null
+  },
+
+  restore: function() {
+    this.restoreParams(paramList)
   },
 
   setParameter: function(param, args) {
@@ -114,14 +118,15 @@ var Controls = function(instrumentId, stepCount, tracks) {
   var self = this
     , trackCount = tracks.length
     , container = $('<div>', { class: 'instrument distributedSequencer' })
-    , sendButton = $('<button>', { class: 'sendButton' }).appendTo(container).html('Send')
-  
-  this.grid = widgets.grid('toggle', tracks.length, stepCount)
-  this.grid.elem.appendTo(container)
 
-  sendButton.click(function() {
-    rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
-  })
+  this.grid = widgets.grid('toggle', tracks.length, stepCount)
+  this.grid.elem.prependTo(container)
+
+  $('<button>', { class: 'sendButton' })
+      .appendTo(this.grid.elem.find('.buttonsContainer')).html('Send')
+      .click(function() {
+        rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
+      })
 
   this.container = container
 

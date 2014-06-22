@@ -1,8 +1,8 @@
 var path = require('path')
 
 module.exports = {
-  
-  usersLimit: 30,
+  webPort: 80,
+  usersLimit: 40,
 
   pages: [
     { rootUrl: '/', dirName: path.join(__dirname, 'pages') }

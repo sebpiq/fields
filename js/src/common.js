@@ -12,5 +12,6 @@ fields.log = function(msg) {
   $('<div>', { class: 'log' })
     .html(msg)
     .prependTo('#console')
+  $('#console .log').slice(60).remove()
 }
 //if (typeof rhizome !== 'undefined') rhizome.log = log

@@ -13,6 +13,10 @@ $(function() {
 //  - 'normal' there is no restriction in active steps
 exports.grid = function(mode, trackCount, stepCount) {
   var grid = $('<div>', { class: 'grid' })
+    , buttonsContainer = $('<div>', { class: 'buttonsContainer' })
+    , resetSequenceButton = $('<button>', { class: 'resetSequenceButton' })
+      .html('Reset')
+      .appendTo(buttonsContainer)
 
   _.forEach(_.range(trackCount), function(trackId) {
     var track = $('<div>', { class: 'track track-' + trackId }).appendTo(grid)
@@ -26,6 +30,12 @@ exports.grid = function(mode, trackCount, stepCount) {
         })
     })
   })
+  grid.append(buttonsContainer)
+
+  // Reset sequence on click
+  resetSequenceButton.click(function() {
+    grid.find('.step').removeClass('active')
+  })
 
   return {
     elem: grid,
@@ -35,12 +45,12 @@ exports.grid = function(mode, trackCount, stepCount) {
     setSequence: function(sequence) {
       var i, j
       for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
-        $('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
+        this.elem.find('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
     },
 
     getSequence: function() {
       var sequence = []
-      grid.find('.track').each(function(i, track) {
+      this.elem.find('.track').each(function(i, track) {
         $(track).find('.step').each(function(j, step) {
           if ($(step).hasClass('active')) {
             sequence.push(i)
@@ -75,11 +85,11 @@ exports.xyPad = function(opts, onMove) {
   var xyPad = $('<div>', { class: 'xyPad' })
     , inner = $('<div>', { class: 'inner' }).appendTo(xyPad)
     , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
-    , valueFeedback = $('<div><span class="title">' + (opts.title || '') + '</span> '
+    , valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span> '
       + (opts.xLabel || 'X') + ': <span class="x">0</span> | '
       + (opts.yLabel || 'Y') + ': <span class="y">1</span></div>',
         { class: 'valueFeedback' }).appendTo(xyPad)
-    , cursorSize = $(document).width() * 0.07
+    , cursorSize = $(document).width() * 0.04
 
   xyPad.css({ padding: cursorSize / 2 })
   cursor.css({
@@ -136,10 +146,10 @@ exports.slider = function(opts, onMove) {
   var slider = $('<div>', { class: 'slider' })
     , inner = $('<div>', { class: 'inner' }).appendTo(slider)
     , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
-    , valueFeedback = $('<div><span class="title">' + (opts.title || '') + '</span>: '
+    , valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span>: '
       + '<span class="val">0</span>',
         { class: 'valueFeedback' }).appendTo(slider)
-    , cursorSize = $(document).width() * 0.07
+    , cursorSize = $(document).width() * 0.04
   slider.css({ paddingLeft: cursorSize / 2, paddingRight: cursorSize / 2 })
   cursor.css({
     width: cursorSize, height: cursorSize,

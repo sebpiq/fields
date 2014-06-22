@@ -1,51 +1,56 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: white;
+}
 body {
   font-size: 40px;
-  background-color: LightGrey;
-  padding: 40px;
+  background-color: black;
+  font-family: courier;
 }
-
+button {
+  font-family: courier;
+}
 #notSupported {
   padding: 30px;
   font-size: 150%;
   color: red;
 }
-
-#console {
-  background-color: #9fffff;
-}
-
 #pending {
   display: none;
 }
-
 #status {
+  padding: 1em;
   position: fixed;
-  bottom: 0;
-  right: 0;
+  bottom: 1em;
+  right: 1em;
+  background-color: rgba(0, 0, 0, 0.8);
 }
-
-#startButton {
-  width: 100%;
-  font-size: 100%;
-  color: blue;
-  background-color: white;
-  border: 1px solid black;
-  padding: 1em 1em;
-}
-
-.imgP {
+#startButtonContainer {
+  width: 80%;
+  height: 100%;
   text-align: center;
+  margin: auto;
 }
-
-h1 {
-  width: 100%;
+#startButtonContainer #startButton {
+  font-size: 250%;
+  border-radius: 100%;
+  position: relative;
   text-align: center;
+  color: white;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid white;
 }
-
-p {
-  color: #444;
-}
-
-button {
-  font-size: 100px;
+#console .log {
+  font-size: 200%;
+  font-size: 80%;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #171717;
 }

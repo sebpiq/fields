@@ -1,73 +1,104 @@
-fields.config = {
+fields.config = function() {
 
-  'radio': {
-    instrument: 'granulator',
-    args: ['sounds/radio/' + Math.floor(1 + Math.random() * 4.99) + '.wav']
-  },
+  var formatUsed
+  if (fields.sound) {
+    if (fields.sound.supportedFormats.indexOf('ogg') !== -1)
+      formatUsed = 'ogg'
+    else if (fields.sound.supportedFormats.indexOf('mp3') !== -1)
+      formatUsed = 'mp3'
+    else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
+      formatUsed = 'wav'
+    fields.log('format used ' + formatUsed)
+  } else formatUsed = ''
 
-  'noise': {
-    instrument: 'whiteNoise',
-    args: []
-  },
+  instrus = {
 
-  'explosion': {
-    instrument: 'trigger',
-    args: ['sounds/glass/' + (1 + Math.floor(Math.random() * 4.99))  + '.wav']
-  },
+    'radio': {
+      index: 0,
+      instrument: 'granulator',
+      args: ['sounds/radio/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
+    },
 
-  'wood hits 1': {
-    instrument: 'distributedSequencer',
-    args: [16, [
-      'sounds/wood_hits/4.wav',
-      'sounds/wood_hits/3.wav',
-      'sounds/wood_hits/2.wav',
-      'sounds/wood_hits/1.wav'
-    ], 640]
-  },
+    'noise': {
+      index: 1,
+      instrument: 'whiteNoise',
+      args: []
+    },
 
-  'wood hits 2': {
-    instrument: 'centralizedSequencer',
-    args: [8, [
-      'sounds/wood_hits/4.wav',
-      'sounds/wood_hits/3.wav',
-      'sounds/wood_hits/2.wav',
-      'sounds/wood_hits/1.wav'
-    ]]
-  },
+    'sparkles': {
+      index: 2,
+      instrument: 'trigger',
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
+    },
 
-  'violin-grains': {
-    instrument: 'granulator',
-    args: ['sounds/violin_fields_boosted.wav']
-  },
+    'clicks': {
+      index: 3,
+      instrument: 'distributedSequencer',
+      args: [16, [
+        'sounds/noise/1.wav',
+        'sounds/noise/2.wav',
+        'sounds/noise/3.wav',
+        'sounds/noise/4.wav',
+      ], 639.5 + Math.random()]
+    },
 
-  'violin-seq': {
-    instrument: 'distributedSequencer',
-    args: [16, [
-      'sounds/violin-seq/4.wav',
-      'sounds/violin-seq/3.wav',
-      'sounds/violin-seq/2.wav',
-      'sounds/violin-seq/1.wav'
-    ], 640 + Math.random() * 8]
-  },
+    'blocks': {
+      index: 4,
+      instrument: 'distributedSequencer',
+      args: [16, [
+        'sounds/wood_block/' + formatUsed + '/1.' + formatUsed,
+        'sounds/wood_block/' + formatUsed + '/2.' + formatUsed,
+        'sounds/wood_block/' + formatUsed + '/3.' + formatUsed,
+        'sounds/wood_block/' + formatUsed + '/4.' + formatUsed,
+      ], 640]
+    },
 
-  'wood-blocks': {
-    instrument: 'distributedSequencer',
-    args: [16, [
-      'sounds/wood-blocks/4.wav',
-      'sounds/wood-blocks/3.wav',
-      'sounds/wood-blocks/2.wav',
-      'sounds/wood-blocks/1.wav'
-    ], 640 + Math.random() * 8]
-  },
+    'violins': {
+      index: 5,
+      instrument: 'granulator',
+      args: ['sounds/violins/violin.' + formatUsed]
+    },
 
-  'drops': {
-    instrument: 'granulator',
-    args: ['sounds/fields_drops.wav']
-  },
+    'drops': {
+      index: 6,
+      instrument: 'granulator',
+      args: ['sounds/drops/drops.' + formatUsed]
+    },
 
-  'waves': {
-    instrument: 'granulator',
-    args: ['sounds/fields_waves.wav']
+    'minimal': null,
+
+    'waves': {
+      index: 8,
+      instrument: 'granulator',
+      args: ['sounds/waves/waves.' + formatUsed]
+    }
+
   }
+
+  if (rhizome.userId % 2 === 0) {
+    instrus.minimal = {
+      index: 7,
+      instrument: 'distributedSequencer',
+      args: [16, [
+        'sounds/minimal/guitar/' + formatUsed + '/1.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/2.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/3.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/4.' + formatUsed,
+      ], 396 + Math.random() * 8]
+    }
+  } else {
+    instrus.minimal = {
+      index: 8,
+      instrument: 'distributedSequencer',
+      args: [16, [
+        'sounds/minimal/marimba2/' + formatUsed + '/1.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/2.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/3.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/4.' + formatUsed,
+      ], 396 + Math.random() * 8]
+    }
+  }
+
+  return instrus
 
 }

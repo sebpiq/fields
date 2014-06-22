@@ -13,12 +13,13 @@ var controlsInstances = {}
 fields.controls.start = function() {
   fields.controls.audioContext = waaUtils.kickStartWAA()
   fields.controls.clock = new WAAClock(fields.controls.audioContext)
+  fields.controls.clock.start()
   rhizome.start()
 
   var tabsHeader = $('<div>', { class: 'tabsHeader' }).appendTo('body')
     , tabsContainer = $('<div>', { class: 'tabsContainer' }).appendTo('body')
 
-  _.chain(fields.config).pairs().forEach(function(p) {
+  _.chain(fields.config()).pairs().sortBy(function(p) { return p[1].index }).forEach(function(p) {
     var instrumentId = p[0]
       , config = p[1]
       , instrument = fields.instruments[config.instrument]
@@ -33,7 +34,7 @@ fields.controls.start = function() {
     })
 
     // Volume control
-    var _sendVolume = rhizome.utils.throttle(100, function(args) {
+    var _sendVolume = rhizome.utils.throttle(200, function(args) {
       rhizome.send('/' + instrumentId + '/volume', args)
     })    
     controls.volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
@@ -44,7 +45,7 @@ fields.controls.start = function() {
     // Adding default controls to the container
     controlsInstances[instrumentId] = controls
     controls.container.prepend(controls.volumeSlider.elem)
-    controls.container.prepend(controls.onOffToggle.elem)
+    title.prepend(controls.onOffToggle.elem)
     controls.container.appendTo(tabsContainer)
     controls.container.prepend(title)
 

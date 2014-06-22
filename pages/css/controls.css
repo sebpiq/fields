@@ -13,23 +13,31 @@ body {
   font-size: 20px;
   font-family: courier;
 }
+h2 {
+  margin: 0;
+}
 button {
-  min-width: 5em;
-  min-height: 3em;
-  font-size: 200%;
+  min-width: 3em;
+  min-height: 2em;
+  font-size: 120%;
+  font-family: courier;
+  text-transform: uppercase;
+  margin: 0.2em;
+  background-color: grey;
+  border: none;
+  margin: 0;
 }
 .tabsHeader {
-  width: 80%;
   background-color: #222;
-  padding: 1em;
+  padding: 0.2em;
   margin-bottom: 1em;
 }
 .tabsHeader .tabButton {
   display: inline-block;
-  font-size: 100%;
+  font-size: 95%;
   padding: 1em;
   text-align: center;
-  width: 5em;
+  width: 4em;
   border: solid 1px transparent;
   border-bottom: solid 1px white;
   margin-right: 0.3em;
@@ -52,26 +60,56 @@ button {
 .instrument > div {
   margin-bottom: 0.3em;
 }
-.grid .step {
-  width: 7%;
-  height: 5em;
+.instrument > div:last-child {
+  margin-bottom: 0;
+}
+.grid .track {
+  height: 2em;
+}
+.grid .track:nth-child(odd) .step:nth-child(even) {
+  background-color: #333333;
+}
+.grid .track:nth-child(odd) .step:nth-child(odd) {
+  background-color: #363636;
+}
+.grid .track:nth-child(odd) .step.active {
+  background-color: #00cc0e;
+}
+.grid .track:nth-child(odd) .step.current {
+  background-color: #ffffff;
+}
+.grid .track:nth-child(even) .step:nth-child(even) {
+  background-color: #363636;
+}
+.grid .track:nth-child(even) .step:nth-child(odd) {
+  background-color: #333333;
+}
+.grid .track:nth-child(even) .step.active {
+  background-color: #00cc0e;
+}
+.grid .track:nth-child(even) .step.current {
+  background-color: #ffffff;
+}
+.grid .track .step {
+  width: 6.25%;
+  height: 2em;
   display: inline-block;
-  background-color: grey;
-  margin-right: 1em;
 }
-.grid .step.active {
-  background-color: red;
+.grid .buttonsContainer {
+  text-align: right;
 }
-.grid .step.current {
-  background-color: white;
+.grid .buttonsContainer button {
+  margin-left: 2em;
+  margin-top: 0.3em;
 }
 .toggle {
   background-color: orange;
-  width: 7%;
-  height: 5em;
+  width: 6%;
+  height: 1.5em;
+  display: inline-block;
 }
 .toggle.active {
-  background-color: green;
+  background-color: #00cc0e;
 }
 .cursor-mixin {
   position: relative;
@@ -80,8 +118,11 @@ button {
   height: 3.5em;
   background: rgba(255, 0, 0, 0.5) no-repeat center;
 }
+.feedback {
+  font-size: 60%;
+}
 .xyPad {
-  height: 10em;
+  height: 6em;
   background-color: grey;
   padding: 1em;
 }
@@ -100,7 +141,6 @@ button {
   background-size: 50%;
 }
 .xyPad .title {
-  font-size: 120%;
   text-transform: uppercase;
   font-weight: bold;
 }

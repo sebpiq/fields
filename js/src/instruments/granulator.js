@@ -39,11 +39,15 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
 
   _start: function() {
     if (this.grainEvent) this.grainEvent.clear()
-    
     var self = this
-    this.clock = new WAAClock(fields.sound.audioContext)
 
-    this.grainEvent = this.clock.setTimeout(function() {
+    if (fields.sound.clockUsers === 0) {
+      fields.sound.clock.start()
+      fields.log('start clock')
+    }
+    fields.sound.clockUsers++
+
+    this.grainEvent = fields.sound.clock.setTimeout(function() {
       var duration = self._getDuration()
       if (self._enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
       else {
@@ -52,11 +56,21 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         self.grainEvent.repeat(duration || 0.005)
       }
     }, 0.1).repeat(0.1)
+
+    this.grainEvent.on('expired', function() { fields.log('EXPIRED') })
   },
 
   _stop: function() {
     if (this.grainEvent) this.grainEvent.clear()
-    this.clock // TODO
+    fields.sound.clockUsers--
+    if (fields.sound.clockUsers === 0) {
+      fields.sound.clock.stop()
+      fields.log('stop clock')
+    }
+  },
+
+  restore: function() {
+    this.restoreParams(paramList)
   },
 
   setParameter: function(param, args) {
@@ -128,7 +142,25 @@ exports.controls = function(instrumentId, url) {
 var Controls = function(instrumentId, url) {
   base.BaseControls.call(this, instrumentId)
   this.container = $('<div>', { class: 'instrument granulator' })
-  var throttleTime = 100
+  var throttleTime = 200
+
+  // Density
+  var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/density', args)
+  })
+  this.densitySlider = widgets.slider({ title: 'density' }, function(val) {
+    _sendDensity([ val ])
+  })
+  this.densitySlider.elem.appendTo(this.container)
+
+  // Env
+  var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
+    rhizome.send('/' + instrumentId + '/env', args)
+  })
+  this.envSlider = widgets.slider({ title: 'enveloppe' }, function(val) {
+    _sendEnv([ val ])
+  })
+  this.envSlider.elem.appendTo(this.container)
 
   // Duration 
   var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
@@ -156,24 +188,6 @@ var Controls = function(instrumentId, url) {
     _sendRatio([ mean, vari ])
   })
   this.ratioPad.elem.appendTo(this.container)
-
-  // Density
-  var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/density', args)
-  })
-  this.densitySlider = widgets.slider({ title: 'density' }, function(val) {
-    _sendDensity([ val ])
-  })
-  this.densitySlider.elem.appendTo(this.container)
-
-  // Env
-  var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/env', args)
-  })
-  this.envSlider = widgets.slider({ title: 'enveloppe' }, function(val) {
-    _sendEnv([ val ])
-  })
-  this.envSlider.elem.appendTo(this.container)
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {

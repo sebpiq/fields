@@ -1,3 +1,5 @@
+@onColor: #00cc0e;
+
 body {
   /* Disable text selection */
   -webkit-touch-callout: none;
@@ -15,24 +17,33 @@ body {
   font-family: courier;
 }
 
+h2 {
+  margin: 0;
+}
+
 button {
-  min-width: 5em;
-  min-height: 3em;
-  font-size: 200%;
+  min-width: 3em;
+  min-height: 2em;
+  font-size: 120%;
+  font-family: courier;
+  text-transform: uppercase;
+  margin: 0.2em;
+  background-color: grey;
+  border: none;
+  margin: 0;
 }
 
 .tabsHeader {
-  width: 80%;
   background-color: #222;
-  padding: 1em;
+  padding: 0.2em;
   margin-bottom: 1em;
 
   .tabButton {
     display: inline-block;
-    font-size: 100%;
+    font-size: 95%;
     padding: 1em;
     text-align: center;
-    width: 5em;
+    width: 4em;
     border: solid 1px transparent;
     border-bottom: solid 1px white;
     margin-right: 0.3em;
@@ -63,35 +74,62 @@ button {
 
   >div {
     margin-bottom: 0.3em;
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 }
 
 .grid {
-  .step {
-    width: 7%;
-    height: 5em;
-    display: inline-block;
-    background-color: grey;
-    margin-right: 1em;
+  .track {
+    @step1Color: #333;
+    @step2Color: #363636;
+    @stepActiveColor: @onColor;
+    @stepCurrentColor: white;
+    @stepHeight: 2em;
 
-    &.active {
-      background-color: red;
+    height: @stepHeight;
+
+    &:nth-child(odd) {
+      .step {
+        &:nth-child(even) { background-color: @step1Color; }
+        &:nth-child(odd) { background-color: @step2Color; }
+        &.active { background-color: @stepActiveColor; }
+        &.current { background-color: @stepCurrentColor; }
+      }
     }
-
-    &.current {
-      background-color: white;
+    &:nth-child(even) {
+      .step {
+        &:nth-child(even) { background-color: @step2Color; }
+        &:nth-child(odd) { background-color: @step1Color; }
+        &.active { background-color: @stepActiveColor; }
+        &.current { background-color: @stepCurrentColor; }
+      }
     }
+    .step {
+      width: 6.25%;
+      height: @stepHeight;
+      display: inline-block;
+    }
+  }
 
+  .buttonsContainer {
+    text-align: right;
+    button {
+      margin-left: 2em;
+      margin-top: 0.3em;
+    }
   }
 }
 
 .toggle {
   background-color: orange;
-  width: 7%;
-  height: 5em;
+  width: 6%;
+  height: 1.5em;
+  display: inline-block;
 
   &.active {
-    background-color: green;
+    background-color: @onColor;
   }
 }
 
@@ -103,8 +141,12 @@ button {
   background: rgba(255, 0, 0, 0.5) no-repeat center;
 }
 
+.feedback {
+  font-size: 60%;
+}
+
 .xyPad {
-  height: 10em;
+  height: 6em;
   background-color: grey;
   padding: 1em;
 
@@ -121,7 +163,6 @@ button {
   }
 
   .title {
-    font-size: 120%;
     text-transform: uppercase;
     font-weight: bold;
   }
