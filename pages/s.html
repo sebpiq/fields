@@ -44,8 +44,7 @@
 
     <script>
       if (!fields.isSupported()) {
-        fields.log('Device not supported')
-        $('#instructions').html('<div id="notSupported">Sorry, but this web browser is not supported by our system. You should try with a recent version of Chrome or Firefox.</div>')
+        $('body').html('<div id="notSupported">Sorry, but this web browser is not supported by our system. You should try with a recent version of Chrome or Firefox.</div>')
       } else {
         fields.log('Device is supported')
       }

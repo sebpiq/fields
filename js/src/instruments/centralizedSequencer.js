@@ -66,7 +66,7 @@ var Controls = function(instrumentId, stepCount, tracks) {
   this.currentStep = -1
   this.tickEvent = null
 
-  this.grid = widgets.grid('normal', tracks.length, stepCount)
+  this.grid = new widgets.Grid('normal', tracks.length, stepCount)
   this.grid.elem.appendTo(this.container)
 }
 

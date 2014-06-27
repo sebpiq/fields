@@ -27,7 +27,7 @@ fields.controls.start = function() {
       , title = $('<h2>').html(instrumentId)
     
     // On/off button
-    controls.onOffToggle = widgets.toggle(function(state) {
+    controls.onOffToggle = new widgets.Toggle(function(state) {
       var action = state === 1 ? 'start' : 'stop'
       controlsInstances[instrumentId][action]()
       rhizome.send('/' + instrumentId + '/state', [state])
@@ -37,7 +37,7 @@ fields.controls.start = function() {
     var _sendVolume = rhizome.utils.throttle(200, function(args) {
       rhizome.send('/' + instrumentId + '/volume', args)
     })    
-    controls.volumeSlider = widgets.slider({ title: 'Volume' }, function(val) {
+    controls.volumeSlider = new widgets.Slider({ title: 'Volume' }, function(val) {
       _sendVolume([ val ])
     })
     controls.volumeSlider.elem.addClass('volume')

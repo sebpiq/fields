@@ -1,195 +1,221 @@
 var _ = require('underscore')
 
-var mouseDown = false
 
-$(function() {
-  $('body')
-    .on(TouchMouseEvent.DOWN, function() { mouseDown = true })
-    .on(TouchMouseEvent.UP, function() { mouseDown = false })
+var BaseWidget = function() {
+  this.elem = $('<div>', { class: 'widget ' + this.cssClass })
+}
+
+_.extend(BaseWidget.prototype, {
+  cssClass: '',
+  refresh: function() {}
 })
 
 // `mode` can be :
 //  - 'toggle' only one track per step can be active
 //  - 'normal' there is no restriction in active steps
-exports.grid = function(mode, trackCount, stepCount) {
-  var grid = $('<div>', { class: 'grid' })
+var Grid = exports.Grid = function(mode, trackCount, stepCount) {
+  var self = this
     , buttonsContainer = $('<div>', { class: 'buttonsContainer' })
     , resetSequenceButton = $('<button>', { class: 'resetSequenceButton' })
       .html('Reset')
       .appendTo(buttonsContainer)
+  BaseWidget.call(this)
 
   _.forEach(_.range(trackCount), function(trackId) {
-    var track = $('<div>', { class: 'track track-' + trackId }).appendTo(grid)
+    var track = $('<div>', { class: 'track track-' + trackId }).appendTo(self.elem)
     _.forEach(_.range(stepCount), function(stepId) {
       $('<div>', { class: 'step step-' + stepId }).appendTo(track)
         .click(function() {
           var cls = $(this).attr('class')
           if (mode === 'toggle')
-            grid.find('.step-' + stepId).removeClass('active')
+            self.elem.find('.step-' + stepId).removeClass('active')
           $(this).attr('class', cls).toggleClass('active')
         })
     })
   })
-  grid.append(buttonsContainer)
+  self.elem.append(buttonsContainer)
 
   // Reset sequence on click
   resetSequenceButton.click(function() {
-    grid.find('.step').removeClass('active')
+    self.elem.find('.step').removeClass('active')
   })
 
-  return {
-    elem: grid,
-
-    refresh: function() {},
-    
-    setSequence: function(sequence) {
-      var i, j
-      for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
-        this.elem.find('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
-    },
-
-    getSequence: function() {
-      var sequence = []
-      this.elem.find('.track').each(function(i, track) {
-        $(track).find('.step').each(function(j, step) {
-          if ($(step).hasClass('active')) {
-            sequence.push(i)
-            sequence.push(j)
-          }
-        })
-      })
-      return sequence
-    }
-  }
 }
 
+_.extend(Grid.prototype, {
+
+  cssClass: 'grid',
+
+  setSequence: function(sequence) {
+    var i, j
+    for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
+      this.elem.find('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
+  },
+
+  getSequence: function() {
+    var sequence = []
+    this.elem.find('.track').each(function(i, track) {
+      $(track).find('.step').each(function(j, step) {
+        if ($(step).hasClass('active')) {
+          sequence.push(i)
+          sequence.push(j)
+        }
+      })
+    })
+    return sequence
+  }
+
+})
+
 // `onToggleClick(active)` is called when the toggle is clicked. 
-exports.toggle = function(onToggleClick) {
-  var toggle = $('<div>', { class: 'toggle' }).click(function() {
+var Toggle = exports.Toggle = function(onToggleClick) {
+  BaseWidget.call(this)
+  this.elem.click(function() {
     $(this).toggleClass('active')
     onToggleClick.call(this, $(this).hasClass('active') ? 1 : 0)
   })
-
-  return {
-    elem: toggle,
-
-    refresh: function() {},
-
-    setState: function(state) {
-      if (state === 1) toggle.addClass('active')
-    }
-  }
 }
 
-exports.xyPad = function(opts, onMove) {
-  var xyPad = $('<div>', { class: 'xyPad' })
-    , inner = $('<div>', { class: 'inner' }).appendTo(xyPad)
-    , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
-    , valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span> '
+_.extend(Toggle.prototype, {
+
+  cssClass: 'toggle',
+  
+  setState: function(state) {
+    if (state === 1) toggle.addClass('active')
+  }
+})
+
+var XYPad = exports.XYPad = function(opts, onMove) {
+  BaseWidget.call(this)
+  this._position = [0, 0]
+  this.onMove = onMove
+
+  var self = this
+
+  this.inner = $('<div>', { class: 'inner' })
+    .appendTo(this.elem)
+    .on(TouchMouseEvent.DOWN, _.bind(this._moveOrClick, this))
+
+  this.cursorSize = $(document).width() * 0.04
+  this.cursor = $('<div>', { class: 'cursor' })
+    .appendTo(this.inner)
+    .css({
+      width: this.cursorSize, height: this.cursorSize,
+      left: -this.cursorSize / 2, top: -this.cursorSize / 2
+    })
+
+  this.valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span> '
       + (opts.xLabel || 'X') + ': <span class="x">0</span> | '
       + (opts.yLabel || 'Y') + ': <span class="y">1</span></div>',
-        { class: 'valueFeedback' }).appendTo(xyPad)
-    , cursorSize = $(document).width() * 0.04
+        { class: 'valueFeedback' }).appendTo(this.elem)
 
-  xyPad.css({ padding: cursorSize / 2 })
-  cursor.css({
-    width: cursorSize, height: cursorSize,
-    left: -cursorSize / 2, top: -cursorSize / 2
+  this.elem.css({ padding: this.cursorSize / 2 })
+  this.elem.on(TouchMouseEvent.DOWN, function() {
+    self.elem.on(TouchMouseEvent.MOVE, _.bind(self._moveOrClick, self))
   })
-
-  var moveOrClick = function(event) {
-    var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
-      , yPos = Math.max(Math.min(event.pageY - inner.get(0).offsetTop, inner.height()), 0)
-      , yVal = Math.min(1 - yPos / inner.height(), 1)
-      , xVal = Math.min(xPos / inner.width(), 1)
-    cursor.css({ left: xPos - cursorSize / 2, top: yPos - cursorSize / 2 })
-    valueFeedback.find('.x').html(xVal.toString().slice(0, 4))
-    valueFeedback.find('.y').html(yVal.toString().slice(0, 4))
-    onMove(xVal, yVal)
-  }
-
-  var setValueFeedback = function(pos) {
-    valueFeedback.find('.x').html(pos[0].toString().slice(0, 4))
-    valueFeedback.find('.y').html(pos[1].toString().slice(0, 4))
-  }
-
-  xyPad.on(TouchMouseEvent.DOWN, function() {
-    xyPad.on(TouchMouseEvent.MOVE, moveOrClick)
-  })
-  inner.on(TouchMouseEvent.DOWN, moveOrClick)
 
   $('body').on(TouchMouseEvent.UP, function() {
-    xyPad.off(TouchMouseEvent.MOVE)
+    self.elem.off(TouchMouseEvent.MOVE)
   })
-
-  return {
-    elem: xyPad,
-
-    _position: [0, 0],
-
-    refresh: function() {
-      this.setPosition(this._position)
-    },
-
-    setPosition: function(pos) {
-      this._position = pos
-      setValueFeedback(pos)
-      cursor.css({
-        left: inner.width() * pos[0] - cursorSize / 2,
-        top: inner.height() * (1 - pos[1]) - cursorSize / 2
-      })
-    }
-  }
 }
 
-exports.slider = function(opts, onMove) {
-  var slider = $('<div>', { class: 'slider' })
-    , inner = $('<div>', { class: 'inner' }).appendTo(slider)
-    , cursor = $('<div>', { class: 'cursor' }).appendTo(inner)
-    , valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span>: '
-      + '<span class="val">0</span>',
-        { class: 'valueFeedback' }).appendTo(slider)
-    , cursorSize = $(document).width() * 0.04
-  slider.css({ paddingLeft: cursorSize / 2, paddingRight: cursorSize / 2 })
-  cursor.css({
-    width: cursorSize, height: cursorSize,
-    left: -cursorSize / 2
-  })
+_.extend(XYPad.prototype, {
 
-  var moveOrClick = function(event) {
-    var xPos = Math.max(Math.min(event.pageX - inner.get(0).offsetLeft, inner.width()), 0)
-      , val = Math.min(xPos / slider.width(), 1)
-    cursor.css({ left: xPos - cursorSize / 2 })
-    setValueFeedback(val)
-    onMove(val)
+  cssClass: 'xyPad',
+
+  refresh: function() {
+    this._setValueFeedback(this._position)
+    this.cursor.css({
+      left: this.inner.width() * this._position[0] - this.cursorSize / 2,
+      top: this.inner.height() * (1 - this._position[1]) - this.cursorSize / 2
+    })
+  },
+
+  setPosition: function(pos) {
+    this._position = pos
+    this.refresh()
+  },
+
+  _moveOrClick: function(event) {
+    var xPos = Math.max(Math.min(event.pageX - this.inner.get(0).offsetLeft, this.inner.width()), 0)
+      , yPos = Math.max(Math.min(event.pageY - this.inner.get(0).offsetTop, this.inner.height()), 0)
+      , yVal = Math.min(1 - yPos / this.inner.height(), 1)
+      , xVal = Math.min(xPos / this.inner.width(), 1)
+    this._setValueFeedback([ xVal, yVal ])
+    this.cursor.css({
+      left: xPos - this.cursorSize / 2,
+      top: yPos - this.cursorSize / 2
+    })
+    this._position = [xVal, yVal]
+    this.onMove(xVal, yVal)
+  },
+
+  _setValueFeedback: function(pos) {
+    this.valueFeedback.find('.x').html(pos[0].toString().slice(0, 4))
+    this.valueFeedback.find('.y').html(pos[1].toString().slice(0, 4))
   }
 
-  slider.on(TouchMouseEvent.DOWN, function() {
-    slider.on(TouchMouseEvent.MOVE, moveOrClick)
+})
+
+
+var Slider = exports.Slider = function(opts, onMove) {
+  BaseWidget.call(this)
+  this._val = 0
+  this.onMove = onMove
+
+  var self = this
+  
+  this.inner = $('<div>', { class: 'inner' })
+    .appendTo(this.elem)
+    .on(TouchMouseEvent.DOWN, _.bind(this._moveOrClick, this))
+
+  this.cursorSize = $(document).width() * 0.04
+  this.cursor = $('<div>', { class: 'cursor' })
+    .appendTo(this.inner)
+    .css({
+      width: this.cursorSize, height: this.cursorSize,
+      left: -this.cursorSize / 2
+    })
+  
+  this.valueFeedback = $('<div class="feedback"><span class="title">'
+      + (opts.title || '') + '</span>: ' + '<span class="val">0</span>',
+        { class: 'valueFeedback' }).appendTo(this.elem)
+
+  this.elem.css({ paddingLeft: this.cursorSize / 2, paddingRight: this.cursorSize / 2 })
+  this.elem.on(TouchMouseEvent.DOWN, function() {
+    self.elem.on(TouchMouseEvent.MOVE, _.bind(self._moveOrClick, self))
   })
-  inner.on(TouchMouseEvent.DOWN, moveOrClick)
 
   $('body').on(TouchMouseEvent.UP, function() {
-    slider.off(TouchMouseEvent.MOVE)
+    self.elem.off(TouchMouseEvent.MOVE)
   })
+}
 
-  var setValueFeedback = function(val) {
-    valueFeedback.find('.val').html(val.toString().slice(0, 4))
+_.extend(Slider.prototype, {
+
+  cssClass: 'slider',
+
+  refresh: function() {
+    this._setValueFeedback(this._val)
+    this.cursor.css({ left: this._val * this.inner.width() - this.cursorSize / 2 })
+  },
+
+  setVal: function(val) {
+    this._val = val
+    this.refresh()
+  },
+
+  _setValueFeedback: function(val) {
+    this.valueFeedback.find('.val').html(val.toString().slice(0, 4))
+  },
+
+  _moveOrClick: function(event) {
+    var xPos = Math.max(Math.min(event.pageX - this.inner.get(0).offsetLeft, this.inner.width()), 0)
+      , val = Math.min(xPos / this.elem.width(), 1)
+    this._setValueFeedback(val)
+    this.cursor.css({ left: xPos - this.cursorSize / 2 })
+    this._val = val
+    this.onMove(val)
   }
 
-  return {
-    elem: slider,
-
-    _val: 0,
-
-    refresh: function() {
-      this.setVal(this._val)
-    },
-
-    setVal: function(val) {
-      this._val = val
-      setValueFeedback(val)
-      cursor.css({ left: val * inner.width() - cursorSize / 2 })
-    }
-  } 
-}
+})

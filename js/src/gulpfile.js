@@ -17,7 +17,7 @@ watcher.on('change', function(event) {
 gulp.task('browserify-sound', function() {
   return gulp.src('./sound.js')
     .pipe(browserify())
-    .pipe(uglify())
+    //.pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.sound.js'))
     .pipe(gulp.dest('../../pages/js'))
@@ -26,7 +26,7 @@ gulp.task('browserify-sound', function() {
 gulp.task('browserify-controls', function() {
   return gulp.src('./controls.js')
     .pipe(browserify())
-    .pipe(uglify())
+    //.pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.controls.js'))
     .pipe(gulp.dest('../../pages/js'))
@@ -35,7 +35,7 @@ gulp.task('browserify-controls', function() {
 gulp.task('browserify-instruments', function() {
   return gulp.src('./instruments/index.js')
     .pipe(browserify())
-    .pipe(uglify())
+    //.pipe(uglify())
     .on('error', gutil.log)
     .pipe(rename('fields.instruments.js'))
     .pipe(gulp.dest('../../pages/js'))

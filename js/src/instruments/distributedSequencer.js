@@ -119,7 +119,7 @@ var Controls = function(instrumentId, stepCount, tracks) {
     , trackCount = tracks.length
     , container = $('<div>', { class: 'instrument distributedSequencer' })
 
-  this.grid = widgets.grid('toggle', tracks.length, stepCount)
+  this.grid = new widgets.Grid('toggle', tracks.length, stepCount)
   this.grid.elem.prependTo(container)
 
   $('<button>', { class: 'sendButton' })

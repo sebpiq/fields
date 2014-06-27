@@ -148,7 +148,7 @@ var Controls = function(instrumentId, url) {
   var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/density', args)
   })
-  this.densitySlider = widgets.slider({ title: 'density' }, function(val) {
+  this.densitySlider = new widgets.Slider({ title: 'density' }, function(val) {
     _sendDensity([ val ])
   })
   this.densitySlider.elem.appendTo(this.container)
@@ -157,7 +157,7 @@ var Controls = function(instrumentId, url) {
   var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/env', args)
   })
-  this.envSlider = widgets.slider({ title: 'enveloppe' }, function(val) {
+  this.envSlider = new widgets.Slider({ title: 'enveloppe' }, function(val) {
     _sendEnv([ val ])
   })
   this.envSlider.elem.appendTo(this.container)
@@ -166,7 +166,7 @@ var Controls = function(instrumentId, url) {
   var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/duration', args)
   })
-  this.durationPad = widgets.xyPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.durationPad = new widgets.XYPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendDuration([ mean, vari ])
   })
   this.durationPad.elem.appendTo(this.container)
@@ -175,7 +175,7 @@ var Controls = function(instrumentId, url) {
   var _sendPosition = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/position', args)
   })
-  this.positionPad = widgets.xyPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.positionPad = new widgets.XYPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendPosition([ mean, vari ])
   })
   this.positionPad.elem.appendTo(this.container)
@@ -184,7 +184,7 @@ var Controls = function(instrumentId, url) {
   var _sendRatio = rhizome.utils.throttle(throttleTime, function(args) {
     rhizome.send('/' + instrumentId + '/ratio', args)
   })
-  this.ratioPad = widgets.xyPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
+  this.ratioPad = new widgets.XYPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
     _sendRatio([ mean, vari ])
   })
   this.ratioPad.elem.appendTo(this.container)
