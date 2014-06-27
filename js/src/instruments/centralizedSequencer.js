@@ -62,7 +62,6 @@ var Controls = function(instrumentId, stepCount, tracks) {
   this.trackCount = tracks.length
   this.tracks = tracks
   this.stepCount = stepCount
-  this.container = $('<div>', { class: 'instrument centralizedSequencer' })
   this.currentStep = -1
   this.tickEvent = null
 
@@ -71,6 +70,8 @@ var Controls = function(instrumentId, stepCount, tracks) {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'centralizedSequencer',
 
   load: function(done) {
     this.restoreParams(paramList)

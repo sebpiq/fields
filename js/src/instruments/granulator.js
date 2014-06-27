@@ -141,7 +141,6 @@ exports.controls = function(instrumentId, url) {
 
 var Controls = function(instrumentId, url) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument granulator' })
   var throttleTime = 200
 
   // Density
@@ -191,6 +190,8 @@ var Controls = function(instrumentId, url) {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'granulator',
 
   show: function() {
     this.durationPad.refresh()

@@ -4,7 +4,6 @@ fields.log = console.log.bind(console)
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('./utils/waa')
-  , widgets = require('./utils/widgets')
   , math = require('./utils/math')
 
 var controlsInstances = {}
@@ -24,30 +23,10 @@ fields.controls.start = function() {
       , config = p[1]
       , instrument = fields.instruments[config.instrument]
       , controls = instrument.controls.apply(instrument, [instrumentId].concat(config.args))
-      , title = $('<h2>').html(instrumentId)
-    
-    // On/off button
-    controls.onOffToggle = new widgets.Toggle(function(state) {
-      var action = state === 1 ? 'start' : 'stop'
-      controlsInstances[instrumentId][action]()
-      rhizome.send('/' + instrumentId + '/state', [state])
-    })
-
-    // Volume control
-    var _sendVolume = rhizome.utils.throttle(200, function(args) {
-      rhizome.send('/' + instrumentId + '/volume', args)
-    })    
-    controls.volumeSlider = new widgets.Slider({ title: 'Volume' }, function(val) {
-      _sendVolume([ val ])
-    })
-    controls.volumeSlider.elem.addClass('volume')
 
     // Adding default controls to the container
     controlsInstances[instrumentId] = controls
-    controls.container.prepend(controls.volumeSlider.elem)
-    title.prepend(controls.onOffToggle.elem)
     controls.container.appendTo(tabsContainer)
-    controls.container.prepend(title)
 
     // Managing tabs
     $('<div>', { class: 'tabButton' })

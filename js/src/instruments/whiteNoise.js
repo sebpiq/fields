@@ -52,10 +52,11 @@ exports.controls = function(instrumentId) {
 
 var Controls = function(instrumentId) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument whiteNoise' })
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'whiteNoise',
 
   load: function(done) {
     this.restoreParams(paramList)

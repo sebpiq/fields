@@ -1,5 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var _ = require('underscore')
+  , widgets = require('../utils/widgets')
+
 
 var Mixin = {
 
@@ -40,13 +42,37 @@ var Sound = exports.BaseSound = function(instrumentId) {
 _.extend(Sound.prototype, Mixin, {})
 
 var Controls = exports.BaseControls = function(instrumentId) {
+  var self = this
   this.started = false
   this.instrumentId = instrumentId
+  this.container = $('<div>', { class: 'instrument ' + instrumentId })
+
+  // On/off button
+  this.onOffToggle = new widgets.Toggle(function(state) {
+    var action = state === 1 ? 'start' : 'stop'
+    self[action]()
+    rhizome.send('/' + instrumentId + '/state', [state])
+  })
+
+  // Volume control
+  var _sendVolume = rhizome.utils.throttle(200, function(args) {
+    rhizome.send('/' + instrumentId + '/volume', args)
+  })    
+  this.volumeSlider = new widgets.Slider({ title: 'Volume' }, function(val) {
+    _sendVolume([ val ])
+  })
+  this.volumeSlider.elem.addClass('volume')
+
+  this.container.prepend(this.volumeSlider.elem)
+  var title = $('<h2>').html(instrumentId).prependTo(this.container)
+  this.onOffToggle.elem.appendTo(title)
 }
+
 _.extend(Controls.prototype, Mixin, {
+  container: null,
   show: function() {}
 })
-},{"underscore":10}],2:[function(require,module,exports){
+},{"../utils/widgets":13,"underscore":10}],2:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../utils/waa')
@@ -111,7 +137,6 @@ var Controls = function(instrumentId, stepCount, tracks) {
   this.trackCount = tracks.length
   this.tracks = tracks
   this.stepCount = stepCount
-  this.container = $('<div>', { class: 'instrument centralizedSequencer' })
   this.currentStep = -1
   this.tickEvent = null
 
@@ -120,6 +145,8 @@ var Controls = function(instrumentId, stepCount, tracks) {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'centralizedSequencer',
 
   load: function(done) {
     this.restoreParams(paramList)
@@ -277,23 +304,21 @@ var Controls = function(instrumentId, stepCount, tracks) {
 
   var self = this
     , trackCount = tracks.length
-    , container = $('<div>', { class: 'instrument distributedSequencer' })
 
   this.grid = new widgets.Grid('toggle', tracks.length, stepCount)
-  this.grid.elem.prependTo(container)
+  this.grid.elem.prependTo(this.container)
 
   $('<button>', { class: 'sendButton' })
       .appendTo(this.grid.elem.find('.buttonsContainer')).html('Send')
       .click(function() {
         rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
       })
-
-  this.container = container
-
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
 
+  cssClass: 'distributedSequencer',
+  
   setParameter: function(param, args) {
     if (param === 'sequence') this.grid.setSequence(args)
     else fields.log('distributedSequencer unknown parameter ' + param)
@@ -456,7 +481,6 @@ exports.controls = function(instrumentId, url) {
 
 var Controls = function(instrumentId, url) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument granulator' })
   var throttleTime = 200
 
   // Density
@@ -506,6 +530,8 @@ var Controls = function(instrumentId, url) {
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'granulator',
 
   show: function() {
     this.durationPad.refresh()
@@ -586,10 +612,11 @@ exports.controls = function(instrumentId, url) {
 
 var Controls = function(instrumentId, url) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument trigger' })
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'trigger',
 
   load: function(done) {
     this.restoreParams(paramList)
@@ -652,10 +679,11 @@ exports.controls = function(instrumentId) {
 
 var Controls = function(instrumentId) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument whiteNoise' })
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'whiteNoise',
 
   load: function(done) {
     this.restoreParams(paramList)
@@ -3433,7 +3461,7 @@ _.extend(Toggle.prototype, {
   cssClass: 'toggle',
   
   setState: function(state) {
-    if (state === 1) toggle.addClass('active')
+    if (state === 1) this.elem.addClass('active')
   }
 })
 

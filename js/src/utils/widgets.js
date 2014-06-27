@@ -81,7 +81,7 @@ _.extend(Toggle.prototype, {
   cssClass: 'toggle',
   
   setState: function(state) {
-    if (state === 1) toggle.addClass('active')
+    if (state === 1) this.elem.addClass('active')
   }
 })
 

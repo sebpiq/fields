@@ -1,4 +1,6 @@
 var _ = require('underscore')
+  , widgets = require('../utils/widgets')
+
 
 var Mixin = {
 
@@ -39,9 +41,33 @@ var Sound = exports.BaseSound = function(instrumentId) {
 _.extend(Sound.prototype, Mixin, {})
 
 var Controls = exports.BaseControls = function(instrumentId) {
+  var self = this
   this.started = false
   this.instrumentId = instrumentId
+  this.container = $('<div>', { class: 'instrument ' + instrumentId })
+
+  // On/off button
+  this.onOffToggle = new widgets.Toggle(function(state) {
+    var action = state === 1 ? 'start' : 'stop'
+    self[action]()
+    rhizome.send('/' + instrumentId + '/state', [state])
+  })
+
+  // Volume control
+  var _sendVolume = rhizome.utils.throttle(200, function(args) {
+    rhizome.send('/' + instrumentId + '/volume', args)
+  })    
+  this.volumeSlider = new widgets.Slider({ title: 'Volume' }, function(val) {
+    _sendVolume([ val ])
+  })
+  this.volumeSlider.elem.addClass('volume')
+
+  this.container.prepend(this.volumeSlider.elem)
+  var title = $('<h2>').html(instrumentId).prependTo(this.container)
+  this.onOffToggle.elem.appendTo(title)
 }
+
 _.extend(Controls.prototype, Mixin, {
+  container: null,
   show: function() {}
 })

@@ -117,23 +117,21 @@ var Controls = function(instrumentId, stepCount, tracks) {
 
   var self = this
     , trackCount = tracks.length
-    , container = $('<div>', { class: 'instrument distributedSequencer' })
 
   this.grid = new widgets.Grid('toggle', tracks.length, stepCount)
-  this.grid.elem.prependTo(container)
+  this.grid.elem.prependTo(this.container)
 
   $('<button>', { class: 'sendButton' })
       .appendTo(this.grid.elem.find('.buttonsContainer')).html('Send')
       .click(function() {
         rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
       })
-
-  this.container = container
-
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
 
+  cssClass: 'distributedSequencer',
+  
   setParameter: function(param, args) {
     if (param === 'sequence') this.grid.setSequence(args)
     else fields.log('distributedSequencer unknown parameter ' + param)

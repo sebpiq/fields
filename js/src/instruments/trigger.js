@@ -53,10 +53,11 @@ exports.controls = function(instrumentId, url) {
 
 var Controls = function(instrumentId, url) {
   base.BaseControls.call(this, instrumentId)
-  this.container = $('<div>', { class: 'instrument trigger' })
 }
 
 _.extend(Controls.prototype, base.BaseControls.prototype, {
+
+  cssClass: 'trigger',
 
   load: function(done) {
     this.restoreParams(paramList)
