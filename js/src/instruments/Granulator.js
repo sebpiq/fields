@@ -1,17 +1,11 @@
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
   , math = require('../utils/math')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state']
 
-exports.sound = function(instrumentId, url) {
-  return new Sound(instrumentId, url)
-}
-
-var Sound = function(instrumentId, url) {
-  base.BaseSound.call(this, instrumentId)
+var Granulator = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
   this.params = {
     position: [0, 0],
     duration: [0.1, 0],
@@ -19,10 +13,12 @@ var Sound = function(instrumentId, url) {
     env: 0,
     density: 0
   }
-  this.url = url
+  this.url = args[0]
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+_.extend(Granulator.prototype, Instrument.prototype, {
+
+  knownCommands: ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state'],
 
   load: function(done) {
     var self = this
@@ -31,10 +27,15 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
           + 'buffer length :' + self.buffer.length)
-        self.restoreParams(paramList)
+        self.restore()
       }
       done(err)
     })       
+  },
+
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
+    this.params[name] = args
   },
 
   _start: function() {
@@ -67,14 +68,6 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       fields.sound.clock.stop()
       fields.log('stop clock')
     }
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-
-  setParameter: function(param, args) {
-    this.params[param] = args
   },
 
   _getPosition: function() {
@@ -131,88 +124,6 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
     bufferNode.start(0, start, duration)
 
     return duration
-  }
-
-})
-
-exports.controls = function(instrumentId, url) {
-  return new Controls(instrumentId, url)
-}
-
-var Controls = function(instrumentId, url) {
-  base.BaseControls.call(this, instrumentId)
-  var throttleTime = 200
-
-  // Density
-  var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/density', args)
-  })
-  this.densitySlider = new widgets.Slider({ title: 'density' }, function(val) {
-    _sendDensity([ val ])
-  })
-  this.densitySlider.elem.appendTo(this.container)
-
-  // Env
-  var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/env', args)
-  })
-  this.envSlider = new widgets.Slider({ title: 'enveloppe' }, function(val) {
-    _sendEnv([ val ])
-  })
-  this.envSlider.elem.appendTo(this.container)
-
-  // Duration 
-  var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/duration', args)
-  })
-  this.durationPad = new widgets.XYPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendDuration([ mean, vari ])
-  })
-  this.durationPad.elem.appendTo(this.container)
-
-  // Position
-  var _sendPosition = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/position', args)
-  })
-  this.positionPad = new widgets.XYPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendPosition([ mean, vari ])
-  })
-  this.positionPad.elem.appendTo(this.container)
-
-  // Ratio
-  var _sendRatio = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/ratio', args)
-  })
-  this.ratioPad = new widgets.XYPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendRatio([ mean, vari ])
-  })
-  this.ratioPad.elem.appendTo(this.container)
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'granulator',
-
-  show: function() {
-    this.durationPad.refresh()
-    this.positionPad.refresh()
-    this.ratioPad.refresh()
-    this.densitySlider.refresh()
-    this.envSlider.refresh()
-  },
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
-  },
-
-  setParameter: function(param, args) {
-    if (param === 'duration') this.durationPad.setPosition(args)
-    else if (param === 'position') this.positionPad.setPosition(args)
-    else if (param === 'ratio') this.ratioPad.setPosition(args)
-    else if (param === 'density') this.densitySlider.setVal(args[0])
-    else if (param === 'env') this.envSlider.setVal(args[0])
-    else fields.log('Unknown parameter ' + param)
   }
 
 })

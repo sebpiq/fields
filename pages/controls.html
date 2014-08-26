@@ -9,6 +9,7 @@
     <script src="js/jquery-2.1.0.js"></script>
     <script src="js/WAAClock-latest.js"></script>
     <script src="js/touchmouse.js"></script>
+    <script src="js/nexusUI.js"></script>
 
     <script src="/rhizome/rhizome.js"></script>
 
@@ -20,8 +21,95 @@
 
   <body>
     <div id="console"></div>
+    
+    <div id="fields-panel-buttons">
+    </div>
+
+    <div id="fields-panels">
+
+      <div panel="white-noise" class="active">
+        <canvas nx="slider" hslider="true" address="/noise/volume"></canvas>
+        <canvas nx="toggle" address="/noise/state"></canvas>
+      </div>
+
+      <div panel="radio" class="active">
+        <canvas nx="slider" hslider="true" address="/radio/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/radio/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/radio/env"></canvas>
+
+        <canvas nx="toggle" address="/radio/state"></canvas>
+        <canvas nx="position" address="/radio/position"></canvas>
+        <canvas nx="position" address="/radio/duration"></canvas>
+        <canvas nx="position" address="/radio/ratio"></canvas>
+      </div>
+
+      <div panel="sparkles" class="active">
+        <canvas nx="button" address="/sparkles/state"></canvas>
+      </div>
+
+      <div panel="clicks" class="active">
+        <canvas nx="slider" hslider="true" address="/clicks/volume"></canvas>
+        <canvas nx="toggle" address="/clicks/state"></canvas>
+
+        <canvas nx="matrix" address="/clicks/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/clicks/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/clicks/sequence')"></canvas>
+      </div>
+
+      <div panel="blocks" class="active">
+        <canvas nx="slider" hslider="true" address="/blocks/volume"></canvas>
+        <canvas nx="toggle" address="/blocks/state"></canvas>
+
+        <canvas nx="matrix" address="/blocks/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/blocks/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/blocks/sequence')"></canvas>
+      </div>
+
+      <div panel="violins" class="active">
+        <canvas nx="slider" hslider="true" address="/violins/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/violins/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/violins/env"></canvas>
+
+        <canvas nx="toggle" address="/violins/state"></canvas>
+        <canvas nx="position" address="/violins/position"></canvas>
+        <canvas nx="position" address="/violins/duration"></canvas>
+        <canvas nx="position" address="/violins/ratio"></canvas>
+      </div>
+
+      <div panel="drops" class="active">
+        <canvas nx="slider" hslider="true" address="/drops/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/drops/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/drops/env"></canvas>
+
+        <canvas nx="toggle" address="/drops/state"></canvas>
+        <canvas nx="position" address="/drops/position"></canvas>
+        <canvas nx="position" address="/drops/duration"></canvas>
+        <canvas nx="position" address="/drops/ratio"></canvas>
+      </div>
+
+      <div panel="minimal" class="active">
+        <canvas nx="slider" hslider="true" address="/minimal/volume"></canvas>
+        <canvas nx="toggle" address="/minimal/state"></canvas>
+
+        <canvas nx="matrix" address="/minimal/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/minimal/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/minimal/sequence')"></canvas>
+      </div>
+
+      <div panel="waves" class="active">
+        <canvas nx="slider" hslider="true" address="/waves/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/waves/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/waves/env"></canvas>
+
+        <canvas nx="toggle" address="/waves/state"></canvas>
+        <canvas nx="position" address="/waves/position"></canvas>
+        <canvas nx="position" address="/waves/duration"></canvas>
+        <canvas nx="position" address="/waves/ratio"></canvas>
+      </div>
+
+    </div>
+
     <script>
-      $(document).on('touchmove',function(e){ e.preventDefault() })
       $(function() {
         //try {
           fields.controls.start()

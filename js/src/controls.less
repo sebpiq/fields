@@ -2,12 +2,12 @@
 
 body {
   /* Disable text selection */
-  -webkit-touch-callout: none;
+  /*-webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;
+  user-select: none;*/
 }
 
 body {
@@ -17,28 +17,12 @@ body {
   font-family: courier;
 }
 
-h2 {
-  margin: 0;
-}
-
-button {
-  min-width: 3em;
-  min-height: 2em;
-  font-size: 120%;
-  font-family: courier;
-  text-transform: uppercase;
-  margin: 0.2em;
-  background-color: grey;
-  border: none;
-  margin: 0;
-}
-
-.tabsHeader {
+#fields-panel-buttons {
   background-color: #222;
   padding: 0.2em;
   margin-bottom: 1em;
 
-  .tabButton {
+  .fields-panel-button {
     display: inline-block;
     font-size: 95%;
     padding: 1em;
@@ -55,7 +39,7 @@ button {
   }
 }
 
-.tabsContainer {
+#fields-panels {
 
   >div {
     display: none;
@@ -65,134 +49,4 @@ button {
     }
   }
 
-}
-
-.instrument {
-  margin-bottom: 1em;
-  background-color: #222;
-  padding: 1em;
-
-  >div {
-    margin-bottom: 0.3em;
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-
-.grid {
-  .track {
-    @step1Color: #333;
-    @step2Color: #363636;
-    @stepActiveColor: @onColor;
-    @stepCurrentColor: white;
-    @stepHeight: 2em;
-
-    height: @stepHeight;
-
-    &:nth-child(odd) {
-      .step {
-        &:nth-child(even) { background-color: @step1Color; }
-        &:nth-child(odd) { background-color: @step2Color; }
-        &.active { background-color: @stepActiveColor; }
-        &.current { background-color: @stepCurrentColor; }
-      }
-    }
-    &:nth-child(even) {
-      .step {
-        &:nth-child(even) { background-color: @step2Color; }
-        &:nth-child(odd) { background-color: @step1Color; }
-        &.active { background-color: @stepActiveColor; }
-        &.current { background-color: @stepCurrentColor; }
-      }
-    }
-    .step {
-      width: 6.25%;
-      height: @stepHeight;
-      display: inline-block;
-    }
-  }
-
-  .buttonsContainer {
-    text-align: right;
-    button {
-      margin-left: 2em;
-      margin-top: 0.3em;
-    }
-  }
-}
-
-.toggle {
-  background-color: orange;
-  width: 6%;
-  height: 1.5em;
-  display: inline-block;
-
-  &.active {
-    background-color: @onColor;
-  }
-}
-
-.cursor-mixin {
-  position: relative;
-  display: inline-block;
-  width: 3.5em;
-  height: 3.5em;
-  background: rgba(255, 0, 0, 0.5) no-repeat center;
-}
-
-.feedback {
-  font-size: 60%;
-}
-
-.xyPad {
-  height: 6em;
-  background-color: grey;
-  padding: 1em;
-
-  .inner {
-    background-color: LightGrey;
-    width: 100%;
-    height: 100%;
-
-    .cursor {
-      .cursor-mixin;
-      background-image: url('../images/crosshair.png');
-      background-size: 50%;
-    }
-  }
-
-  .title {
-    text-transform: uppercase;
-    font-weight: bold;
-  }
-
-}
-
-.slider {
-  background-color: grey;
-
-  .inner {
-    background-color: LightGrey;
-
-    .cursor {
-      .cursor-mixin;
-      background-image: url('../images/slider.png');
-      background-size: auto 80%;
-    }
-  }
-
-  .title {
-    font-size: 120%;
-    text-transform: uppercase;
-    font-weight: bold;
-  }
-
-  &.volume .cursor {
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-}
-
-.slider, .xyPad {
-  margin-top: 0.2em;
 }

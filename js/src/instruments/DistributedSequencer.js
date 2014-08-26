@@ -1,29 +1,24 @@
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'sequence', 'state']
+// args : stepCount, tracks, tempo
+var DistributedSequencer = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
 
-exports.sound = function(instrumentId, stepCount, tracks, tempo) {
-  var sound = new Sound(instrumentId, stepCount, tracks, tempo)
-  return sound
-}
-
-var Sound = function(instrumentId, stepCount, tracks, tempo) {
-  base.BaseSound.call(this, instrumentId)
-
-  this.stepCount = stepCount
-  this.tracks = tracks
+  this.stepCount = args[0]
+  this.tracks = args[1]
   this.buffers = []
 
-  this._setTempo(tempo)
+  this._setTempo(args[2])
   this.sequence = []
   this.bufferNode = null
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+_.extend(DistributedSequencer.prototype, Instrument.prototype, {
+
+  knownCommands: ['volume', 'sequence', 'state'],
 
   load: function(done) {
     var self = this
@@ -31,27 +26,16 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       if (!err) {
         self.buffers = buffers
         fields.log(self.instrumentId + ' loaded, tempo ' +  self.tempo)
-        self.restore(paramList)
+        self.restore()
       }
       done(err)
     })
   },
 
-  _start: function() {
-    this._playSequence()
-  },
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
 
-  _stop: function() {
-    this.bufferNode.stop(0)
-    this.bufferNode = null
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-
-  setParameter: function(param, args) {
-    if (param === 'sequence') {
+    if (name === 'sequence') {
       var sequence = []
         , t, s
 
@@ -63,10 +47,19 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       this.sequence = _.sortBy(sequence, function(pair) { return pair[1] })
       if (this.started) this._playSequence()
 
-    } else if (param === 'tempo') {
+    } else if (name === 'tempo') {
       this._setTempo(args[0])
       if (this.started) this._playSequence()
     }
+  },
+
+  _start: function() {
+    this._playSequence()
+  },
+
+  _stop: function() {
+    this.bufferNode.stop(0)
+    this.bufferNode = null
   },
 
   _setTempo: function(tempo) {
@@ -102,44 +95,6 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
     this.bufferNode.loop = true
     this.bufferNode.buffer = loopBuffer
     this.bufferNode.start(0)
-  }
-
-})
-
-exports.controls = function(instrumentId, stepCount, tracks) {
-  return new Controls(instrumentId, stepCount, tracks)
-}
-
-var Controls = function(instrumentId, stepCount, tracks) {
-  base.BaseControls.call(this, instrumentId)
-  this.stepCount = stepCount
-  this.tracks = tracks
-
-  var self = this
-    , trackCount = tracks.length
-
-  this.grid = new widgets.Grid('toggle', tracks.length, stepCount)
-  this.grid.elem.prependTo(this.container)
-
-  $('<button>', { class: 'sendButton' })
-      .appendTo(this.grid.elem.find('.buttonsContainer')).html('Send')
-      .click(function() {
-        rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
-      })
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'distributedSequencer',
-  
-  setParameter: function(param, args) {
-    if (param === 'sequence') this.grid.setSequence(args)
-    else fields.log('distributedSequencer unknown parameter ' + param)
-  },
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
   }
 
 })

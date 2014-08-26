@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 window.fields.controls = {}
 fields.log = console.log.bind(console)
 
@@ -7,39 +7,64 @@ var async = require('async')
   , waaUtils = require('./utils/waa')
   , math = require('./utils/math')
 
-var controlsInstances = {}
-
-// Start things when the user presses a button
 fields.controls.start = function() {
   fields.controls.audioContext = waaUtils.kickStartWAA()
   fields.controls.clock = new WAAClock(fields.controls.audioContext)
-  fields.controls.clock.start()
-  rhizome.start()
 
-  var tabsHeader = $('<div>', { class: 'tabsHeader' }).appendTo('body')
-    , tabsContainer = $('<div>', { class: 'tabsContainer' }).appendTo('body')
+  // Fix nexusUI objects so that they send the same data
+  nx.nxObjects.forEach(function(widget) {
+    var address = widget.canvas.getAttribute('address')
+      , noautosend = widget.canvas.getAttribute('noautosend')
+      , onvalue = widget.canvas.getAttribute('onvalue')
+      , _getArgs
 
-  _.chain(fields.config()).pairs().sortBy(function(p) { return p[1].index }).forEach(function(p) {
-    var instrumentId = p[0]
-      , config = p[1]
-      , instrument = fields.instruments[config.instrument]
-      , controls = instrument.controls.apply(instrument, [instrumentId].concat(config.args))
+    if (address && noautosend === null) {
+      if (widget.getName() === 'button')
+        _getArgs = function(data) { return [data.press] }
+      else if (widget.getName() === 'position')
+        _getArgs = function(data) { return [data.x, 1 - data.y] }
+      else
+        _getArgs = function(data) { return [data] }
+      widget.events.on('data', rhizome.utils.throttle(100, function(data) {
+        var args = _getArgs(data)
+        rhizome.send(address, args)
+      }))
 
-    // Adding default controls to the container
-    controlsInstances[instrumentId] = controls
-    controls.container.appendTo(tabsContainer)
+    } else if (onvalue) {
+      onvalue = eval('onvalue = function(data) { ' + onvalue + ' }')
+      widget.events.on('data', onvalue)
+    }
+
+    if (widget.getName() === 'matrix') {
+      if (widget.canvas.getAttribute('col'))
+        widget.col = parseInt(widget.canvas.getAttribute('col'), 10)
+      if (widget.canvas.getAttribute('row'))
+        widget.row = parseInt(widget.canvas.getAttribute('row'), 10)
+      widget.init()
+      widget.draw()
+    }
+
+  })
+
+  $('div[panel]').each(function(i, panel) {
+    var $panel = $(panel)
+      , panelName = panel.getAttribute('panel')
+      , title = $('<h2>').html(panelName)
+    $panel.addClass('fields-panel')
+    $panel.removeClass('active') // HACK allows nexusUI to size widgets properly
 
     // Managing tabs
-    $('<div>', { class: 'tabButton' })
-      .appendTo(tabsHeader)
-      .html(instrumentId)
+    $('<div>', { class: 'fields-panel-button' })
+      .appendTo('#fields-panel-buttons')
+      .html(panelName)
       .click(function() {
-        controls.container.toggleClass('active')
-        controls.volumeSlider.refresh()
-        controls.show()
+        $panel.toggleClass('active')
         $(this).toggleClass('active')
       })
-  }).values()
+
+  })
+
+  rhizome.start()
 }
 
 // Message scheme :
@@ -49,28 +74,25 @@ rhizome.on('message', function(address, args) {
   else {
     fields.log('MESSAGE : ' + address + ' ' + args)
 
-    var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
-      , controls = controlsInstances[parts[1]]
-      , parameter = parts[2]
+    var widget = nx.nxObjects.filter(function(widget) {
+      return address === widget.canvas.getAttribute('address')
+    })[0]
 
-    // This is used only to resend values, and if there was no arg there is presumably no value
-    // to restore.
-    if (args.length) {
-      if (parameter === 'state')
-        controls.onOffToggle.setState(args[0])
-      else if (parameter === 'volume')
-        controls.volumeSlider.setVal(args[0])
-      else controls.setParameter(parameter, args)
+    if (widget.getName() === 'position') widget.set({x: args[0], y: 1 - args[1]})
+    else if (widget.getName() === 'matrix') {
+      fields.controls.setMatrix(address, args)
     }
+
+    else widget.set(args[0])
   }
 })
 
 rhizome.on('connected', function() {
-  // Loading all the controls
-  async.forEach(_.values(controlsInstances), function(controls, next) {
-    controls.load(next)
-  }, function(err) {
-    if (err) fields.log('error loading controls : ' + err)
+  // Resending previous values
+  _.forEach(nx.nxObjects, function(widget) {
+    var address = widget.canvas.getAttribute('address')
+    if (address)
+      rhizome.send('/sys/resend', [ widget.canvas.getAttribute('address') ])
   })
 })
 
@@ -78,6 +100,46 @@ rhizome.on('server full', function() {})
 rhizome.on('connection lost', function() {})
 rhizome.on('reconnected', function() {})
 
+
+var findWidgetByAddress = function(address) {
+  return _.find(nx.nxObjects, function(widget) {
+    return widget.canvas.getAttribute('address') === address
+  })
+}
+
+fields.controls.sendMatrix = function(address) {
+  var matrix = findWidgetByAddress(address)
+    , sequence = []
+
+  _.forEach(matrix.matrix, function(track, trackInd) {
+    _.forEach(track, function(step, stepInd) {
+      if (step > 0) {
+        sequence.push(trackInd)
+        sequence.push(stepInd)
+      }
+    })
+  })
+
+  rhizome.send(address, sequence)
+}
+
+fields.controls.setMatrix = function(address, sequence) {
+  var matrix = findWidgetByAddress(address)
+  _.times(matrix.row, function(row) {
+    _.times(matrix.col, function(col) { matrix.matrix = 0 })
+  })
+  matrix.init()
+  for (i = 0, j = 1; j < sequence.length; i+=2, j+=2) {
+    var row = sequence[i]
+      , col = sequence[j]
+    matrix.matrix[row][col] = 1
+  }
+  matrix.draw()
+}
+
+fields.controls.resetMatrix = function(address) {
+  fields.controls.setMatrix(address, [])
+}
 },{"./utils/math":5,"./utils/waa":6,"async":2,"underscore":4}],2:[function(require,module,exports){
 (function (process){
 /*!
@@ -1204,8 +1266,8 @@ rhizome.on('reconnected', function() {})
 
 }());
 
-}).call(this,require("IrXUsu"))
-},{"IrXUsu":3}],3:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"_process":3}],3:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -2764,4 +2826,4 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}]},{},[1])
+},{}]},{},[1]);

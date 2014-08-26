@@ -1,9 +1,27 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+fields.instruments = {}
+fields.instruments.DistributedSequencer = require('./DistributedSequencer')
+fields.instruments.CentralizedSequencer = require('./CentralizedSequencer')
+fields.instruments.Granulator = require('./Granulator')
+fields.instruments.WhiteNoise = require('./WhiteNoise')
+fields.instruments.Trigger = require('./Trigger')
+fields.instruments.ChangingNotes = require('./ChangingNotes')
+},{"./CentralizedSequencer":3,"./ChangingNotes":4,"./DistributedSequencer":5,"./Granulator":6,"./Trigger":7,"./WhiteNoise":8}],2:[function(require,module,exports){
 var _ = require('underscore')
-  , widgets = require('../utils/widgets')
+  , math = require('./utils/math')
 
+var BaseInstrument = exports.BaseInstrument = function(instrumentId, args) {
+  this.mixer = fields.sound.audioContext.createGain()
+  this.mixer.gain.value = 0
+  this.mixer.connect(fields.sound.audioContext.destination)
 
-var Mixin = {
+  this.started = false
+  this.instrumentId = instrumentId
+}
+
+_.extend(BaseInstrument.prototype, {
+
+  knownCommands: ['state', 'volume'],
 
   start: function() {
     if (this.started === false) {
@@ -19,76 +37,43 @@ var Mixin = {
     }
   },
 
+  load: function(done) {},
+
+  restore: function() {
+    var self = this
+    _.forEach(this.knownCommands, function(command) {
+      rhizome.send('/sys/resend', ['/' + self.instrumentId + '/' + command])
+    })
+  },
+
+  // This returns `true` if the command has been handled, `false` otherwise
+  command: function(name, args) {
+    if (name === 'state') {
+      var state = args[0]
+      if (state === 0) this.stop()
+      else if (state === 1) this.start()
+      return true
+    } else if (name === 'volume') {
+      this.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.002)
+      return true
+    }
+    return false
+  },
+
   _start: function() {},
   _stop: function() {},
 
-  restoreParams: function(params) {
-    var self = this
-    _.forEach(params, function(param) {
-      rhizome.send('/sys/resend', ['/' + self.instrumentId + '/' + param])
-    })
-  }
-
-}
-
-var Sound = exports.BaseSound = function(instrumentId) {
-  this.mixer = fields.sound.audioContext.createGain()
-  this.mixer.gain.value = 0
-  this.mixer.connect(fields.sound.audioContext.destination)
-
-  this.started = false
-  this.instrumentId = instrumentId
-}
-_.extend(Sound.prototype, Mixin, {})
-
-var Controls = exports.BaseControls = function(instrumentId) {
-  var self = this
-  this.started = false
-  this.instrumentId = instrumentId
-  this.container = $('<div>', { class: 'instrument ' + instrumentId })
-
-  // On/off button
-  this.onOffToggle = new widgets.Toggle(function(state) {
-    var action = state === 1 ? 'start' : 'stop'
-    self[action]()
-    rhizome.send('/' + instrumentId + '/state', [state])
-  })
-
-  // Volume control
-  var _sendVolume = rhizome.utils.throttle(200, function(args) {
-    rhizome.send('/' + instrumentId + '/volume', args)
-  })    
-  this.volumeSlider = new widgets.Slider({ title: 'Volume' }, function(val) {
-    _sendVolume([ val ])
-  })
-  this.volumeSlider.elem.addClass('volume')
-
-  this.container.prepend(this.volumeSlider.elem)
-  var title = $('<h2>').html(instrumentId).prependTo(this.container)
-  this.onOffToggle.elem.appendTo(title)
-}
-
-_.extend(Controls.prototype, Mixin, {
-  container: null,
-  show: function() {}
 })
-},{"../utils/widgets":13,"underscore":10}],2:[function(require,module,exports){
+},{"./utils/math":12,"underscore":11}],3:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'state']
+var CentralizedSequencer = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
 
-exports.sound = function(instrumentId, stepCount, tracks) {
-  var sound = new Sound(instrumentId, stepCount, tracks)
-  return sound
-}
-
-var Sound = function(instrumentId, stepCount, tracks) {
-  base.BaseSound.call(this, instrumentId)
-
+  var tracks = args[1]
   // Picks one track randomly
   this.trackId = rhizome.userId % tracks.length
   this.soundUrl = tracks[this.trackId]
@@ -96,7 +81,9 @@ var Sound = function(instrumentId, stepCount, tracks) {
   this.bufferNode = null
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+_.extend(CentralizedSequencer.prototype, Instrument.prototype, {
+
+  knownCommands: ['state', 'volume'],
 
   load: function(done) {
     var self = this
@@ -111,8 +98,9 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
     })
   },
 
-  setParameter: function(param, args) {
-    if (param === 'note') {
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
+    if (name === 'note') {
       if (args[0] === this.trackId && this.started) {
         this.bufferNode = audioContext.createBufferSource()
         this.bufferNode.connect(this.mixer)
@@ -120,97 +108,75 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         this.bufferNode.start(0)
       } 
     }
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
   }
 
 })
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],4:[function(require,module,exports){
+var async = require('async')
+  , _ = require('underscore')
+  , waaUtils = require('../utils/waa')
+  , Instrument = require('../core').BaseInstrument
 
-exports.controls = function(instrumentId, stepCount, tracks) {
-  return new Controls(instrumentId, stepCount, tracks)
+
+var ChangingNotes = module.exports = function(instrumentId) {
+  Instrument.call(this, instrumentId)
 }
 
-var Controls = function(instrumentId, stepCount, tracks) {
-  base.BaseControls.call(this, instrumentId)
-  this.trackCount = tracks.length
-  this.tracks = tracks
-  this.stepCount = stepCount
-  this.currentStep = -1
-  this.tickEvent = null
+_.extend(ChangingNotes.prototype, Instrument.prototype, {
 
-  this.grid = new widgets.Grid('normal', tracks.length, stepCount)
-  this.grid.elem.appendTo(this.container)
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'centralizedSequencer',
+  knownCommands: ['volume', 'state'],
 
   load: function(done) {
-    this.restoreParams(paramList)
+    this.restore()
     done()
   },
 
-  setParameter: function(param, args) {},
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
+    if (name === 'curve') {
+      var curve = args[0]
+            
+    }
+  },
 
   _start: function() {
-    var self = this
-    this.currentStep = -1
-
-    this.tickEvent = fields.controls.clock.setTimeout(function() {
-      self.currentStep = (self.currentStep + 1) % self.stepCount
-
-      // Send message if step is active
-      _.forEach(self.tracks, function(track, trackId) {
-        if (self.container.find('.track-' + trackId + ' .step-' + self.currentStep).hasClass('active'))
-          rhizome.send('/' + self.instrumentId + '/note', [ trackId ])
-      })
-
-      // light up the current step
-      self.container.find('.step').removeClass('current')
-      self.container.find('.step-' + self.currentStep).addClass('current')
-
-    }, 0.2).repeat(0.2)
+    this.envNode = fields.sound.audioContext.createGain()
+    this.envNode.gain.value = 0
+    this.envNode.connect(this.mixer)
+    this.oscillatorNode = fields.sound.audioContext.createOscillator()
+    this.oscillatorNode.connect(this.envNode)
+    this.oscillatorNode.start(0)
   },
 
   _stop: function() {
-    this.tickEvent.clear()
-  },
-
-  restore: function() {
-    self.restoreParams(paramList)
+    this.envNode.disconnect()
+    this.oscillatorNode.stop(0)
+    this.oscillatorNode.disconnect()
   }
 
 })
-},{"../utils/waa":12,"../utils/widgets":13,"./base":1,"async":8,"underscore":10}],3:[function(require,module,exports){
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],5:[function(require,module,exports){
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'sequence', 'state']
+// args : stepCount, tracks, tempo
+var DistributedSequencer = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
 
-exports.sound = function(instrumentId, stepCount, tracks, tempo) {
-  var sound = new Sound(instrumentId, stepCount, tracks, tempo)
-  return sound
-}
-
-var Sound = function(instrumentId, stepCount, tracks, tempo) {
-  base.BaseSound.call(this, instrumentId)
-
-  this.stepCount = stepCount
-  this.tracks = tracks
+  this.stepCount = args[0]
+  this.tracks = args[1]
   this.buffers = []
 
-  this._setTempo(tempo)
+  this._setTempo(args[2])
   this.sequence = []
   this.bufferNode = null
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+_.extend(DistributedSequencer.prototype, Instrument.prototype, {
+
+  knownCommands: ['volume', 'sequence', 'state'],
 
   load: function(done) {
     var self = this
@@ -218,27 +184,16 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       if (!err) {
         self.buffers = buffers
         fields.log(self.instrumentId + ' loaded, tempo ' +  self.tempo)
-        self.restore(paramList)
+        self.restore()
       }
       done(err)
     })
   },
 
-  _start: function() {
-    this._playSequence()
-  },
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
 
-  _stop: function() {
-    this.bufferNode.stop(0)
-    this.bufferNode = null
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-
-  setParameter: function(param, args) {
-    if (param === 'sequence') {
+    if (name === 'sequence') {
       var sequence = []
         , t, s
 
@@ -250,10 +205,19 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       this.sequence = _.sortBy(sequence, function(pair) { return pair[1] })
       if (this.started) this._playSequence()
 
-    } else if (param === 'tempo') {
+    } else if (name === 'tempo') {
       this._setTempo(args[0])
       if (this.started) this._playSequence()
     }
+  },
+
+  _start: function() {
+    this._playSequence()
+  },
+
+  _stop: function() {
+    this.bufferNode.stop(0)
+    this.bufferNode = null
   },
 
   _setTempo: function(tempo) {
@@ -292,66 +256,15 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
   }
 
 })
-
-exports.controls = function(instrumentId, stepCount, tracks) {
-  return new Controls(instrumentId, stepCount, tracks)
-}
-
-var Controls = function(instrumentId, stepCount, tracks) {
-  base.BaseControls.call(this, instrumentId)
-  this.stepCount = stepCount
-  this.tracks = tracks
-
-  var self = this
-    , trackCount = tracks.length
-
-  this.grid = new widgets.Grid('toggle', tracks.length, stepCount)
-  this.grid.elem.prependTo(this.container)
-
-  $('<button>', { class: 'sendButton' })
-      .appendTo(this.grid.elem.find('.buttonsContainer')).html('Send')
-      .click(function() {
-        rhizome.send('/' + instrumentId + '/sequence', self.grid.getSequence())
-      })
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'distributedSequencer',
-  
-  setParameter: function(param, args) {
-    if (param === 'sequence') this.grid.setSequence(args)
-    else fields.log('distributedSequencer unknown parameter ' + param)
-  },
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
-  }
-
-})
-},{"../utils/waa":12,"../utils/widgets":13,"./base":1,"async":8,"underscore":10}],4:[function(require,module,exports){
-fields.instruments = {}
-fields.instruments.distributedSequencer = require('./distributedSequencer')
-fields.instruments.centralizedSequencer = require('./centralizedSequencer')
-fields.instruments.granulator = require('./granulator')
-fields.instruments.whiteNoise = require('./whiteNoise')
-fields.instruments.trigger = require('./trigger')
-},{"./centralizedSequencer":2,"./distributedSequencer":3,"./granulator":5,"./trigger":6,"./whiteNoise":7}],5:[function(require,module,exports){
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],6:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
   , math = require('../utils/math')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state']
 
-exports.sound = function(instrumentId, url) {
-  return new Sound(instrumentId, url)
-}
-
-var Sound = function(instrumentId, url) {
-  base.BaseSound.call(this, instrumentId)
+var Granulator = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
   this.params = {
     position: [0, 0],
     duration: [0.1, 0],
@@ -359,10 +272,12 @@ var Sound = function(instrumentId, url) {
     env: 0,
     density: 0
   }
-  this.url = url
+  this.url = args[0]
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+_.extend(Granulator.prototype, Instrument.prototype, {
+
+  knownCommands: ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state'],
 
   load: function(done) {
     var self = this
@@ -371,10 +286,15 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
           + 'buffer length :' + self.buffer.length)
-        self.restoreParams(paramList)
+        self.restore()
       }
       done(err)
     })       
+  },
+
+  command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
+    this.params[name] = args
   },
 
   _start: function() {
@@ -407,14 +327,6 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
       fields.sound.clock.stop()
       fields.log('stop clock')
     }
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-
-  setParameter: function(param, args) {
-    this.params[param] = args
   },
 
   _getPosition: function() {
@@ -474,107 +386,21 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
   }
 
 })
-
-exports.controls = function(instrumentId, url) {
-  return new Controls(instrumentId, url)
-}
-
-var Controls = function(instrumentId, url) {
-  base.BaseControls.call(this, instrumentId)
-  var throttleTime = 200
-
-  // Density
-  var _sendDensity = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/density', args)
-  })
-  this.densitySlider = new widgets.Slider({ title: 'density' }, function(val) {
-    _sendDensity([ val ])
-  })
-  this.densitySlider.elem.appendTo(this.container)
-
-  // Env
-  var _sendEnv = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/env', args)
-  })
-  this.envSlider = new widgets.Slider({ title: 'enveloppe' }, function(val) {
-    _sendEnv([ val ])
-  })
-  this.envSlider.elem.appendTo(this.container)
-
-  // Duration 
-  var _sendDuration = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/duration', args)
-  })
-  this.durationPad = new widgets.XYPad({ title: 'duration', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendDuration([ mean, vari ])
-  })
-  this.durationPad.elem.appendTo(this.container)
-
-  // Position
-  var _sendPosition = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/position', args)
-  })
-  this.positionPad = new widgets.XYPad({ title: 'position', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendPosition([ mean, vari ])
-  })
-  this.positionPad.elem.appendTo(this.container)
-
-  // Ratio
-  var _sendRatio = rhizome.utils.throttle(throttleTime, function(args) {
-    rhizome.send('/' + instrumentId + '/ratio', args)
-  })
-  this.ratioPad = new widgets.XYPad({ title: 'ratio', xLabel: 'mean', yLabel: 'variance' }, function(mean, vari) {
-    _sendRatio([ mean, vari ])
-  })
-  this.ratioPad.elem.appendTo(this.container)
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'granulator',
-
-  show: function() {
-    this.durationPad.refresh()
-    this.positionPad.refresh()
-    this.ratioPad.refresh()
-    this.densitySlider.refresh()
-    this.envSlider.refresh()
-  },
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
-  },
-
-  setParameter: function(param, args) {
-    if (param === 'duration') this.durationPad.setPosition(args)
-    else if (param === 'position') this.positionPad.setPosition(args)
-    else if (param === 'ratio') this.ratioPad.setPosition(args)
-    else if (param === 'density') this.densitySlider.setVal(args[0])
-    else if (param === 'env') this.envSlider.setVal(args[0])
-    else fields.log('Unknown parameter ' + param)
-  }
-
-})
-},{"../utils/math":11,"../utils/waa":12,"../utils/widgets":13,"./base":1,"underscore":10}],6:[function(require,module,exports){
+},{"../core":2,"../utils/math":12,"../utils/waa":13,"underscore":11}],7:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
-  , widgets = require('../utils/widgets')
   , math = require('../utils/math')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume']
 
-exports.sound = function(instrumentId, url) {
-  return new Sound(instrumentId, url)
+var Trigger = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
+  this.url = args[0]
 }
 
-var Sound = function(instrumentId, url) {
-  base.BaseSound.call(this, instrumentId)
-  this.url = url
-}
+_.extend(Trigger.prototype, Instrument.prototype, {
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+  knownCommands: ['volume'],
 
   load: function(done) {
     var self = this
@@ -583,9 +409,9 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
           + 'buffer length :' + self.buffer.length)
-        self.restoreParams(paramList)
       }
       done(err)
+      self.mixer.gain.value = 1
     })       
   },
 
@@ -596,49 +422,18 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
     this.bufferNode.start(0)
   },
 
-  _stop: function() {},
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-
-  setParameter: function(param, args) {},
-
+  _stop: function() {}
+  
 })
-
-exports.controls = function(instrumentId, url) {
-  return new Controls(instrumentId, url)
-}
-
-var Controls = function(instrumentId, url) {
-  base.BaseControls.call(this, instrumentId)
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'trigger',
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
-  }
-
-})
-},{"../utils/math":11,"../utils/waa":12,"../utils/widgets":13,"./base":1,"underscore":10}],7:[function(require,module,exports){
+},{"../core":2,"../utils/math":12,"../utils/waa":13,"underscore":11}],8:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../utils/waa')
-  , base = require('./base')
+  , Instrument = require('../core').BaseInstrument
 
-var paramList = ['volume', 'state']
 
-exports.sound = function(instrumentId) {
-  var sound = new Sound(instrumentId)
-  return sound
-}
-
-var Sound = function(instrumentId) {
-  base.BaseSound.call(this, instrumentId)
+var WhiteNoise = module.exports = function(instrumentId, args) {
+  Instrument.call(this, instrumentId)
   var sampleCount = 44100
   this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
   var noiseData = this.noiseBuffer.getChannelData(0)
@@ -646,10 +441,13 @@ var Sound = function(instrumentId) {
   for (i = 0; i < sampleCount; i++) noiseData[i] = Math.random()
 }
 
-_.extend(Sound.prototype, base.BaseSound.prototype, {
+
+_.extend(WhiteNoise.prototype, Instrument.prototype, {
+
+  knownCommands: ['state', 'volume'],
 
   load: function(done) {
-    this.restoreParams(paramList)
+    this.restore()
     done()
   },
 
@@ -663,35 +461,10 @@ _.extend(Sound.prototype, base.BaseSound.prototype, {
 
   _stop: function() {
     this.bufferNode.stop(0)
-  },
-
-  restore: function() {
-    this.restoreParams(paramList)
-  },
-  
-  setParameter: function(param, args) {}
-
-})
-
-exports.controls = function(instrumentId) {
-  return new Controls(instrumentId)
-}
-
-var Controls = function(instrumentId) {
-  base.BaseControls.call(this, instrumentId)
-}
-
-_.extend(Controls.prototype, base.BaseControls.prototype, {
-
-  cssClass: 'whiteNoise',
-
-  load: function(done) {
-    this.restoreParams(paramList)
-    done()
   }
 
 })
-},{"../utils/waa":12,"./base":1,"async":8,"underscore":10}],8:[function(require,module,exports){
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],9:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -1817,8 +1590,8 @@ _.extend(Controls.prototype, base.BaseControls.prototype, {
 
 }());
 
-}).call(this,require("1YiZ5S"))
-},{"1YiZ5S":9}],9:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"_process":10}],10:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1883,7 +1656,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3228,7 +3001,7 @@ process.chdir = function (dir) {
   }
 }).call(this);
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 exports.pickVal = function(mean, variance) {
   return mean + mean * variance * (1 - 2 * Math.random())
 }
@@ -3242,7 +3015,7 @@ exports.valExp = function(val, exp) {
   return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
 }
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
@@ -3377,226 +3150,4 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}],13:[function(require,module,exports){
-var _ = require('underscore')
-
-
-var BaseWidget = function() {
-  this.elem = $('<div>', { class: 'widget ' + this.cssClass })
-}
-
-_.extend(BaseWidget.prototype, {
-  cssClass: '',
-  refresh: function() {}
-})
-
-// `mode` can be :
-//  - 'toggle' only one track per step can be active
-//  - 'normal' there is no restriction in active steps
-var Grid = exports.Grid = function(mode, trackCount, stepCount) {
-  var self = this
-    , buttonsContainer = $('<div>', { class: 'buttonsContainer' })
-    , resetSequenceButton = $('<button>', { class: 'resetSequenceButton' })
-      .html('Reset')
-      .appendTo(buttonsContainer)
-  BaseWidget.call(this)
-
-  _.forEach(_.range(trackCount), function(trackId) {
-    var track = $('<div>', { class: 'track track-' + trackId }).appendTo(self.elem)
-    _.forEach(_.range(stepCount), function(stepId) {
-      $('<div>', { class: 'step step-' + stepId }).appendTo(track)
-        .click(function() {
-          var cls = $(this).attr('class')
-          if (mode === 'toggle')
-            self.elem.find('.step-' + stepId).removeClass('active')
-          $(this).attr('class', cls).toggleClass('active')
-        })
-    })
-  })
-  self.elem.append(buttonsContainer)
-
-  // Reset sequence on click
-  resetSequenceButton.click(function() {
-    self.elem.find('.step').removeClass('active')
-  })
-
-}
-
-_.extend(Grid.prototype, {
-
-  cssClass: 'grid',
-
-  setSequence: function(sequence) {
-    var i, j
-    for (i = 0, j = 1; j < sequence.length; i+=2, j+=2)
-      this.elem.find('.track-' + sequence[i] + ' .step-' + sequence[j]).addClass('active')
-  },
-
-  getSequence: function() {
-    var sequence = []
-    this.elem.find('.track').each(function(i, track) {
-      $(track).find('.step').each(function(j, step) {
-        if ($(step).hasClass('active')) {
-          sequence.push(i)
-          sequence.push(j)
-        }
-      })
-    })
-    return sequence
-  }
-
-})
-
-// `onToggleClick(active)` is called when the toggle is clicked. 
-var Toggle = exports.Toggle = function(onToggleClick) {
-  BaseWidget.call(this)
-  this.elem.click(function() {
-    $(this).toggleClass('active')
-    onToggleClick.call(this, $(this).hasClass('active') ? 1 : 0)
-  })
-}
-
-_.extend(Toggle.prototype, {
-
-  cssClass: 'toggle',
-  
-  setState: function(state) {
-    if (state === 1) this.elem.addClass('active')
-  }
-})
-
-var XYPad = exports.XYPad = function(opts, onMove) {
-  BaseWidget.call(this)
-  this._position = [0, 0]
-  this.onMove = onMove
-
-  var self = this
-
-  this.inner = $('<div>', { class: 'inner' })
-    .appendTo(this.elem)
-    .on(TouchMouseEvent.DOWN, _.bind(this._moveOrClick, this))
-
-  this.cursorSize = $(document).width() * 0.04
-  this.cursor = $('<div>', { class: 'cursor' })
-    .appendTo(this.inner)
-    .css({
-      width: this.cursorSize, height: this.cursorSize,
-      left: -this.cursorSize / 2, top: -this.cursorSize / 2
-    })
-
-  this.valueFeedback = $('<div class="feedback"><span class="title">' + (opts.title || '') + '</span> '
-      + (opts.xLabel || 'X') + ': <span class="x">0</span> | '
-      + (opts.yLabel || 'Y') + ': <span class="y">1</span></div>',
-        { class: 'valueFeedback' }).appendTo(this.elem)
-
-  this.elem.css({ padding: this.cursorSize / 2 })
-  this.elem.on(TouchMouseEvent.DOWN, function() {
-    self.elem.on(TouchMouseEvent.MOVE, _.bind(self._moveOrClick, self))
-  })
-
-  $('body').on(TouchMouseEvent.UP, function() {
-    self.elem.off(TouchMouseEvent.MOVE)
-  })
-}
-
-_.extend(XYPad.prototype, {
-
-  cssClass: 'xyPad',
-
-  refresh: function() {
-    this._setValueFeedback(this._position)
-    this.cursor.css({
-      left: this.inner.width() * this._position[0] - this.cursorSize / 2,
-      top: this.inner.height() * (1 - this._position[1]) - this.cursorSize / 2
-    })
-  },
-
-  setPosition: function(pos) {
-    this._position = pos
-    this.refresh()
-  },
-
-  _moveOrClick: function(event) {
-    var xPos = Math.max(Math.min(event.pageX - this.inner.get(0).offsetLeft, this.inner.width()), 0)
-      , yPos = Math.max(Math.min(event.pageY - this.inner.get(0).offsetTop, this.inner.height()), 0)
-      , yVal = Math.min(1 - yPos / this.inner.height(), 1)
-      , xVal = Math.min(xPos / this.inner.width(), 1)
-    this._setValueFeedback([ xVal, yVal ])
-    this.cursor.css({
-      left: xPos - this.cursorSize / 2,
-      top: yPos - this.cursorSize / 2
-    })
-    this._position = [xVal, yVal]
-    this.onMove(xVal, yVal)
-  },
-
-  _setValueFeedback: function(pos) {
-    this.valueFeedback.find('.x').html(pos[0].toString().slice(0, 4))
-    this.valueFeedback.find('.y').html(pos[1].toString().slice(0, 4))
-  }
-
-})
-
-
-var Slider = exports.Slider = function(opts, onMove) {
-  BaseWidget.call(this)
-  this._val = 0
-  this.onMove = onMove
-
-  var self = this
-  
-  this.inner = $('<div>', { class: 'inner' })
-    .appendTo(this.elem)
-    .on(TouchMouseEvent.DOWN, _.bind(this._moveOrClick, this))
-
-  this.cursorSize = $(document).width() * 0.04
-  this.cursor = $('<div>', { class: 'cursor' })
-    .appendTo(this.inner)
-    .css({
-      width: this.cursorSize, height: this.cursorSize,
-      left: -this.cursorSize / 2
-    })
-  
-  this.valueFeedback = $('<div class="feedback"><span class="title">'
-      + (opts.title || '') + '</span>: ' + '<span class="val">0</span>',
-        { class: 'valueFeedback' }).appendTo(this.elem)
-
-  this.elem.css({ paddingLeft: this.cursorSize / 2, paddingRight: this.cursorSize / 2 })
-  this.elem.on(TouchMouseEvent.DOWN, function() {
-    self.elem.on(TouchMouseEvent.MOVE, _.bind(self._moveOrClick, self))
-  })
-
-  $('body').on(TouchMouseEvent.UP, function() {
-    self.elem.off(TouchMouseEvent.MOVE)
-  })
-}
-
-_.extend(Slider.prototype, {
-
-  cssClass: 'slider',
-
-  refresh: function() {
-    this._setValueFeedback(this._val)
-    this.cursor.css({ left: this._val * this.inner.width() - this.cursorSize / 2 })
-  },
-
-  setVal: function(val) {
-    this._val = val
-    this.refresh()
-  },
-
-  _setValueFeedback: function(val) {
-    this.valueFeedback.find('.val').html(val.toString().slice(0, 4))
-  },
-
-  _moveOrClick: function(event) {
-    var xPos = Math.max(Math.min(event.pageX - this.inner.get(0).offsetLeft, this.inner.width()), 0)
-      , val = Math.min(xPos / this.elem.width(), 1)
-    this._setValueFeedback(val)
-    this.cursor.css({ left: xPos - this.cursorSize / 2 })
-    this._val = val
-    this.onMove(val)
-  }
-
-})
-},{"underscore":10}]},{},[4])
+},{}]},{},[1]);

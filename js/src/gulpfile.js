@@ -1,10 +1,11 @@
 var gulp = require('gulp')
   , gutil = require('gulp-util')
-  , browserify = require('gulp-browserify')
+  , browserify = require('browserify')
   , rename = require('gulp-rename')
   , concat = require('gulp-concat')
   , uglify = require('gulp-uglify')
   , runSequence = require('run-sequence')
+  , source = require('vinyl-source-stream')
   , less = require('gulp-less')
   , path = require('path')
 
@@ -15,29 +16,29 @@ watcher.on('change', function(event) {
 
 
 gulp.task('browserify-sound', function() {
-  return gulp.src('./sound.js')
-    .pipe(browserify())
+  return browserify({ entries: './sound.js' })
+    .bundle()
     //.pipe(uglify())
     .on('error', gutil.log)
-    .pipe(rename('fields.sound.js'))
+    .pipe(source('fields.sound.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
 gulp.task('browserify-controls', function() {
-  return gulp.src('./controls.js')
-    .pipe(browserify())
+  return browserify({ entries: './controls.js' })
+    .bundle()
     //.pipe(uglify())
     .on('error', gutil.log)
-    .pipe(rename('fields.controls.js'))
+    .pipe(source('fields.controls.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
 gulp.task('browserify-instruments', function() {
-  return gulp.src('./instruments/index.js')
-    .pipe(browserify())
+  return browserify({ entries: './instruments/index.js' })
+    .bundle()
     //.pipe(uglify())
     .on('error', gutil.log)
-    .pipe(rename('fields.instruments.js'))
+    .pipe(source('fields.instruments.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
@@ -47,7 +48,6 @@ gulp.task('copy-common', function() {
     .pipe(gulp.dest('../../pages/js'))
 })
 
-/*
 gulp.task('bundle-sound', function() {
   return gulp.src([
       '../lib/*.js',
@@ -80,7 +80,7 @@ gulp.task('copy-bundle-sound', function() {
     .pipe(rename('sound.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
-*/
+
 
 /*
 gulp.task('uglify', function() {
@@ -115,8 +115,8 @@ gulp.task('common', function(done) {
     'browserify-instruments',
     'browserify-sound',
     'copy-common',
-    //'bundle-sound',
-    //'bundle-controls',
+    'bundle-sound',
+    'bundle-controls',
     'less-controls',
     'less-sound',
   done)

@@ -11,30 +11,30 @@ fields.config = function() {
     fields.log('format used ' + formatUsed)
   } else formatUsed = ''
 
+
   instrus = {
 
     'radio': {
       index: 0,
-      instrument: 'granulator',
+      instrument: 'Granulator',
       args: ['sounds/radio/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
     },
 
     'noise': {
-      index: 1,
-      instrument: 'whiteNoise',
+      instrument: 'WhiteNoise',
       args: []
     },
 
     'sparkles': {
       index: 2,
-      instrument: 'trigger',
+      instrument: 'Trigger',
       args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
     },
 
     'clicks': {
       index: 3,
-      instrument: 'distributedSequencer',
-      args: [16, [
+      instrument: 'DistributedSequencer',
+      args: [8, [
         'sounds/noise/1.wav',
         'sounds/noise/2.wav',
         'sounds/noise/3.wav',
@@ -44,8 +44,8 @@ fields.config = function() {
 
     'blocks': {
       index: 4,
-      instrument: 'distributedSequencer',
-      args: [16, [
+      instrument: 'DistributedSequencer',
+      args: [8, [
         'sounds/wood_block/' + formatUsed + '/1.' + formatUsed,
         'sounds/wood_block/' + formatUsed + '/2.' + formatUsed,
         'sounds/wood_block/' + formatUsed + '/3.' + formatUsed,
@@ -55,13 +55,13 @@ fields.config = function() {
 
     'violins': {
       index: 5,
-      instrument: 'granulator',
+      instrument: 'Granulator',
       args: ['sounds/violins/violin.' + formatUsed]
     },
 
     'drops': {
       index: 6,
-      instrument: 'granulator',
+      instrument: 'Granulator',
       args: ['sounds/drops/drops.' + formatUsed]
     },
 
@@ -69,17 +69,17 @@ fields.config = function() {
 
     'waves': {
       index: 8,
-      instrument: 'granulator',
+      instrument: 'Granulator',
       args: ['sounds/waves/waves.' + formatUsed]
     }
-
   }
+
 
   if (rhizome.userId % 2 === 0) {
     instrus.minimal = {
       index: 7,
-      instrument: 'distributedSequencer',
-      args: [16, [
+      instrument: 'DistributedSequencer',
+      args: [8, [
         'sounds/minimal/guitar/' + formatUsed + '/1.' + formatUsed,
         'sounds/minimal/guitar/' + formatUsed + '/2.' + formatUsed,
         'sounds/minimal/guitar/' + formatUsed + '/3.' + formatUsed,
@@ -89,8 +89,8 @@ fields.config = function() {
   } else {
     instrus.minimal = {
       index: 8,
-      instrument: 'distributedSequencer',
-      args: [16, [
+      instrument: 'DistributedSequencer',
+      args: [8, [
         'sounds/minimal/marimba2/' + formatUsed + '/1.' + formatUsed,
         'sounds/minimal/marimba2/' + formatUsed + '/2.' + formatUsed,
         'sounds/minimal/marimba2/' + formatUsed + '/3.' + formatUsed,

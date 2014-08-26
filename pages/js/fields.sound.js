@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var waaUtils = require('./utils/waa')
   , math = require('./utils/math')
   , async = require('async')
@@ -12,14 +12,14 @@ var setStatus = function(msg) {
 
 var subscribeAll = function() {
   // For all the instruments, subscribe to messages
-  _.chain(soundInstances).keys().forEach(function(instrumentId) {
+  _.chain(instrumentInstances).keys().forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
   }).values()
 }
 
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <sound instance> }`
-var soundInstances = {}
+var instrumentInstances = fields.sound.instrumentInstances = {}
 
 // Start the whole system, when the user presses a button. 
 fields.sound.start = function() {
@@ -43,11 +43,11 @@ rhizome.on('connected', function() {
     var instrumentId = p[0]
       , config = p[1]
       , instrument = fields.instruments[config.instrument]
-    soundInstances[instrumentId] = instrument.sound.apply(instrument, [instrumentId].concat(config.args))
+    instrumentInstances[instrumentId] = new instrument(instrumentId, config.args)
   }).values()
 
   // For each instrument, load things and assets
-  async.forEach(_.values(soundInstances), function(instrument, next) {
+  async.forEach(_.values(instrumentInstances), function(instrument, next) {
     instrument.load(next)
   }, function(err) {
     if (err) fields.log(err)
@@ -59,22 +59,15 @@ rhizome.on('connected', function() {
 })
 
 // Message scheme :
-//  /<instrument id>/<parameter> [args]
+//  /<instrument id>/<name> [args]
 rhizome.on('message', function(address, args) {
   if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
   else {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
-      , instrument = soundInstances[parts[1]]
-      , parameter = parts[2]
-
-    if (parameter === 'state')
-      var state = args[0]
-      if (state === 0) instrument.stop()
-      else if (state === 1) instrument.start()
-    else if (parameter === 'volume')
-      instrument.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.002)
-    else instrument.setParameter(parameter, args)
+      , instrument = instrumentInstances[parts[1]]
+      , name = parts[2]
+    instrument.command(name, args)
   }
 })
 
@@ -87,7 +80,7 @@ var muteTimeout
 rhizome.on('connection lost', function() {
   setStatus('waiting ...')
   muteTimeout = setTimeout(function() {
-    _.forEach(_.values(soundInstances), function(sound) {
+    _.forEach(_.values(instrumentInstances), function(sound) {
       sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
     })
   }, 8000)
@@ -96,7 +89,7 @@ rhizome.on('connection lost', function() {
 rhizome.on('reconnected', function() {
   if (muteTimeout) clearTimeout(muteTimeout)
   subscribeAll()
-  _.forEach(_.values(soundInstances), function(sound) {
+  _.forEach(_.values(instrumentInstances), function(sound) {
     sound.restore()
   })
   setStatus('connected')
@@ -1228,8 +1221,8 @@ rhizome.on('reconnected', function() {
 
 }());
 
-}).call(this,require("IrXUsu"))
-},{"IrXUsu":3}],3:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"_process":3}],3:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -2788,4 +2781,4 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}]},{},[1])
+},{}]},{},[1]);
