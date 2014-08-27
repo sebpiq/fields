@@ -5,8 +5,8 @@ fields.instruments.CentralizedSequencer = require('./CentralizedSequencer')
 fields.instruments.Granulator = require('./Granulator')
 fields.instruments.WhiteNoise = require('./WhiteNoise')
 fields.instruments.Trigger = require('./Trigger')
-fields.instruments.ChangingNotes = require('./ChangingNotes')
-},{"./CentralizedSequencer":3,"./ChangingNotes":4,"./DistributedSequencer":5,"./Granulator":6,"./Trigger":7,"./WhiteNoise":8}],2:[function(require,module,exports){
+fields.instruments.Sine = require('./Sine')
+},{"./CentralizedSequencer":3,"./DistributedSequencer":4,"./Granulator":5,"./Sine":6,"./Trigger":7,"./WhiteNoise":8}],2:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./utils/math')
 
@@ -112,50 +112,6 @@ _.extend(CentralizedSequencer.prototype, Instrument.prototype, {
 
 })
 },{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],4:[function(require,module,exports){
-var async = require('async')
-  , _ = require('underscore')
-  , waaUtils = require('../utils/waa')
-  , Instrument = require('../core').BaseInstrument
-
-
-var ChangingNotes = module.exports = function(instrumentId) {
-  Instrument.call(this, instrumentId)
-}
-
-_.extend(ChangingNotes.prototype, Instrument.prototype, {
-
-  knownCommands: ['volume', 'state'],
-
-  load: function(done) {
-    this.restore()
-    done()
-  },
-
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-    if (name === 'curve') {
-      var curve = args[0]
-            
-    }
-  },
-
-  _start: function() {
-    this.envNode = fields.sound.audioContext.createGain()
-    this.envNode.gain.value = 0
-    this.envNode.connect(this.mixer)
-    this.oscillatorNode = fields.sound.audioContext.createOscillator()
-    this.oscillatorNode.connect(this.envNode)
-    this.oscillatorNode.start(0)
-  },
-
-  _stop: function() {
-    this.envNode.disconnect()
-    this.oscillatorNode.stop(0)
-    this.oscillatorNode.disconnect()
-  }
-
-})
-},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],5:[function(require,module,exports){
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../utils/waa')
@@ -256,7 +212,7 @@ _.extend(DistributedSequencer.prototype, Instrument.prototype, {
   }
 
 })
-},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],6:[function(require,module,exports){
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],5:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
   , math = require('../utils/math')
@@ -386,7 +342,59 @@ _.extend(Granulator.prototype, Instrument.prototype, {
   }
 
 })
-},{"../core":2,"../utils/math":12,"../utils/waa":13,"underscore":11}],7:[function(require,module,exports){
+},{"../core":2,"../utils/math":12,"../utils/waa":13,"underscore":11}],6:[function(require,module,exports){
+var async = require('async')
+  , _ = require('underscore')
+  , waaUtils = require('../utils/waa')
+  , Instrument = require('../core').BaseInstrument
+
+
+var Sine = module.exports = function(instrumentId) {
+  Instrument.call(this, instrumentId)
+}
+
+_.extend(Sine.prototype, Instrument.prototype, {
+
+  knownCommands: ['play'],
+
+  load: function(done) { done() },
+
+  command: function(name, args) {
+    if (name === 'play') {
+      var volEnvPoints = [[0, 0], [args[0], args[1]], [1, 0]]
+        , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
+        , duration = 1 + args[4] * 10
+        , currentTime = fields.sound.audioContext.currentTime
+        , latency = 1 + Math.random()
+        , self = this
+
+      this.oscillatorNode = fields.sound.audioContext.createOscillator()
+      this.oscillatorNode.type = ['triangle', 'sawtooth', 'sine']
+        [Math.floor(Math.random() * 2.99)]
+      //if (this.oscillatorNode.type === 'sine')
+      this.oscillatorNode.connect(this.mixer)
+      this.oscillatorNode.start(0)
+
+      this.mixer.gain.cancelScheduledValues(0)
+      this.mixer.gain.setValueAtTime(0, latency + currentTime)
+      _.forEach(volEnvPoints, function(point) {
+        self.mixer.gain.linearRampToValueAtTime(
+          point[1], latency + currentTime + point[0] * duration)
+      })
+      
+      this.oscillatorNode.frequency.cancelScheduledValues(0)
+      this.oscillatorNode.frequency.setValueAtTime(440, latency + currentTime)
+      _.forEach(pitchEnvPoints, function(point) {
+        self.oscillatorNode.frequency.linearRampToValueAtTime(
+          440 + 440 * point[1], latency + currentTime + point[0] * duration)
+      })
+
+      this.oscillatorNode.stop(latency + currentTime + duration)
+    }
+  }
+
+})
+},{"../core":2,"../utils/waa":13,"async":9,"underscore":11}],7:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../utils/waa')
   , math = require('../utils/math')

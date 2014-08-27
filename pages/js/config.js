@@ -39,7 +39,7 @@ fields.config = function() {
         'sounds/noise/2.wav',
         'sounds/noise/3.wav',
         'sounds/noise/4.wav',
-      ], 639.5 + Math.random()]
+      ], 640]
     },
 
     'blocks': {
@@ -50,7 +50,7 @@ fields.config = function() {
         'sounds/wood_block/' + formatUsed + '/2.' + formatUsed,
         'sounds/wood_block/' + formatUsed + '/3.' + formatUsed,
         'sounds/wood_block/' + formatUsed + '/4.' + formatUsed,
-      ], 640]
+      ], 640 + Math.random() * 8]
     },
 
     'violins': {
@@ -65,7 +65,21 @@ fields.config = function() {
       args: ['sounds/drops/drops.' + formatUsed]
     },
 
-    'minimal': null,
+    'bells': {
+      index: 7,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/bells/1.' + formatUsed,
+        'sounds/bells/2.' + formatUsed,
+        'sounds/bells/3.' + formatUsed,
+        'sounds/bells/4.' + formatUsed,
+      ], (639.5 / 3) + Math.random() * 8]
+    },
+
+    'sine': {
+      instrument: 'Sine',
+      args: []
+    },
 
     'waves': {
       index: 8,
@@ -75,6 +89,7 @@ fields.config = function() {
   }
 
 
+  /*
   if (rhizome.userId % 2 === 0) {
     instrus.minimal = {
       index: 7,
@@ -98,6 +113,7 @@ fields.config = function() {
       ], 396 + Math.random() * 8]
     }
   }
+  */
 
   return instrus
 

@@ -87,13 +87,22 @@
         <canvas nx="position" address="/drops/ratio"></canvas>
       </div>
 
-      <div panel="minimal" class="active">
-        <canvas nx="slider" hslider="true" address="/minimal/volume"></canvas>
-        <canvas nx="toggle" address="/minimal/state"></canvas>
+      <div panel="bells" class="active">
+        <canvas nx="slider" hslider="true" address="/bells/volume"></canvas>
+        <canvas nx="toggle" address="/bells/state"></canvas>
 
-        <canvas nx="matrix" address="/minimal/sequence" noautosend="" row="4" col="8"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/minimal/sequence')"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/minimal/sequence')"></canvas>
+        <canvas nx="matrix" address="/bells/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/bells/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/bells/sequence')"></canvas>
+      </div>
+
+      <div panel="sine" class="active">
+
+        <canvas id="sineVolEnvelope" nx="envelope"></canvas>
+        <canvas id="sinePitchEnvelope" nx="envelope"></canvas>
+
+        <canvas id="sineSlider" nx="slider"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendSineEnvelope()"></canvas>
       </div>
 
       <div panel="waves" class="active">

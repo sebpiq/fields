@@ -41,6 +41,7 @@ fields.controls.start = function() {
         widget.row = parseInt(widget.canvas.getAttribute('row'), 10)
       widget.init()
       widget.draw()
+      console.log(widget.matrix)
     }
 
   })
@@ -138,4 +139,23 @@ fields.controls.setMatrix = function(address, sequence) {
 
 fields.controls.resetMatrix = function(address) {
   fields.controls.setMatrix(address, [])
+}
+
+fields.controls.sendSineEnvelope = function() {
+  var args = []
+  var sineVolEnvWidget = _.find(nx.nxObjects, function(widget) {
+    return widget.canvasID === 'sineVolEnvelope'
+  })
+  var sinePitchEnvWidget = _.find(nx.nxObjects, function(widget) {
+    return widget.canvasID === 'sinePitchEnvelope'
+  })
+  var sineSliderWidget = _.find(nx.nxObjects, function(widget) {
+    return widget.canvasID === 'sineSlider'
+  })
+  args.push(sineVolEnvWidget.val.x)
+  args.push(1 - sineVolEnvWidget.val.y)
+  args.push(sinePitchEnvWidget.val.x)
+  args.push(1 - sinePitchEnvWidget.val.y)
+  args.push(sineSliderWidget.val)
+  rhizome.send('/sine/play', args)
 }
