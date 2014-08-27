@@ -14,55 +14,21 @@ fields.config = function() {
 
   instrus = {
 
-    'radio': {
-      index: 0,
-      instrument: 'Granulator',
-      args: ['sounds/radio/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
-    },
-
     'noise': {
       instrument: 'WhiteNoise',
       args: []
-    },
-
-    'sparkles': {
-      index: 2,
-      instrument: 'Trigger',
-      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
-    },
-
-    'clicks': {
-      index: 3,
-      instrument: 'DistributedSequencer',
-      args: [8, [
-        'sounds/noise/1.wav',
-        'sounds/noise/2.wav',
-        'sounds/noise/3.wav',
-        'sounds/noise/4.wav',
-      ], 640]
-    },
-
-    'blocks': {
-      index: 4,
-      instrument: 'DistributedSequencer',
-      args: [8, [
-        'sounds/wood_block/' + formatUsed + '/1.' + formatUsed,
-        'sounds/wood_block/' + formatUsed + '/2.' + formatUsed,
-        'sounds/wood_block/' + formatUsed + '/3.' + formatUsed,
-        'sounds/wood_block/' + formatUsed + '/4.' + formatUsed,
-      ], 640 + Math.random() * 8]
-    },
-
-    'violins': {
-      index: 5,
-      instrument: 'Granulator',
-      args: ['sounds/violins/violin.' + formatUsed]
     },
 
     'drops': {
       index: 6,
       instrument: 'Granulator',
       args: ['sounds/drops/drops.' + formatUsed]
+    },
+
+    'sparkles': {
+      index: 2,
+      instrument: 'Trigger',
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
     },
 
     'bells': {
@@ -76,13 +42,25 @@ fields.config = function() {
       ], (639.5 / 3) + Math.random() * 8]
     },
 
+    'clicks': {
+      index: 8,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/clicks/1.' + formatUsed,
+        'sounds/clicks/2.' + formatUsed,
+        'sounds/clicks/3.' + formatUsed,
+        'sounds/clicks/4.' + formatUsed
+      ], 640]
+    },
+
     'sine': {
+      index: 9,
       instrument: 'Sine',
       args: []
     },
 
     'waves': {
-      index: 8,
+      index: 10,
       instrument: 'Granulator',
       args: ['sounds/waves/waves.' + formatUsed]
     }

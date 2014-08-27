@@ -28,55 +28,13 @@
     <div id="fields-panels">
 
       <div panel="white-noise" class="active">
+        <h2>White noise</h2>
         <canvas nx="slider" hslider="true" address="/noise/volume"></canvas>
         <canvas nx="toggle" address="/noise/state"></canvas>
       </div>
 
-      <div panel="radio" class="active">
-        <canvas nx="slider" hslider="true" address="/radio/volume"></canvas>
-        <canvas nx="slider" hslider="true" address="/radio/density"></canvas>
-        <canvas nx="slider" hslider="true" address="/radio/env"></canvas>
-
-        <canvas nx="toggle" address="/radio/state"></canvas>
-        <canvas nx="position" address="/radio/position"></canvas>
-        <canvas nx="position" address="/radio/duration"></canvas>
-        <canvas nx="position" address="/radio/ratio"></canvas>
-      </div>
-
-      <div panel="sparkles" class="active">
-        <canvas nx="button" address="/sparkles/state"></canvas>
-      </div>
-
-      <div panel="clicks" class="active">
-        <canvas nx="slider" hslider="true" address="/clicks/volume"></canvas>
-        <canvas nx="toggle" address="/clicks/state"></canvas>
-
-        <canvas nx="matrix" address="/clicks/sequence" noautosend="" row="4" col="8"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/clicks/sequence')"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/clicks/sequence')"></canvas>
-      </div>
-
-      <div panel="blocks" class="active">
-        <canvas nx="slider" hslider="true" address="/blocks/volume"></canvas>
-        <canvas nx="toggle" address="/blocks/state"></canvas>
-
-        <canvas nx="matrix" address="/blocks/sequence" noautosend="" row="4" col="8"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/blocks/sequence')"></canvas>
-        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/blocks/sequence')"></canvas>
-      </div>
-
-      <div panel="violins" class="active">
-        <canvas nx="slider" hslider="true" address="/violins/volume"></canvas>
-        <canvas nx="slider" hslider="true" address="/violins/density"></canvas>
-        <canvas nx="slider" hslider="true" address="/violins/env"></canvas>
-
-        <canvas nx="toggle" address="/violins/state"></canvas>
-        <canvas nx="position" address="/violins/position"></canvas>
-        <canvas nx="position" address="/violins/duration"></canvas>
-        <canvas nx="position" address="/violins/ratio"></canvas>
-      </div>
-
       <div panel="drops" class="active">
+        <h2>Drops</h2>
         <canvas nx="slider" hslider="true" address="/drops/volume"></canvas>
         <canvas nx="slider" hslider="true" address="/drops/density"></canvas>
         <canvas nx="slider" hslider="true" address="/drops/env"></canvas>
@@ -87,7 +45,13 @@
         <canvas nx="position" address="/drops/ratio"></canvas>
       </div>
 
+      <div panel="sparkles" class="active">
+        <h2>Sparkles</h2>
+        <canvas nx="button" address="/sparkles/state"></canvas>
+      </div>
+
       <div panel="bells" class="active">
+        <h2>Bells</h2>
         <canvas nx="slider" hslider="true" address="/bells/volume"></canvas>
         <canvas nx="toggle" address="/bells/state"></canvas>
 
@@ -96,7 +60,20 @@
         <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/bells/sequence')"></canvas>
       </div>
 
+      <div panel="clicks" class="active">
+        <h2>Clicks</h2>
+        <canvas nx="slider" hslider="true" address="/clicks/volume"></canvas>
+        <canvas nx="toggle" address="/clicks/state"></canvas>
+
+        <canvas nx="matrix" address="/clicks/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/clicks/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/clicks/sequence')"></canvas>
+      </div>
+
       <div panel="sine" class="active">
+        <h2>Sine</h2>
+        <canvas nx="slider" hslider="true" address="/sine/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/sine/f0"></canvas>
 
         <canvas id="sineVolEnvelope" nx="envelope"></canvas>
         <canvas id="sinePitchEnvelope" nx="envelope"></canvas>
@@ -106,6 +83,7 @@
       </div>
 
       <div panel="waves" class="active">
+        <h2>Waves</h2>
         <canvas nx="slider" hslider="true" address="/waves/volume"></canvas>
         <canvas nx="slider" hslider="true" address="/waves/density"></canvas>
         <canvas nx="slider" hslider="true" address="/waves/env"></canvas>

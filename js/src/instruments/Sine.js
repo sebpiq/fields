@@ -6,45 +6,55 @@ var async = require('async')
 
 var Sine = module.exports = function(instrumentId) {
   Instrument.call(this, instrumentId)
+  self.f0 = 500
 }
 
 _.extend(Sine.prototype, Instrument.prototype, {
 
-  knownCommands: ['play'],
+  knownCommands: ['play', 'volume', 'f0'],
 
-  load: function(done) { done() },
+  load: function(done) {
+    this.envGain = fields.sound.audioContext.createGain()
+    this.envGain.connect(this.mixer)
+    this.envGain.gain.value = 0.05
+
+    this.oscillatorNode = fields.sound.audioContext.createOscillator()
+    this.oscillatorNode.type = 'sawtooth'
+    this.oscillatorNode.connect(this.envGain)
+    this.oscillatorNode.start(0)
+    done()
+  },
 
   command: function(name, args) {
+    if (Instrument.prototype.command.call(this, name, args)) return
+
     if (name === 'play') {
-      var volEnvPoints = [[0, 0], [args[0], args[1]], [1, 0]]
+      var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
         , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
         , duration = 1 + args[4] * 10
         , currentTime = fields.sound.audioContext.currentTime
-        , latency = 1 + Math.random()
+        , latency = 1 + Math.random() * 3
         , self = this
 
-      this.oscillatorNode = fields.sound.audioContext.createOscillator()
-      this.oscillatorNode.type = ['triangle', 'sawtooth', 'sine']
-        [Math.floor(Math.random() * 2.99)]
-      //if (this.oscillatorNode.type === 'sine')
-      this.oscillatorNode.connect(this.mixer)
-      this.oscillatorNode.start(0)
-
-      this.mixer.gain.cancelScheduledValues(0)
-      this.mixer.gain.setValueAtTime(0, latency + currentTime)
+      this.envGain.gain.cancelScheduledValues(0)
+      this.envGain.gain.setValueAtTime(0, latency + currentTime)
       _.forEach(volEnvPoints, function(point) {
-        self.mixer.gain.linearRampToValueAtTime(
+        self.envGain.gain.linearRampToValueAtTime(
           point[1], latency + currentTime + point[0] * duration)
       })
       
       this.oscillatorNode.frequency.cancelScheduledValues(0)
-      this.oscillatorNode.frequency.setValueAtTime(440, latency + currentTime)
+      this.oscillatorNode.frequency.setValueAtTime(self.f0, latency + currentTime)
       _.forEach(pitchEnvPoints, function(point) {
         self.oscillatorNode.frequency.linearRampToValueAtTime(
-          440 + 440 * point[1], latency + currentTime + point[0] * duration)
+          self.f0 + self.f0 * point[1], latency + currentTime + point[0] * duration)
       })
 
-      this.oscillatorNode.stop(latency + currentTime + duration)
+      //this.oscillatorNode.stop(latency + currentTime + duration)
+    } else if (name === 'f0') {
+      this.f0 = 500 + args[0] * 3000
+      this.oscillatorNode.frequency.setValueAtTime(this.f0, 
+        fields.sound.audioContext.currentTime + 1)
     }
   }
 
