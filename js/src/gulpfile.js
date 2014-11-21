@@ -14,40 +14,44 @@ watcher.on('change', function(event) {
   console.log('File '+event.path+' was '+event.type+', running tasks...')
 })
 
-
+// Browserifies the JS for sound.
+// This is the file that kickstarts the sound, makes rhizome connection,
+// creates the instruments instances, etc ...
 gulp.task('browserify-sound', function() {
   return browserify({ entries: './sound.js' })
     .bundle()
-    //.pipe(uglify())
     .on('error', gutil.log)
     .pipe(source('fields.sound.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
-gulp.task('browserify-controls', function() {
-  return browserify({ entries: './controls.js' })
-    .bundle()
-    //.pipe(uglify())
-    .on('error', gutil.log)
-    .pipe(source('fields.controls.js'))
-    .pipe(gulp.dest('../../pages/js'))
-})
-
+// Browserifies the JS for instruments.
+// This is the file that contains the instrument classes.
 gulp.task('browserify-instruments', function() {
   return browserify({ entries: './instruments/index.js' })
     .bundle()
-    //.pipe(uglify())
     .on('error', gutil.log)
     .pipe(source('fields.instruments.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
+// Browserifies the JS for controls.
+gulp.task('browserify-controls', function() {
+  return browserify({ entries: './controls.js' })
+    .bundle()
+    .on('error', gutil.log)
+    .pipe(source('fields.controls.js'))
+    .pipe(gulp.dest('../../pages/js'))
+})
+
+// Copies the file containing the common functionalities for controls + sound.
 gulp.task('copy-common', function() {
   return gulp.src('./common.js')
     .pipe(rename('fields.js'))
     .pipe(gulp.dest('../../pages/js'))
 })
 
+// Bundles all the needed files for the sound page into one file.
 gulp.task('bundle-sound', function() {
   return gulp.src([
       '../lib/*.js',
@@ -57,6 +61,7 @@ gulp.task('bundle-sound', function() {
     .pipe(gulp.dest('../build'))
 })
 
+// Bundles all the needed files for the controls page into one file.
 gulp.task('bundle-controls', function() {
   return gulp.src([
       '../lib/AudioContextMonkeyPatch.js',
@@ -84,7 +89,7 @@ gulp.task('copy-bundle-sound', function() {
 
 /*
 gulp.task('uglify', function() {
-  return gulp.src('./build/mmapp.js')
+  return gulp.src('./build/')
     .pipe(uglify())
     .pipe(gulp.dest('./build/'))
 })

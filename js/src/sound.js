@@ -1,5 +1,4 @@
 var waaUtils = require('./utils/waa')
-  , math = require('./utils/math')
   , async = require('async')
   , _ = require('underscore')
 
