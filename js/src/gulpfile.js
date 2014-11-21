@@ -86,14 +86,11 @@ gulp.task('copy-bundle-sound', function() {
     .pipe(gulp.dest('../../pages/js'))
 })
 
-
-/*
 gulp.task('uglify', function() {
   return gulp.src('./build/')
     .pipe(uglify())
     .pipe(gulp.dest('./build/'))
 })
-*/
 
 gulp.task('less-controls', function () {
   return gulp.src('./controls.less')

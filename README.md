@@ -17,3 +17,11 @@ then run
 ```
 sudo update-grub
 ```
+
+
+Run with forever
+------------------
+
+```
+forever -l tmp/out.log rhizome/bin/rhizome/main.js config.js
+```

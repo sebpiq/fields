@@ -1,6 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var waaUtils = require('./utils/waa')
-  , math = require('./utils/math')
   , async = require('async')
   , _ = require('underscore')
 
@@ -95,7 +94,7 @@ rhizome.on('reconnected', function() {
   setStatus('connected')
 })
 
-},{"./utils/math":5,"./utils/waa":6,"async":2,"underscore":4}],2:[function(require,module,exports){
+},{"./utils/waa":5,"async":2,"underscore":4}],2:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -2633,20 +2632,6 @@ process.chdir = function (dir) {
 }).call(this);
 
 },{}],5:[function(require,module,exports){
-exports.pickVal = function(mean, variance) {
-  return mean + mean * variance * (1 - 2 * Math.random())
-}
-
-exports.floor = function(val, dec) {
-  return Math.floor(val * Math.pow(10, dec)) / Math.pow(10, dec) 
-}
-
-exports.valExp = function(val, exp) {
-  exp = exp || 2
-  return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
-}
-
-},{}],6:[function(require,module,exports){
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
