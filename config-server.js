@@ -1,10 +1,10 @@
 var path = require('path')
 
 module.exports = {
-  webPort: 80,
+  webPort: 8000,
   usersLimit: 40,
 
   pages: [
-    { rootUrl: '/', dirName: path.join(__dirname, 'pages') }
+    { rootUrl: '/', dirName: path.join(__dirname, 'dist') }
   ]
 }

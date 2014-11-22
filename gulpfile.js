@@ -57,7 +57,7 @@ gulp.task('bundle-sound', function() {
       './deps/AudioContextMonkeyPatch.js',
       './deps/WAAClock-latest.js',
       './deps/jquery-2.1.0.js',
-      './src/common.js',
+      './src/core/common.js',
       './tmp/sound.browserified.js',
       './tmp/instruments.browserified.js',
       './config-sound.js'
@@ -70,9 +70,10 @@ gulp.task('bundle-sound', function() {
 gulp.task('bundle-controls', function() {
   return gulp.src([
       './deps/AudioContextMonkeyPatch.js',
-      './deps/WAAClock.js',
+      './deps/WAAClock-latest.js',
       './deps/jquery-2.1.0.js',
-      './src/common.js',
+      './deps/nexusUI.js',
+      './src/core/common.js',
       './tmp/controls.browserified.js'
     ])
     .pipe(concat('controls.js', { newLine: ';' }))

@@ -11687,6 +11687,23 @@ if ( typeof noGlobal === strundefined ) {
 return jQuery;
 
 }));
+;var fields = window.fields = {}
+
+fields.isSupported = function() {
+  if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
+    if (window.AudioContext) return true
+    else return false
+  } else return false
+  return false
+}
+
+fields.log = function(msg) {
+  $('<div>', { class: 'log' })
+    .html(msg)
+    .prependTo('#console')
+  $('#console .log').slice(60).remove()
+}
+//if (typeof rhizome !== 'undefined') rhizome.log = log
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var waaUtils = require('../core/waa')
   , async = require('async')
@@ -17627,3 +17644,101 @@ _.extend(WhiteNoise.prototype, Instrument.prototype, {
 
 })
 },{"../core/BaseInstrument":5,"../core/waa":7,"async":2,"underscore":4}]},{},[1]);
+;fields.config = function() {
+
+  var formatUsed
+  if (fields.sound) {
+    if (fields.sound.supportedFormats.indexOf('ogg') !== -1)
+      formatUsed = 'ogg'
+    else if (fields.sound.supportedFormats.indexOf('mp3') !== -1)
+      formatUsed = 'mp3'
+    else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
+      formatUsed = 'wav'
+    fields.log('format used ' + formatUsed)
+  } else formatUsed = ''
+
+
+  instrus = {
+
+    'noise': {
+      instrument: 'WhiteNoise',
+      args: []
+    },
+
+    'drops': {
+      index: 6,
+      instrument: 'Granulator',
+      args: ['sounds/drops/drops.' + formatUsed]
+    },
+
+    'sparkles': {
+      index: 2,
+      instrument: 'Trigger',
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
+    },
+
+    'bells': {
+      index: 7,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/bells/1.' + formatUsed,
+        'sounds/bells/2.' + formatUsed,
+        'sounds/bells/3.' + formatUsed,
+        'sounds/bells/4.' + formatUsed,
+      ], (639.5 / 3) + Math.random() * 8]
+    },
+
+    'clicks': {
+      index: 8,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/clicks/1.' + formatUsed,
+        'sounds/clicks/2.' + formatUsed,
+        'sounds/clicks/3.' + formatUsed,
+        'sounds/clicks/4.' + formatUsed
+      ], 640]
+    },
+
+    'sine': {
+      index: 9,
+      instrument: 'Sine',
+      args: []
+    },
+
+    'waves': {
+      index: 10,
+      instrument: 'Granulator',
+      args: ['sounds/waves/waves.' + formatUsed]
+    }
+  }
+
+
+  /*
+  if (rhizome.userId % 2 === 0) {
+    instrus.minimal = {
+      index: 7,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/minimal/guitar/' + formatUsed + '/1.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/2.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/3.' + formatUsed,
+        'sounds/minimal/guitar/' + formatUsed + '/4.' + formatUsed,
+      ], 396 + Math.random() * 8]
+    }
+  } else {
+    instrus.minimal = {
+      index: 8,
+      instrument: 'DistributedSequencer',
+      args: [8, [
+        'sounds/minimal/marimba2/' + formatUsed + '/1.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/2.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/3.' + formatUsed,
+        'sounds/minimal/marimba2/' + formatUsed + '/4.' + formatUsed,
+      ], 396 + Math.random() * 8]
+    }
+  }
+  */
+
+  return instrus
+
+}
