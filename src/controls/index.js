@@ -3,8 +3,8 @@ fields.log = console.log.bind(console)
 
 var async = require('async')
   , _ = require('underscore')
-  , waaUtils = require('./utils/waa')
-  , math = require('./utils/math')
+  , waaUtils = require('../core/waa')
+  , math = require('../core/math')
 
 fields.controls.start = function() {
   fields.controls.audioContext = waaUtils.kickStartWAA()

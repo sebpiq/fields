@@ -1,4 +1,4 @@
-var waaUtils = require('./utils/waa')
+var waaUtils = require('../core/waa')
   , async = require('async')
   , _ = require('underscore')
 

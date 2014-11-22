@@ -1,7 +1,7 @@
 var async = require('async')
   , _ = require('underscore')
-  , waaUtils = require('../utils/waa')
-  , Instrument = require('../core').BaseInstrument
+  , waaUtils = require('../core/waa')
+  , Instrument = require('../core/BaseInstrument')
 
 
 var WhiteNoise = module.exports = function(instrumentId, args) {

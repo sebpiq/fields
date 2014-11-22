@@ -1,7 +1,7 @@
 var _ = require('underscore')
-  , math = require('./utils/math')
+  , math = require('./math')
 
-var BaseInstrument = exports.BaseInstrument = function(instrumentId, args) {
+var BaseInstrument = module.exports = function(instrumentId, args) {
   this.mixer = fields.sound.audioContext.createGain()
   this.mixer.gain.value = 0
   this.mixer.connect(fields.sound.audioContext.destination)

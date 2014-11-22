@@ -1,7 +1,7 @@
 var _ = require('underscore')
   , async = require('async')
-  , waaUtils = require('../utils/waa')
-  , Instrument = require('../core').BaseInstrument
+  , waaUtils = require('../core/waa')
+  , Instrument = require('../core/BaseInstrument')
 
 // args : stepCount, tracks, tempo
 var DistributedSequencer = module.exports = function(instrumentId, args) {

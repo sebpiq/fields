@@ -1,7 +1,7 @@
 var _ = require('underscore')
-  , waaUtils = require('../utils/waa')
-  , math = require('../utils/math')
-  , Instrument = require('../core').BaseInstrument
+  , waaUtils = require('../core/waa')
+  , math = require('../core/math')
+  , Instrument = require('../core/BaseInstrument')
 
 
 var Granulator = module.exports = function(instrumentId, args) {
