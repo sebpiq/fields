@@ -1,6 +1,7 @@
 var waaUtils = require('../core/waa')
   , async = require('async')
   , _ = require('underscore')
+  , muteTimeout
 
 window.fields.sound = {}
 
@@ -21,38 +22,52 @@ var instrumentInstances = fields.sound.instrumentInstances = {}
 
 // Start the whole system, when the user presses a button. 
 fields.sound.start = function() {
+
+  // Initialize sound
   fields.sound.audioContext = waaUtils.kickStartWAA()
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clockUsers = 0
 
-  waaUtils.formatSupport(function(err, formats) {
-    fields.log('formats supported ' + formats)
-    fields.sound.supportedFormats = formats
-    rhizome.start()
+  async.waterfall([
+    // Start rhizome
+    _.bind(rhizome.start, rhizome),
+    
+    // Get format support infos
+    _.bind(waaUtils.formatSupport, waaUtils),
+     
+    // Instantiate all the instruments and load them
+    function(formats, next) {
+      fields.log('formats supported ' + formats)
+      fields.sound.supportedFormats = formats
+
+      _.chain(fields.config()).pairs().forEach(function(p) {
+        var instrumentId = p[0]
+          , config = p[1]
+          , instrument = fields.instruments[config.instrument]
+        instrumentInstances[instrumentId] = new instrument(instrumentId, config.args)
+      }).values()
+  
+      async.forEach(_.values(instrumentInstances), function(instrument, nextInstrument) {
+        instrument.load(nextInstrument)
+      }, function(err) {
+        if (err) fields.log(err)
+        else fields.log('all instruments loaded')
+      })
+    }
+  ], function(err) {
+    fields.log('ERROR: ' + err)
   })
+
   $('#startButtonContainer').fadeOut(100)
   setStatus('connecting ...')
 }
 
 rhizome.on('connected', function() {
-
-  // For each instrument, create the sound engine
-  _.chain(fields.config()).pairs().forEach(function(p) {
-    var instrumentId = p[0]
-      , config = p[1]
-      , instrument = fields.instruments[config.instrument]
-    instrumentInstances[instrumentId] = new instrument(instrumentId, config.args)
-  }).values()
-
-  // For each instrument, load things and assets
-  async.forEach(_.values(instrumentInstances), function(instrument, next) {
-    instrument.load(next)
-  }, function(err) {
-    if (err) fields.log(err)
-    else fields.log('all instruments loaded')
-  })
-
+  if (muteTimeout) clearTimeout(muteTimeout)
   subscribeAll()
+  _.forEach(_.values(instrumentInstances), function(sound) {
+    sound.restore()
+  })
   setStatus('connected')
 })
 
@@ -69,11 +84,9 @@ rhizome.on('message', function(address, args) {
   }
 })
 
-rhizome.on('server full', function() {
+rhizome.on('queued', function() {
   setStatus('waiting ...')
 })
-
-var muteTimeout
 
 rhizome.on('connection lost', function() {
   setStatus('waiting ...')
@@ -82,13 +95,4 @@ rhizome.on('connection lost', function() {
       sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
     })
   }, 8000)
-})
-
-rhizome.on('reconnected', function() {
-  if (muteTimeout) clearTimeout(muteTimeout)
-  subscribeAll()
-  _.forEach(_.values(instrumentInstances), function(sound) {
-    sound.restore()
-  })
-  setStatus('connected')
 })

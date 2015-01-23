@@ -18121,7 +18121,9 @@ fields.controls.start = function() {
 
   })
 
-  rhizome.start()
+  rhizome.start(function(err) {
+    if (err) console.error(err)
+  })
 }
 
 // Message scheme :
@@ -18153,10 +18155,7 @@ rhizome.on('connected', function() {
   })
 })
 
-rhizome.on('server full', function() {})
-rhizome.on('connection lost', function() {})
-rhizome.on('reconnected', function() {})
-
+rhizome.on('queued', function() {})
 
 var findWidgetByAddress = function(address) {
   return _.find(nx.nxObjects, function(widget) {
@@ -18216,6 +18215,7 @@ fields.controls.sendSineEnvelope = function() {
   args.push(sineSliderWidget.val)
   rhizome.send('/sine/play', args)
 }
+
 },{"../core/math":5,"../core/waa":6,"async":2,"underscore":4}],2:[function(require,module,exports){
 (function (process){
 /*!

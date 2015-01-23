@@ -28,7 +28,7 @@ fields.config = function() {
     'sparkles': {
       index: 2,
       instrument: 'Trigger',
-      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.userId % 5) + '.' + formatUsed]
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.id % 5) + '.' + formatUsed]
     },
 
     'bells': {
@@ -68,7 +68,7 @@ fields.config = function() {
 
 
   /*
-  if (rhizome.userId % 2 === 0) {
+  if (rhizome.id % 2 === 0) {
     instrus.minimal = {
       index: 7,
       instrument: 'DistributedSequencer',

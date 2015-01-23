@@ -8,7 +8,7 @@ var CentralizedSequencer = module.exports = function(instrumentId, args) {
 
   var tracks = args[1]
   // Picks one track randomly
-  this.trackId = rhizome.userId % tracks.length
+  this.trackId = rhizome.id % tracks.length
   this.soundUrl = tracks[this.trackId]
   this.buffer = null
   this.bufferNode = null
