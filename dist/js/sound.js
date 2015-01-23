@@ -11708,7 +11708,7 @@ fields.log = function(msg) {
 var waaUtils = require('../core/waa')
   , async = require('async')
   , _ = require('underscore')
-  , muteTimeout
+  , muteTimeout, initialized = false
 
 window.fields.sound = {}
 
@@ -11718,9 +11718,9 @@ var setStatus = function(msg) {
 
 var subscribeAll = function() {
   // For all the instruments, subscribe to messages
-  _.chain(instrumentInstances).keys().forEach(function(instrumentId) {
+  Object.keys(instrumentInstances).forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
-  }).values()
+  })
 }
 
 // Contains all the instances of sound engines for each declared instrument
@@ -11736,33 +11736,39 @@ fields.sound.start = function() {
   fields.sound.clockUsers = 0
 
   async.waterfall([
-    // Start rhizome
-    _.bind(rhizome.start, rhizome),
-    
+
     // Get format support infos
     _.bind(waaUtils.formatSupport, waaUtils),
-     
-    // Instantiate all the instruments and load them
+
+    // Instantiate all instruments
     function(formats, next) {
       fields.log('formats supported ' + formats)
       fields.sound.supportedFormats = formats
 
-      _.chain(fields.config()).pairs().forEach(function(p) {
-        var instrumentId = p[0]
-          , config = p[1]
-          , instrument = fields.instruments[config.instrument]
-        instrumentInstances[instrumentId] = new instrument(instrumentId, config.args)
-      }).values()
-  
+      var config = fields.config()
+      Object.keys(config).forEach(function(instrumentId) {
+        var instrumentConfig = config[instrumentId]
+          , instrument = fields.instruments[instrumentConfig.instrument]
+        instrumentInstances[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
+      })
+      next()
+    },
+    
+    // Start rhizome
+    _.bind(rhizome.start, rhizome),
+
+    // Load all instruments
+    function(next) {
       async.forEach(_.values(instrumentInstances), function(instrument, nextInstrument) {
         instrument.load(nextInstrument)
-      }, function(err) {
-        if (err) fields.log(err)
-        else fields.log('all instruments loaded')
-      })
+      }, next)
     }
+
   ], function(err) {
-    fields.log('ERROR: ' + err)
+    if (err)
+      return fields.log('ERROR: ' + err)
+    initialized = true
+    fields.log('all instruments loaded')
   })
 
   $('#startButtonContainer').fadeOut(100)
@@ -11770,12 +11776,16 @@ fields.sound.start = function() {
 }
 
 rhizome.on('connected', function() {
-  if (muteTimeout) clearTimeout(muteTimeout)
   subscribeAll()
-  _.forEach(_.values(instrumentInstances), function(sound) {
-    sound.restore()
-  })
   setStatus('connected')
+
+  // Execute those only if the connection was successfuly established before 
+  if (initialized) {
+    if (muteTimeout) clearTimeout(muteTimeout)
+    Object.keys(instrumentInstances).forEach(function(instrumentId) {
+      instrumentInstances[instrumentId].restore()
+    })
+  }
 })
 
 // Message scheme :
@@ -11786,8 +11796,8 @@ rhizome.on('message', function(address, args) {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = instrumentInstances[parts[1]]
-      , name = parts[2]
-    instrument.command(name, args)
+      , portPath = parts[2]
+    instrument.receive(portPath, args)
   }
 })
 
@@ -14480,12 +14490,11 @@ DecodeError.prototype.name = 'DecodeError'
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 fields.instruments = {}
 fields.instruments.DistributedSequencer = require('./DistributedSequencer')
-fields.instruments.CentralizedSequencer = require('./CentralizedSequencer')
 fields.instruments.Granulator = require('./Granulator')
 fields.instruments.WhiteNoise = require('./WhiteNoise')
 fields.instruments.Trigger = require('./Trigger')
 fields.instruments.Sine = require('./Sine')
-},{"./CentralizedSequencer":8,"./DistributedSequencer":9,"./Granulator":10,"./Sine":11,"./Trigger":12,"./WhiteNoise":13}],2:[function(require,module,exports){
+},{"./DistributedSequencer":10,"./Granulator":11,"./Sine":12,"./Trigger":13,"./WhiteNoise":14}],2:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -17025,62 +17034,82 @@ process.chdir = function (dir) {
 },{}],5:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./math')
+  , utils = require('./utils')
+  , ports = require('./ports')
 
+// -------------------- Instruments -------------------- // 
 var BaseInstrument = module.exports = function(instrumentId, args) {
+  var self = this
   this.mixer = fields.sound.audioContext.createGain()
   this.mixer.gain.value = 0
   this.mixer.connect(fields.sound.audioContext.destination)
 
   this.started = false
   this.instrumentId = instrumentId
+
+  this.ports = {}
+  Object.keys(this.portDefinitions).forEach(function(subpath) {
+    var portClass = self.portDefinitions[subpath]
+    self.ports[subpath] = new portClass(self, subpath)
+  })
+  this.init(args)
 }
+BaseInstrument.extend = utils.chainExtend
 
 _.extend(BaseInstrument.prototype, {
 
-  knownCommands: ['state', 'volume'],
+  init: function(args) {},
+
+  portDefinitions: {
+
+    'volume': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 2.5)
+      },
+      onValue: function(vol) {
+        this.instrument.mixer.gain.setTargetAtTime(vol, 0, 0.3)
+      }
+    }),
+
+    'state': ports.TogglePort.extend({
+      onValue: function(isOn) {
+        if (isOn) this.instrument.start()
+        else this.instrument.stop()
+      }
+    })
+
+  },
 
   start: function() {
     if (this.started === false) {
       this.started = true
-      this._start()
+      this.onStart()
     }
   },
 
   stop: function() {
     if (this.started === true) {
       this.started = false
-      this._stop()
+      this.onStop()
     }
   },
 
   load: function(done) {},
 
+  receive: function(subpath, args) {
+    if (!this.ports.hasOwnProperty(subpath))
+      return console.error('unknown port "' + subpath + '" for "' + this.instrumentId + '"')
+    this.ports[subpath].receive(args)
+  },
+
   restore: function() {
-    var self = this
-    _.forEach(this.knownCommands, function(command) {
-      rhizome.send('/sys/resend', ['/' + self.instrumentId + '/' + command])
-    })
+    _.values(this.ports).forEach(function(port) { port.restore() })
   },
 
-  // This returns `true` if the command has been handled, `false` otherwise
-  command: function(name, args) {
-    if (name === 'state') {
-      var state = args[0]
-      if (state === 0) this.stop()
-      else if (state === 1) this.start()
-      return true
-    } else if (name === 'volume') {
-      this.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.002)
-      return true
-    }
-    return false
-  },
-
-  _start: function() {},
-  _stop: function() {},
-
+  onStart: function() {},
+  onStop: function() {}
 })
-},{"./math":6,"underscore":4}],6:[function(require,module,exports){
+},{"./math":6,"./ports":7,"./utils":8,"underscore":4}],6:[function(require,module,exports){
 exports.pickVal = function(mean, variance) {
   return mean + mean * variance * (1 - 2 * Math.random())
 }
@@ -17095,6 +17124,114 @@ exports.valExp = function(val, exp) {
 }
 
 },{}],7:[function(require,module,exports){
+var _ = require('underscore')
+  , utils = require('./utils')
+
+
+var BasePort = exports.BasePort = function(instrument, subpath) {
+  this.instrument = instrument 
+  this.path = '/' + this.instrument.instrumentId + '/' + subpath
+}
+BasePort.extend = utils.chainExtend
+
+_.extend(BasePort.prototype, {
+
+  restore: function() {
+    rhizome.send('/sys/resend', [this.path])
+  },
+
+  receive: function(args) {
+    if ((args = this.validate(args)) === false) return
+    this.onValue.apply(this, args)
+  },
+
+  // Validate and extract a list of arguments to apply to `onValue`.
+  // If the args are unvalid, returns false
+  validate: function(args) { throw new Error('implement me!') },
+
+  onValue: function() { throw new Error('implement me!') }
+})
+
+
+exports.TogglePort = BasePort.extend({
+
+  validate: function(args) {
+    if (args.length !== 1) {
+      console.error('unvalid number of args for ' + this.path + ' : ' + args)
+      return false
+    }
+    if (typeof args[0] !== 'number') {
+      console.error('unvalid args type for ' + this.path + ' : ' + args)
+      return false
+    }
+    return [!!args[0]] // to bool
+  }
+
+})
+
+
+exports.NumberPort = BasePort.extend({
+
+  validate: function(args) {
+    if (args.length !== 1) {
+      console.error('unvalid number of args for ' + this.path + ' : ' + args)
+      return false
+    }
+    if (typeof args[0] !== 'number') {
+      console.error('unvalid args type for ' + this.path + ' : ' + args)
+      return false
+    }
+    return [this.mapping(args[0])]
+  },
+
+  mapping: function(inVal) {
+    return inVal
+  }
+
+})
+
+
+exports.PointPort = BasePort.extend({
+
+  validate: function(args) {
+    if (args.length !== 2) {
+      console.error('unvalid number of args for ' + this.path + ' : ' + args)
+      return false
+    }
+    if (typeof args[0] !== 'number' || typeof args[1] !== 'number') {
+      console.error('unvalid args type for ' + this.path + ' : ' + args)
+      return false
+    }
+    return [this.mappingX(args[0]), this.mappingX(args[1])]
+  },
+
+  mappingX: function(inVal) {
+    return inVal
+  },
+
+  mappingY: function(inVal) {
+    return inVal
+  }
+
+})
+},{"./utils":8,"underscore":4}],8:[function(require,module,exports){
+var _ = require('underscore')
+
+exports.chainExtend = function() {
+  var sources = Array.prototype.slice.call(arguments, 0)
+    , parent = this
+    , child = function() { parent.apply(this, arguments) }
+
+  // Fix instanceof
+  //child.prototype = new parent()
+
+  // extend with new properties
+  _.extend.apply(this, [child.prototype, parent.prototype].concat(sources))
+
+  child.extend = this.extend
+  return child
+}
+},{"underscore":4}],9:[function(require,module,exports){
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
@@ -17229,76 +17366,50 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}],8:[function(require,module,exports){
-var async = require('async')
-  , _ = require('underscore')
-  , waaUtils = require('../core/waa')
-  , Instrument = require('../core/BaseInstrument')
-
-var CentralizedSequencer = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-
-  var tracks = args[1]
-  // Picks one track randomly
-  this.trackId = rhizome.id % tracks.length
-  this.soundUrl = tracks[this.trackId]
-  this.buffer = null
-  this.bufferNode = null
-}
-
-_.extend(CentralizedSequencer.prototype, Instrument.prototype, {
-
-  knownCommands: ['state', 'volume'],
-
-  load: function(done) {
-    var self = this
-    waaUtils.loadBuffer(this.soundUrl, function(err, buffer) {
-      if (!err) {
-        self.buffer = buffer
-        fields.log(self.instrumentId + ' loaded, track ' +  self.trackId 
-          + ' buffer length :' + self.buffer.length)
-        self.restore()
-      }
-      done(err)
-    })
-  },
-
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-    if (name === 'note') {
-      if (args[0] === this.trackId && this.started) {
-        this.bufferNode = audioContext.createBufferSource()
-        this.bufferNode.connect(this.mixer)
-        this.bufferNode.buffer = this.buffer
-        this.bufferNode.start(0)
-      } 
-    }
-  }
-
-})
-
-},{"../core/BaseInstrument":5,"../core/waa":7,"async":2,"underscore":4}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
+
 
 // args : stepCount, tracks, tempo
-var DistributedSequencer = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
+module.exports = Instrument.extend({
 
-  this.stepCount = args[0]
-  this.tracks = args[1]
-  this.buffers = []
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
 
-  this._setTempo(args[2])
-  this.sequence = []
-  this.bufferNode = null
-}
+    'sequence': ports.BasePort.extend({
+      
+      validate: function(args) {
+        var sequence = []
+          , t, s
 
-_.extend(DistributedSequencer.prototype, Instrument.prototype, {
+        // Builds the looped buffer by adding all the active steps in the sequence 
+        for (t = 0, s = 1; t < args.length; t+=2, s+=2)
+          sequence.push([ args[t], args[s] ])
+        
+        // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
+        return [_.sortBy(sequence, function(pair) { return pair[1] })]
+      },
 
-  knownCommands: ['volume', 'sequence', 'state'],
+      onValue: function(sequence) {
+        this.instrument.sequence = sequence
+        if (this.instrument.started) this.instrument._playSequence()
+      }
+    })
+
+  }),
+
+  init: function(args) {
+    this.stepCount = args[0]
+    this.tracks = args[1]
+    this.buffers = []
+
+    this._setTempo(args[2])
+    this.sequence = []
+    this.bufferNode = null
+  },
 
   load: function(done) {
     var self = this
@@ -17312,32 +17423,11 @@ _.extend(DistributedSequencer.prototype, Instrument.prototype, {
     })
   },
 
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-
-    if (name === 'sequence') {
-      var sequence = []
-        , t, s
-
-      // Builds the looped buffer by adding all the active steps in the sequence 
-      for (t = 0, s = 1; t < args.length; t+=2, s+=2)
-        sequence.push([ args[t], args[s] ])
-      
-      // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
-      this.sequence = _.sortBy(sequence, function(pair) { return pair[1] })
-      if (this.started) this._playSequence()
-
-    } else if (name === 'tempo') {
-      this._setTempo(args[0])
-      if (this.started) this._playSequence()
-    }
-  },
-
-  _start: function() {
+  onStart: function() {
     this._playSequence()
   },
 
-  _stop: function() {
+  onStop: function() {
     this.bufferNode.stop(0)
     this.bufferNode = null
   },
@@ -17378,28 +17468,60 @@ _.extend(DistributedSequencer.prototype, Instrument.prototype, {
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/waa":7,"async":2,"underscore":4}],10:[function(require,module,exports){
+},{"../core/BaseInstrument":5,"../core/ports":7,"../core/waa":9,"async":2,"underscore":4}],11:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
 
 
-var Granulator = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-  this.params = {
-    position: [0, 0],
-    duration: [0.1, 0],
-    ratio: [1, 0],
-    env: 0,
-    density: 0
-  }
-  this.url = args[0]
-}
+module.exports = Instrument.extend({
 
-_.extend(Granulator.prototype, Instrument.prototype, {
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
+    
+    'position': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['position'] = [x, y]
+      }
+    }),
 
-  knownCommands: ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state'],
+    'duration': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['duration'] = [x, y]
+      }
+    }),
+
+    'ratio': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['ratio'] = [x, y]
+      }
+    }),
+
+    'env': ports.NumberPort.extend({
+      onValue: function(val) {
+        this.instrument.params['env'] = val
+      }
+    }),
+
+    'density': ports.NumberPort.extend({
+      onValue: function(val) {
+        this.instrument.params['density'] = val
+      }
+    })
+
+  }),
+
+  init: function(args) {
+    this.params = {
+      position: [0, 0],
+      duration: [0.1, 0],
+      ratio: [1, 0],
+      env: 0,
+      density: 0
+    }
+    this.url = args[0]
+  },
 
   load: function(done) {
     var self = this
@@ -17414,12 +17536,7 @@ _.extend(Granulator.prototype, Instrument.prototype, {
     })       
   },
 
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-    this.params[name] = args
-  },
-
-  _start: function() {
+  onStart: function() {
     if (this.grainEvent) this.grainEvent.clear()
     var self = this
 
@@ -17442,7 +17559,7 @@ _.extend(Granulator.prototype, Instrument.prototype, {
     this.grainEvent.on('expired', function() { fields.log('EXPIRED') })
   },
 
-  _stop: function() {
+  onStop: function() {
     if (this.grainEvent) this.grainEvent.clear()
     fields.sound.clockUsers--
     if (fields.sound.clockUsers === 0) {
@@ -17508,21 +17625,58 @@ _.extend(Granulator.prototype, Instrument.prototype, {
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/math":6,"../core/waa":7,"underscore":4}],11:[function(require,module,exports){
+},{"../core/BaseInstrument":5,"../core/math":6,"../core/ports":7,"../core/waa":9,"underscore":4}],12:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
 
+module.exports = Instrument.extend({
 
-var Sine = module.exports = function(instrumentId) {
-  Instrument.call(this, instrumentId)
-  self.f0 = 500
-}
+  portDefinitions: _.extend({}, _.pick(Instrument.prototype.portDefinitions, ['volume']), {
+    
+    'play': ports.BasePort.extend({
+      validate: function(args) {
+        return [args]
+      },
+      onValue: function(args) {
+        var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
+          , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
+          , duration = 1 + args[4] * 10
+          , currentTime = fields.sound.audioContext.currentTime
+          , latency = 1 + Math.random() * 3
+          , instrument = this.instrument
 
-_.extend(Sine.prototype, Instrument.prototype, {
+        instrument.envGain.gain.cancelScheduledValues(0)
+        instrument.envGain.gain.setValueAtTime(0, latency + currentTime)
+        _.forEach(volEnvPoints, function(point) {
+          instrument.envGain.gain.linearRampToValueAtTime(
+            point[1], latency + currentTime + point[0] * duration)
+        })
+        
+        instrument.oscillatorNode.frequency.cancelScheduledValues(0)
+        instrument.oscillatorNode.frequency.setValueAtTime(instrument.f0, latency + currentTime)
+        _.forEach(pitchEnvPoints, function(point) {
+          instrument.oscillatorNode.frequency.linearRampToValueAtTime(
+            instrument.f0 + instrument.f0 * point[1], latency + currentTime + point[0] * duration)
+        })
+      }
+    }),
 
-  knownCommands: ['play', 'volume', 'f0'],
+    'f0': ports.NumberPort.extend({
+      onValue: function(f0) {
+        this.instrument.f0 = 500 + f0 * 3000
+        this.instrument.oscillatorNode.frequency.setValueAtTime(
+          this.instrument.f0, fields.sound.audioContext.currentTime + 1)
+      }
+    })
+
+  }),
+
+  init: function(args) {
+    this.f0 = 500
+  },
 
   load: function(done) {
     this.envGain = fields.sound.audioContext.createGain()
@@ -17534,57 +17688,23 @@ _.extend(Sine.prototype, Instrument.prototype, {
     this.oscillatorNode.connect(this.envGain)
     this.oscillatorNode.start(0)
     done()
-  },
-
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-
-    if (name === 'play') {
-      var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
-        , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
-        , duration = 1 + args[4] * 10
-        , currentTime = fields.sound.audioContext.currentTime
-        , latency = 1 + Math.random() * 3
-        , self = this
-
-      this.envGain.gain.cancelScheduledValues(0)
-      this.envGain.gain.setValueAtTime(0, latency + currentTime)
-      _.forEach(volEnvPoints, function(point) {
-        self.envGain.gain.linearRampToValueAtTime(
-          point[1], latency + currentTime + point[0] * duration)
-      })
-      
-      this.oscillatorNode.frequency.cancelScheduledValues(0)
-      this.oscillatorNode.frequency.setValueAtTime(self.f0, latency + currentTime)
-      _.forEach(pitchEnvPoints, function(point) {
-        self.oscillatorNode.frequency.linearRampToValueAtTime(
-          self.f0 + self.f0 * point[1], latency + currentTime + point[0] * duration)
-      })
-
-      //this.oscillatorNode.stop(latency + currentTime + duration)
-    } else if (name === 'f0') {
-      this.f0 = 500 + args[0] * 3000
-      this.oscillatorNode.frequency.setValueAtTime(this.f0, 
-        fields.sound.audioContext.currentTime + 1)
-    }
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/waa":7,"async":2,"underscore":4}],12:[function(require,module,exports){
+},{"../core/BaseInstrument":5,"../core/ports":7,"../core/waa":9,"async":2,"underscore":4}],13:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
   , Instrument = require('../core/BaseInstrument')
 
 
-var Trigger = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-  this.url = args[0]
-}
+module.exports = Instrument.extend({
 
-_.extend(Trigger.prototype, Instrument.prototype, {
+  portDefinitions: _.pick(Instrument.prototype.portDefinitions, ['state']),
 
-  knownCommands: ['volume'],
+  init: function(args) {
+    this.url = args[0]
+  },
 
   load: function(done) {
     var self = this
@@ -17599,43 +17719,38 @@ _.extend(Trigger.prototype, Instrument.prototype, {
     })       
   },
 
-  _start: function() {
+  onStart: function() {
     this.bufferNode = fields.sound.audioContext.createBufferSource()
     this.bufferNode.buffer = this.buffer
     this.bufferNode.connect(this.mixer)
     this.bufferNode.start(0)
   },
 
-  _stop: function() {}
+  onStop: function() {}
   
 })
-},{"../core/BaseInstrument":5,"../core/math":6,"../core/waa":7,"underscore":4}],13:[function(require,module,exports){
+},{"../core/BaseInstrument":5,"../core/math":6,"../core/waa":9,"underscore":4}],14:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
 
 
-var WhiteNoise = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-  var sampleCount = 44100
-  this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
-  var noiseData = this.noiseBuffer.getChannelData(0)
-    , i
-  for (i = 0; i < sampleCount; i++) noiseData[i] = Math.random()
-}
+module.exports = Instrument.extend({
 
-
-_.extend(WhiteNoise.prototype, Instrument.prototype, {
-
-  knownCommands: ['state', 'volume'],
+  init: function(args) {
+    var sampleCount = 44100
+    this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
+    var noiseData = this.noiseBuffer.getChannelData(0)
+    for (var i = 0; i < sampleCount; i++) noiseData[i] = Math.random()
+  },
 
   load: function(done) {
     this.restore()
     done()
   },
 
-  _start: function() {
+  onStart: function() {
     this.bufferNode = fields.sound.audioContext.createBufferSource()
     this.bufferNode.buffer = this.noiseBuffer
     this.bufferNode.loop = true
@@ -17643,12 +17758,12 @@ _.extend(WhiteNoise.prototype, Instrument.prototype, {
     this.bufferNode.start(0)
   },
 
-  _stop: function() {
+  onStop: function() {
     this.bufferNode.stop(0)
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/waa":7,"async":2,"underscore":4}]},{},[1]);
+},{"../core/BaseInstrument":5,"../core/waa":9,"async":2,"underscore":4}]},{},[1]);
 ;fields.config = function() {
 
   var formatUsed
@@ -17668,18 +17783,6 @@ _.extend(WhiteNoise.prototype, Instrument.prototype, {
     'noise': {
       instrument: 'WhiteNoise',
       args: []
-    },
-
-    'drops': {
-      index: 6,
-      instrument: 'Granulator',
-      args: ['sounds/drops/drops.' + formatUsed]
-    },
-
-    'sparkles': {
-      index: 2,
-      instrument: 'Trigger',
-      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.id % 5) + '.' + formatUsed]
     },
 
     'bells': {
@@ -17704,16 +17807,28 @@ _.extend(WhiteNoise.prototype, Instrument.prototype, {
       ], 640]
     },
 
-    'sine': {
-      index: 9,
-      instrument: 'Sine',
-      args: []
+    'drops': {
+      index: 6,
+      instrument: 'Granulator',
+      args: ['sounds/drops/drops.' + formatUsed]
     },
 
     'waves': {
       index: 10,
       instrument: 'Granulator',
       args: ['sounds/waves/waves.' + formatUsed]
+    },
+
+    'sparkles': {
+      index: 2,
+      instrument: 'Trigger',
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.id % 5) + '.' + formatUsed]
+    },
+
+    'sine': {
+      index: 9,
+      instrument: 'Sine',
+      args: []
     }
   }
 

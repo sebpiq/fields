@@ -1,7 +1,7 @@
 var waaUtils = require('../core/waa')
   , async = require('async')
   , _ = require('underscore')
-  , muteTimeout
+  , muteTimeout, initialized = false
 
 window.fields.sound = {}
 
@@ -11,9 +11,9 @@ var setStatus = function(msg) {
 
 var subscribeAll = function() {
   // For all the instruments, subscribe to messages
-  _.chain(instrumentInstances).keys().forEach(function(instrumentId) {
+  Object.keys(instrumentInstances).forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
-  }).values()
+  })
 }
 
 // Contains all the instances of sound engines for each declared instrument
@@ -29,33 +29,39 @@ fields.sound.start = function() {
   fields.sound.clockUsers = 0
 
   async.waterfall([
-    // Start rhizome
-    _.bind(rhizome.start, rhizome),
-    
+
     // Get format support infos
     _.bind(waaUtils.formatSupport, waaUtils),
-     
-    // Instantiate all the instruments and load them
+
+    // Instantiate all instruments
     function(formats, next) {
       fields.log('formats supported ' + formats)
       fields.sound.supportedFormats = formats
 
-      _.chain(fields.config()).pairs().forEach(function(p) {
-        var instrumentId = p[0]
-          , config = p[1]
-          , instrument = fields.instruments[config.instrument]
-        instrumentInstances[instrumentId] = new instrument(instrumentId, config.args)
-      }).values()
-  
+      var config = fields.config()
+      Object.keys(config).forEach(function(instrumentId) {
+        var instrumentConfig = config[instrumentId]
+          , instrument = fields.instruments[instrumentConfig.instrument]
+        instrumentInstances[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
+      })
+      next()
+    },
+    
+    // Start rhizome
+    _.bind(rhizome.start, rhizome),
+
+    // Load all instruments
+    function(next) {
       async.forEach(_.values(instrumentInstances), function(instrument, nextInstrument) {
         instrument.load(nextInstrument)
-      }, function(err) {
-        if (err) fields.log(err)
-        else fields.log('all instruments loaded')
-      })
+      }, next)
     }
+
   ], function(err) {
-    fields.log('ERROR: ' + err)
+    if (err)
+      return fields.log('ERROR: ' + err)
+    initialized = true
+    fields.log('all instruments loaded')
   })
 
   $('#startButtonContainer').fadeOut(100)
@@ -63,12 +69,16 @@ fields.sound.start = function() {
 }
 
 rhizome.on('connected', function() {
-  if (muteTimeout) clearTimeout(muteTimeout)
   subscribeAll()
-  _.forEach(_.values(instrumentInstances), function(sound) {
-    sound.restore()
-  })
   setStatus('connected')
+
+  // Execute those only if the connection was successfuly established before 
+  if (initialized) {
+    if (muteTimeout) clearTimeout(muteTimeout)
+    Object.keys(instrumentInstances).forEach(function(instrumentId) {
+      instrumentInstances[instrumentId].restore()
+    })
+  }
 })
 
 // Message scheme :
@@ -79,8 +89,8 @@ rhizome.on('message', function(address, args) {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = instrumentInstances[parts[1]]
-      , name = parts[2]
-    instrument.command(name, args)
+      , portPath = parts[2]
+    instrument.receive(portPath, args)
   }
 })
 

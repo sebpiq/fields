@@ -2,23 +2,55 @@ var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
 
 
-var Granulator = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-  this.params = {
-    position: [0, 0],
-    duration: [0.1, 0],
-    ratio: [1, 0],
-    env: 0,
-    density: 0
-  }
-  this.url = args[0]
-}
+module.exports = Instrument.extend({
 
-_.extend(Granulator.prototype, Instrument.prototype, {
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
+    
+    'position': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['position'] = [x, y]
+      }
+    }),
 
-  knownCommands: ['volume', 'position', 'duration', 'ratio', 'env', 'density', 'state'],
+    'duration': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['duration'] = [x, y]
+      }
+    }),
+
+    'ratio': ports.PointPort.extend({
+      onValue: function(x, y) {
+        this.instrument.params['ratio'] = [x, y]
+      }
+    }),
+
+    'env': ports.NumberPort.extend({
+      onValue: function(val) {
+        this.instrument.params['env'] = val
+      }
+    }),
+
+    'density': ports.NumberPort.extend({
+      onValue: function(val) {
+        this.instrument.params['density'] = val
+      }
+    })
+
+  }),
+
+  init: function(args) {
+    this.params = {
+      position: [0, 0],
+      duration: [0.1, 0],
+      ratio: [1, 0],
+      env: 0,
+      density: 0
+    }
+    this.url = args[0]
+  },
 
   load: function(done) {
     var self = this
@@ -33,12 +65,7 @@ _.extend(Granulator.prototype, Instrument.prototype, {
     })       
   },
 
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-    this.params[name] = args
-  },
-
-  _start: function() {
+  onStart: function() {
     if (this.grainEvent) this.grainEvent.clear()
     var self = this
 
@@ -61,7 +88,7 @@ _.extend(Granulator.prototype, Instrument.prototype, {
     this.grainEvent.on('expired', function() { fields.log('EXPIRED') })
   },
 
-  _stop: function() {
+  onStop: function() {
     if (this.grainEvent) this.grainEvent.clear()
     fields.sound.clockUsers--
     if (fields.sound.clockUsers === 0) {

@@ -19,18 +19,6 @@ fields.config = function() {
       args: []
     },
 
-    'drops': {
-      index: 6,
-      instrument: 'Granulator',
-      args: ['sounds/drops/drops.' + formatUsed]
-    },
-
-    'sparkles': {
-      index: 2,
-      instrument: 'Trigger',
-      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.id % 5) + '.' + formatUsed]
-    },
-
     'bells': {
       index: 7,
       instrument: 'DistributedSequencer',
@@ -53,16 +41,28 @@ fields.config = function() {
       ], 640]
     },
 
-    'sine': {
-      index: 9,
-      instrument: 'Sine',
-      args: []
+    'drops': {
+      index: 6,
+      instrument: 'Granulator',
+      args: ['sounds/drops/drops.' + formatUsed]
     },
 
     'waves': {
       index: 10,
       instrument: 'Granulator',
       args: ['sounds/waves/waves.' + formatUsed]
+    },
+
+    'sparkles': {
+      index: 2,
+      instrument: 'Trigger',
+      args: ['sounds/glass/' + formatUsed + '/' + (1 + rhizome.id % 5) + '.' + formatUsed]
+    },
+
+    'sine': {
+      index: 9,
+      instrument: 'Sine',
+      args: []
     }
   }
 

@@ -4,14 +4,13 @@ var _ = require('underscore')
   , Instrument = require('../core/BaseInstrument')
 
 
-var Trigger = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
-  this.url = args[0]
-}
+module.exports = Instrument.extend({
 
-_.extend(Trigger.prototype, Instrument.prototype, {
+  portDefinitions: _.pick(Instrument.prototype.portDefinitions, ['state']),
 
-  knownCommands: ['volume'],
+  init: function(args) {
+    this.url = args[0]
+  },
 
   load: function(done) {
     var self = this
@@ -26,13 +25,13 @@ _.extend(Trigger.prototype, Instrument.prototype, {
     })       
   },
 
-  _start: function() {
+  onStart: function() {
     this.bufferNode = fields.sound.audioContext.createBufferSource()
     this.bufferNode.buffer = this.buffer
     this.bufferNode.connect(this.mixer)
     this.bufferNode.start(0)
   },
 
-  _stop: function() {}
+  onStop: function() {}
   
 })

@@ -2,23 +2,45 @@ var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
+
 
 // args : stepCount, tracks, tempo
-var DistributedSequencer = module.exports = function(instrumentId, args) {
-  Instrument.call(this, instrumentId)
+module.exports = Instrument.extend({
 
-  this.stepCount = args[0]
-  this.tracks = args[1]
-  this.buffers = []
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
 
-  this._setTempo(args[2])
-  this.sequence = []
-  this.bufferNode = null
-}
+    'sequence': ports.BasePort.extend({
+      
+      validate: function(args) {
+        var sequence = []
+          , t, s
 
-_.extend(DistributedSequencer.prototype, Instrument.prototype, {
+        // Builds the looped buffer by adding all the active steps in the sequence 
+        for (t = 0, s = 1; t < args.length; t+=2, s+=2)
+          sequence.push([ args[t], args[s] ])
+        
+        // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
+        return [_.sortBy(sequence, function(pair) { return pair[1] })]
+      },
 
-  knownCommands: ['volume', 'sequence', 'state'],
+      onValue: function(sequence) {
+        this.instrument.sequence = sequence
+        if (this.instrument.started) this.instrument._playSequence()
+      }
+    })
+
+  }),
+
+  init: function(args) {
+    this.stepCount = args[0]
+    this.tracks = args[1]
+    this.buffers = []
+
+    this._setTempo(args[2])
+    this.sequence = []
+    this.bufferNode = null
+  },
 
   load: function(done) {
     var self = this
@@ -32,32 +54,11 @@ _.extend(DistributedSequencer.prototype, Instrument.prototype, {
     })
   },
 
-  command: function(name, args) {
-    if (Instrument.prototype.command.call(this, name, args)) return
-
-    if (name === 'sequence') {
-      var sequence = []
-        , t, s
-
-      // Builds the looped buffer by adding all the active steps in the sequence 
-      for (t = 0, s = 1; t < args.length; t+=2, s+=2)
-        sequence.push([ args[t], args[s] ])
-      
-      // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
-      this.sequence = _.sortBy(sequence, function(pair) { return pair[1] })
-      if (this.started) this._playSequence()
-
-    } else if (name === 'tempo') {
-      this._setTempo(args[0])
-      if (this.started) this._playSequence()
-    }
-  },
-
-  _start: function() {
+  onStart: function() {
     this._playSequence()
   },
 
-  _stop: function() {
+  onStop: function() {
     this.bufferNode.stop(0)
     this.bufferNode = null
   },
