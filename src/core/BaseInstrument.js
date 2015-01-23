@@ -45,7 +45,7 @@ _.extend(BaseInstrument.prototype, {
       else if (state === 1) this.start()
       return true
     } else if (name === 'volume') {
-      this.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.002)
+      this.mixer.gain.setTargetAtTime(math.valExp(args[0], 2.5), 0, 0.3)
       return true
     }
     return false
