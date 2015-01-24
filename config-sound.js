@@ -63,6 +63,18 @@ fields.config = function() {
       index: 9,
       instrument: 'Sine',
       args: []
+    },
+
+    'bursts': {
+      index: 11,
+      instrument: 'NoiseBursts',
+      args: []
+    },
+
+    'osc': {
+      index: 11,
+      instrument: 'Osc',
+      args: []
     }
   }
 

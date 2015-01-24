@@ -14494,7 +14494,9 @@ fields.instruments.Granulator = require('./Granulator')
 fields.instruments.WhiteNoise = require('./WhiteNoise')
 fields.instruments.Trigger = require('./Trigger')
 fields.instruments.Sine = require('./Sine')
-},{"./DistributedSequencer":10,"./Granulator":11,"./Sine":12,"./Trigger":13,"./WhiteNoise":14}],2:[function(require,module,exports){
+fields.instruments.NoiseBursts = require('./NoiseBursts')
+fields.instruments.Osc = require('./Osc')
+},{"./DistributedSequencer":12,"./Granulator":13,"./NoiseBursts":14,"./Osc":15,"./Sine":16,"./Trigger":17,"./WhiteNoise":18}],2:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -17032,6 +17034,35 @@ process.chdir = function (dir) {
 }).call(this);
 
 },{}],5:[function(require,module,exports){
+var WAAOffset = require('./lib/WAAOffset')
+module.exports = WAAOffset
+if (typeof window !== 'undefined') window.WAAOffset = WAAOffset
+},{"./lib/WAAOffset":6}],6:[function(require,module,exports){
+var WAAOffset = module.exports = function(context) {
+  this.context = context
+
+  // Ones generator
+  this._ones = context.createOscillator()
+  this._ones.frequency.value = 0
+  this._ones.setPeriodicWave(context.createPeriodicWave(
+    new Float32Array([0, 1]), new Float32Array([0, 0])))
+  this._ones.start(0)
+
+  // Multiplier
+  this._output = context.createGain()
+  this._ones.connect(this._output)
+  this.offset = this._output.gain
+  this.offset.value = 0
+}
+
+WAAOffset.prototype.connect = function() {
+  this._output.connect.apply(this._output, arguments)
+}
+
+WAAOffset.prototype.disconnect = function() {
+  this._output.disconnect.apply(this._output, arguments)
+}
+},{}],7:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
@@ -17064,7 +17095,7 @@ _.extend(BaseInstrument.prototype, {
 
     'volume': ports.NumberPort.extend({
       mapping: function(inVal) {
-        return math.valExp(inVal, 2.5)
+        return math.valExp(inVal, 2.5) * 2
       },
       onValue: function(vol) {
         this.instrument.mixer.gain.setTargetAtTime(vol, 0, 0.3)
@@ -17109,7 +17140,7 @@ _.extend(BaseInstrument.prototype, {
   onStart: function() {},
   onStop: function() {}
 })
-},{"./math":6,"./ports":7,"./utils":8,"underscore":4}],6:[function(require,module,exports){
+},{"./math":8,"./ports":9,"./utils":10,"underscore":4}],8:[function(require,module,exports){
 exports.pickVal = function(mean, variance) {
   return mean + mean * variance * (1 - 2 * Math.random())
 }
@@ -17123,7 +17154,7 @@ exports.valExp = function(val, exp) {
   return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
 }
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var _ = require('underscore')
   , utils = require('./utils')
 
@@ -17214,7 +17245,7 @@ exports.PointPort = BasePort.extend({
   }
 
 })
-},{"./utils":8,"underscore":4}],8:[function(require,module,exports){
+},{"./utils":10,"underscore":4}],10:[function(require,module,exports){
 var _ = require('underscore')
 
 exports.chainExtend = function() {
@@ -17231,7 +17262,7 @@ exports.chainExtend = function() {
   child.extend = this.extend
   return child
 }
-},{"underscore":4}],9:[function(require,module,exports){
+},{"underscore":4}],11:[function(require,module,exports){
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
@@ -17366,7 +17397,7 @@ var DecodeError = function DecodeError(message) {
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../core/waa')
@@ -17468,7 +17499,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/ports":7,"../core/waa":9,"async":2,"underscore":4}],11:[function(require,module,exports){
+},{"../core/BaseInstrument":7,"../core/ports":9,"../core/waa":11,"async":2,"underscore":4}],13:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -17625,7 +17656,230 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/math":6,"../core/ports":7,"../core/waa":9,"underscore":4}],12:[function(require,module,exports){
+},{"../core/BaseInstrument":7,"../core/math":8,"../core/ports":9,"../core/waa":11,"underscore":4}],14:[function(require,module,exports){
+var async = require('async')
+  , _ = require('underscore')
+  , waaUtils = require('../core/waa')
+  , math = require('../core/math')
+  , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
+
+module.exports = Instrument.extend({
+
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
+    
+    'duration': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return Math.max(inVal * 4, 0.1)
+      },
+      onValue: function(duration) {
+        this.instrument.duration = duration
+        if (this.instrument.started)
+          this.instrument.refreshEnvelope()
+      }
+    }),
+
+    'width': ports.NumberPort.extend({
+      onValue: function(width) {
+        this.instrument.width = width
+        if (this.instrument.started)
+          this.instrument.refreshEnvelope()
+      }
+    }),
+
+    'Q': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 2.5) * 30
+      },
+      onValue: function(Q) {
+        if (this.instrument.started)
+          this.instrument.filterNode.Q.linearRampToValueAtTime(
+            Q, fields.sound.audioContext.currentTime + 0.05)
+      }
+    }),
+
+    'frequency': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 2.5) * 5000
+      },
+      onValue: function(frequency) {
+        if (this.instrument.started)
+          this.instrument.filterNode.frequency.linearRampToValueAtTime(
+            frequency, fields.sound.audioContext.currentTime + 0.05)
+      }
+    })
+  }),
+
+  init: function(args) {
+    var frameCount = fields.sound.audioContext.sampleRate * 3
+    this.duration = 1
+    this.width = 0
+    this.noiseBuffer = fields.sound.audioContext.createBuffer(1, frameCount, fields.sound.audioContext.sampleRate)
+    var noiseData = this.noiseBuffer.getChannelData(0)
+    for (var i = 0; i < frameCount; i++) noiseData[i] = Math.random()
+  },
+
+  load: function(done) {
+    this.restore()
+    done()
+  },
+
+  onStart: function() {
+    this.noiseNode = fields.sound.audioContext.createBufferSource()
+    this.noiseNode.buffer = this.noiseBuffer
+    this.noiseNode.loop = true
+    this.filterNode = fields.sound.audioContext.createBiquadFilter()
+    this.envelopeGainNode = fields.sound.audioContext.createGain()
+    this.refreshEnvelope()
+    
+    this.noiseNode.connect(this.filterNode)
+    this.filterNode.connect(this.envelopeGainNode)
+    this.envelopeGainNode.gain.value = 0
+    this.envelopeGainNode.connect(this.mixer)
+
+    this.noiseNode.start(0)
+  },
+
+  onStop: function() {
+    this.noiseNode.stop(0)
+    this.envelopeNode.stop(0)
+  },
+
+  refreshEnvelope: function() {
+    if (this.envelopeNode) this.envelopeNode.disconnect()
+    this.envelopeNode = fields.sound.audioContext.createBufferSource()
+    var frameCount = this.duration * fields.sound.audioContext.sampleRate
+      , envelopeBuffer = fields.sound.audioContext.createBuffer(1, frameCount, fields.sound.audioContext.sampleRate)
+      , envelopeData = envelopeBuffer.getChannelData(0)
+      , widthFrameCount = frameCount * this.width
+    for (var i = 0; i < widthFrameCount; i++)
+      envelopeData[i] = 1
+
+    this.envelopeNode.loop = true
+    this.envelopeNode.buffer = envelopeBuffer
+    this.envelopeNode.start(0)
+    this.envelopeNode.connect(this.envelopeGainNode.gain)
+  }
+
+})
+},{"../core/BaseInstrument":7,"../core/math":8,"../core/ports":9,"../core/waa":11,"async":2,"underscore":4}],15:[function(require,module,exports){
+var async = require('async')
+  , _ = require('underscore')
+  , WAAOffset = require('waaoffset')
+  , waaUtils = require('../core/waa')
+  , math = require('../core/math')
+  , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
+
+module.exports = Instrument.extend({
+
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
+    
+    'carrierFreq': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 4) * 1000
+      },
+      onValue: function(carrierFreq) {
+        this.instrument.carrierFreq = carrierFreq
+        if (this.instrument.started)
+          this.instrument.freqModOffset.offset.linearRampToValueAtTime(
+            carrierFreq, fields.sound.audioContext.currentTime + 0.05)
+      }
+    }),
+
+    'freqModFreq': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 4) * 100
+      },
+      onValue: function(freqModFreq) {
+        this.instrument.freqModFreq = freqModFreq
+        if (this.instrument.started)
+          this.instrument.freqModOsc.frequency.linearRampToValueAtTime(
+            freqModFreq, fields.sound.audioContext.currentTime + 0.05)
+      }
+    }),
+
+    'freqModAmount': ports.NumberPort.extend({
+      onValue: function(freqModAmount) {
+        this.instrument.freqModAmount = freqModAmount
+        if (this.instrument.started) {
+          this.instrument.freqModAmountGain.gain.value = (this.instrument.carrierFreq * freqModAmount)
+        }
+      }
+    }),
+
+    'ampModFreq': ports.NumberPort.extend({
+      mapping: function(inVal) {
+        return math.valExp(inVal, 4) * 100
+      },
+      onValue: function(ampModFreq) {
+        this.instrument.ampModFreq = ampModFreq
+        if (this.instrument.started)
+          this.instrument.ampModOsc.frequency.linearRampToValueAtTime(
+            ampModFreq, fields.sound.audioContext.currentTime + 0.05)
+      }
+    }),
+
+    'ampModAmount': ports.NumberPort.extend({
+      onValue: function(ampModAmount) {
+        this.instrument.ampModAmount = ampModAmount
+        if (this.instrument.started) {
+          this.instrument.ampModAmountGain.gain.value = ampModAmount
+        }
+      },
+    })
+
+  }),
+
+  init: function(args) {
+    this.carrierFreq = 100
+    this.ampModFreq = 0
+    this.freqModFreq = 0
+    this.ampModAmount = 0
+    this.freqModAmount = 0
+  },
+
+  load: function(done) {
+    this.restore()
+    done()
+  },
+
+  onStart: function() {
+    this.freqModOffset = new WAAOffset(fields.sound.audioContext)
+    this.carrierOsc = fields.sound.audioContext.createOscillator()
+    this.carrierOsc.type = 'square'
+    this.ampModOsc = fields.sound.audioContext.createOscillator()
+    this.freqModOsc = fields.sound.audioContext.createOscillator()
+    this.ampModAmountGain = fields.sound.audioContext.createGain()
+    this.ampModGain = fields.sound.audioContext.createGain()
+    this.freqModGain = fields.sound.audioContext.createGain()
+    this.freqModAmountGain = fields.sound.audioContext.createGain()
+
+    this.freqModOsc.connect(this.freqModAmountGain)
+    this.freqModAmountGain.connect(this.freqModGain)
+    this.freqModOffset.connect(this.freqModGain)
+    this.freqModGain.connect(this.carrierOsc.frequency)
+    
+    this.ampModOsc.connect(this.ampModAmountGain)
+    this.ampModAmountGain.connect(this.ampModGain.gain)
+
+    this.carrierOsc.connect(this.ampModGain)
+    this.ampModGain.connect(this.mixer)
+
+    this.ampModOsc.start(0)
+    this.freqModOsc.start(0)
+    this.carrierOsc.start(0)
+  },
+
+  onStop: function() {
+    this.ampModOsc.stop(0)
+    this.freqModOsc.stop(0)
+    this.carrierOsc.stop(0)
+    this.ampModGain.disconnect()
+  }
+
+})
+},{"../core/BaseInstrument":7,"../core/math":8,"../core/ports":9,"../core/waa":11,"async":2,"underscore":4,"waaoffset":5}],16:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -17691,7 +17945,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/ports":7,"../core/waa":9,"async":2,"underscore":4}],13:[function(require,module,exports){
+},{"../core/BaseInstrument":7,"../core/ports":9,"../core/waa":11,"async":2,"underscore":4}],17:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -17729,7 +17983,7 @@ module.exports = Instrument.extend({
   onStop: function() {}
   
 })
-},{"../core/BaseInstrument":5,"../core/math":6,"../core/waa":9,"underscore":4}],14:[function(require,module,exports){
+},{"../core/BaseInstrument":7,"../core/math":8,"../core/waa":11,"underscore":4}],18:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -17763,7 +18017,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":5,"../core/waa":9,"async":2,"underscore":4}]},{},[1]);
+},{"../core/BaseInstrument":7,"../core/waa":11,"async":2,"underscore":4}]},{},[1]);
 ;fields.config = function() {
 
   var formatUsed
@@ -17828,6 +18082,18 @@ module.exports = Instrument.extend({
     'sine': {
       index: 9,
       instrument: 'Sine',
+      args: []
+    },
+
+    'bursts': {
+      index: 11,
+      instrument: 'NoiseBursts',
+      args: []
+    },
+
+    'osc': {
+      index: 11,
+      instrument: 'Osc',
       args: []
     }
   }

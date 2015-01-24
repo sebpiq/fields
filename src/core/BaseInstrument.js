@@ -30,7 +30,7 @@ _.extend(BaseInstrument.prototype, {
 
     'volume': ports.NumberPort.extend({
       mapping: function(inVal) {
-        return math.valExp(inVal, 2.5)
+        return math.valExp(inVal, 2.5) * 2
       },
       onValue: function(vol) {
         this.instrument.mixer.gain.setTargetAtTime(vol, 0, 0.3)

@@ -85,6 +85,30 @@
         <canvas nx="position" address="/waves/ratio"></canvas>
       </div>
 
+      <div panel="bursts" class="active">
+        <h2>Bursts</h2>
+        <canvas nx="slider" hslider="true" address="/bursts/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/bursts/duration"></canvas>
+        <canvas nx="slider" hslider="true" address="/bursts/width"></canvas>
+        <canvas nx="slider" hslider="true" address="/bursts/frequency"></canvas>
+        <canvas nx="slider" hslider="true" address="/bursts/Q"></canvas>
+
+        <canvas nx="toggle" address="/bursts/state"></canvas>
+      </div>
+
+      <div panel="osc" class="active">
+        <h2>Osc</h2>
+        <canvas nx="slider" hslider="true" address="/osc/volume"></canvas>
+
+        <canvas nx="slider" hslider="true" address="/osc/carrierFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/ampModFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/ampModAmount"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/freqModFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/freqModAmount"></canvas>
+
+        <canvas nx="toggle" address="/osc/state"></canvas>
+      </div>
+
     </div>
 
     <script>
