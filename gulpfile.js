@@ -1,4 +1,5 @@
-var gulp = require('gulp')
+var path = require('path')
+  , gulp = require('gulp')
   , gutil = require('gulp-util')
   , browserify = require('browserify')
   , rename = require('gulp-rename')
@@ -7,18 +8,23 @@ var gulp = require('gulp')
   , runSequence = require('run-sequence')
   , source = require('vinyl-source-stream')
   , less = require('gulp-less')
-  , path = require('path')
+  , rhizome = require('./rhizome')
 
-var watcher = gulp.watch(['./src/*.js', './src/*.less'], ['default'])
+var watcher = gulp.watch(['./frontend/*.js', './frontend/*.less'], ['default'])
 watcher.on('change', function(event) {
   console.log('File '+event.path+' was '+event.type+', running tasks...')
+})
+
+// Renders the client file for rhizome
+gulp.task('render-rhizome-client', function() {
+  return rhizome.websockets.renderClientBrowserGulp('./tmp')
 })
 
 // Browserifies the JS for sound.
 // This is the file that kickstarts the sound, makes rhizome connection,
 // creates the instruments instances, etc ...
 gulp.task('browserify-sound', function() {
-  return browserify({ entries: './src/sound/index.js' })
+  return browserify({ entries: './frontend/sound/index.js' })
     .bundle()
     .on('error', gutil.log)
     .pipe(source('sound.browserified.js'))
@@ -28,7 +34,7 @@ gulp.task('browserify-sound', function() {
 // Browserifies the JS for instruments.
 // This is the file that contains the instrument classes.
 gulp.task('browserify-instruments', function() {
-  return browserify({ entries: './src/instruments/index.js' })
+  return browserify({ entries: './frontend/instruments/index.js' })
     .bundle()
     .on('error', gutil.log)
     .pipe(source('instruments.browserified.js'))
@@ -37,27 +43,21 @@ gulp.task('browserify-instruments', function() {
 
 // Browserifies the JS for controls.
 gulp.task('browserify-controls', function() {
-  return browserify({ entries: './src/controls/index.js' })
+  return browserify({ entries: './frontend/controls/index.js' })
     .bundle()
     .on('error', gutil.log)
     .pipe(source('controls.browserified.js'))
     .pipe(gulp.dest('./tmp'))
 })
 
-/*// Copies the file containing the common functionalities for controls + sound.
-gulp.task('copy-common', function() {
-  return gulp.src('./common.js')
-    .pipe(rename('fields.js'))
-    .pipe(gulp.dest('../../pages/js'))
-})*/
-
 // Bundles all the needed files for the sound page into one file.
 gulp.task('bundle-sound', function() {
   return gulp.src([
-      './deps/AudioContextMonkeyPatch.js',
-      './deps/WAAClock-latest.js',
-      './deps/jquery-2.1.0.js',
-      './src/core/common.js',
+      './frontend/deps/AudioContextMonkeyPatch.js',
+      './frontend/deps/WAAClock-latest.js',
+      './frontend/deps/jquery-2.1.0.js',
+      './tmp/rhizome.js',
+      './frontend/core/common.js',
       './tmp/sound.browserified.js',
       './tmp/instruments.browserified.js',
       './config-sound.js'
@@ -69,11 +69,12 @@ gulp.task('bundle-sound', function() {
 // Bundles all the needed files for the controls page into one file.
 gulp.task('bundle-controls', function() {
   return gulp.src([
-      './deps/AudioContextMonkeyPatch.js',
-      './deps/WAAClock-latest.js',
-      './deps/jquery-2.1.0.js',
-      './deps/nexusUI.js',
-      './src/core/common.js',
+      './frontend/deps/AudioContextMonkeyPatch.js',
+      './frontend/deps/WAAClock-latest.js',
+      './frontend/deps/jquery-2.1.0.js',
+      './frontend/deps/nexusUI.js',
+      './tmp/rhizome.js',
+      './frontend/core/common.js',
       './tmp/controls.browserified.js'
     ])
     .pipe(concat('controls.js', { newLine: ';' }))
@@ -98,30 +99,43 @@ gulp.task('uglify-sound', function() {
 })
 
 gulp.task('less-controls', function () {
-  return gulp.src('./src/controls/controls.less')
+  return gulp.src('./frontend/controls/controls.less')
     .pipe(less())
     .on('error', gutil.log)
     .pipe(gulp.dest('./dist/css'))
 })
 
 gulp.task('less-sound', function () {
-  return gulp.src('./src/sound/sound.less')
+  return gulp.src('./frontend/sound/sound.less')
     .pipe(less())
     .on('error', gutil.log)
     .pipe(gulp.dest('./dist/css'))
 })
 
-gulp.task('common', function(done) {
+gulp.task('sound', function(done) {
   runSequence(
-    'browserify-controls',
+    'render-rhizome-client',
     'browserify-instruments',
     'browserify-sound',
     'bundle-sound',
+    'copy-bundle-sound',
+    'less-sound',
+  done)
+})
+
+gulp.task('controls', function(done) {
+  runSequence(
+    'render-rhizome-client',
+    'browserify-controls',
+    'browserify-instruments',
     'bundle-controls',
     'copy-bundle-controls',
     'less-controls',
-    'less-sound',
   done)
+})
+
+gulp.task('common', function(done) {
+  runSequence('sound', 'controls', done)
 })
 
 gulp.task('build', function(done) {

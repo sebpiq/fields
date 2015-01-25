@@ -1,11 +1,8 @@
 var path = require('path')
 
 module.exports = {
-  http: {
+  server: {
     port: 8000,
-    staticDir: path.join(__dirname, 'dist') 
-  },
-  websockets: {
-    usersLimit: 100
+    tmpDir: './tmp'
   }
 }

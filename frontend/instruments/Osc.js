@@ -104,6 +104,12 @@ module.exports = Instrument.extend({
     this.ampModOsc.start(0)
     this.freqModOsc.start(0)
     this.carrierOsc.start(0)
+
+    this.ports['carrierFreq'].onValue(this.carrierFreq)
+    this.ports['freqModFreq'].onValue(this.freqModFreq)
+    this.ports['freqModAmount'].onValue(this.freqModAmount)
+    this.ports['ampModFreq'].onValue(this.ampModFreq)
+    this.ports['ampModAmount'].onValue(this.ampModAmount)
   },
 
   onStop: function() {
