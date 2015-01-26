@@ -11,7 +11,7 @@ module.exports = Instrument.extend({
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
 
     'sequence': ports.BasePort.extend({
-      
+      defaultValue: [],
       validate: function(args) {
         var sequence = []
           , t, s
@@ -21,25 +21,27 @@ module.exports = Instrument.extend({
           sequence.push([ args[t], args[s] ])
         
         // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
-        return [_.sortBy(sequence, function(pair) { return pair[1] })]
-      },
-
-      onValue: function(sequence) {
-        this.instrument.sequence = sequence
-        if (this.instrument.started) this.instrument._playSequence()
+        return _.sortBy(sequence, function(pair) { return pair[1] })
       }
+
     })
 
   }),
 
   init: function(args) {
+    var self = this
+    Instrument.prototype.init.apply(this, arguments)
+
     this.stepCount = args[0]
     this.tracks = args[1]
     this.buffers = []
 
     this._setTempo(args[2])
-    this.sequence = []
     this.bufferNode = null
+
+    this.ports['sequence'].on('value', function() {
+      if (self.started) self._playSequence()
+    })
   },
 
   load: function(done) {
@@ -78,7 +80,7 @@ module.exports = Instrument.extend({
       , t, s
 
     // Builds the looped buffer by adding all the active steps in the sequence 
-    _.forEach(this.sequence, function(beat) {
+    _.forEach(self.ports['sequence'].value, function(beat) {
       var step = beat[1]
         , track = beat[0]
         , offset = self.samplesPerBeat * step

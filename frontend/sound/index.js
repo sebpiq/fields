@@ -3,25 +3,43 @@ var waaUtils = require('../core/waa')
   , _ = require('underscore')
   , muteTimeout, initialized = false
 
-window.fields.sound = {}
+window.fields.sound = {
+  clock: null,
+  clockUsers: 0,
+  audioContext: null,
+  supportedFormats: null,
+  position: null
+}
+
+// Contains all the instances of sound engines for each declared instrument
+// `{ <instrument id>: <sound instance> }`
+var instruments = {}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
 }
 
+// For all the instruments, subscribe to messages
 var subscribeAll = function() {
-  // For all the instruments, subscribe to messages
-  Object.keys(instrumentInstances).forEach(function(instrumentId) {
+  Object.keys(instruments).forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
   })
 }
 
-// Contains all the instances of sound engines for each declared instrument
-// `{ <instrument id>: <sound instance> }`
-var instrumentInstances = fields.sound.instrumentInstances = {}
+$(function() {
+  var map = $('#map')
+  map.click(function(event) {
+    fields.sound.position = {}
+    fields.sound.position.x = 1 - (map.width() - event.offsetX) / map.width()
+    fields.sound.position.y = (map.height() - event.offsetY) / map.height()
+    fields.sound.start()
+  })
+})
+
 
 // Start the whole system, when the user presses a button. 
 fields.sound.start = function() {
+  $('#status').show()
 
   // Initialize sound
   fields.sound.audioContext = waaUtils.kickStartWAA()
@@ -42,7 +60,7 @@ fields.sound.start = function() {
       Object.keys(config).forEach(function(instrumentId) {
         var instrumentConfig = config[instrumentId]
           , instrument = fields.instruments[instrumentConfig.instrument]
-        instrumentInstances[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
+        instruments[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
       })
       next()
     },
@@ -52,7 +70,7 @@ fields.sound.start = function() {
 
     // Load all instruments
     function(next) {
-      async.forEach(_.values(instrumentInstances), function(instrument, nextInstrument) {
+      async.forEach(_.values(instruments), function(instrument, nextInstrument) {
         instrument.load(nextInstrument)
       }, next)
     }
@@ -64,7 +82,7 @@ fields.sound.start = function() {
     fields.log('all instruments loaded')
   })
 
-  $('#startButtonContainer').fadeOut(100)
+  $('#mapContainer').fadeOut(100)
   setStatus('connecting ...')
 }
 
@@ -75,8 +93,8 @@ rhizome.on('connected', function() {
   // Execute those only if the connection was successfuly established before 
   if (initialized) {
     if (muteTimeout) clearTimeout(muteTimeout)
-    Object.keys(instrumentInstances).forEach(function(instrumentId) {
-      instrumentInstances[instrumentId].restore()
+    Object.keys(instruments).forEach(function(instrumentId) {
+      instruments[instrumentId].restore()
     })
   }
 })
@@ -88,7 +106,7 @@ rhizome.on('message', function(address, args) {
   else {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
-      , instrument = instrumentInstances[parts[1]]
+      , instrument = instruments[parts[1]]
       , portPath = parts[2]
     instrument.receive(portPath, args)
   }
@@ -101,7 +119,7 @@ rhizome.on('queued', function() {
 rhizome.on('connection lost', function() {
   setStatus('waiting ...')
   muteTimeout = setTimeout(function() {
-    _.forEach(_.values(instrumentInstances), function(sound) {
+    _.forEach(_.values(instruments), function(sound) {
       sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
     })
   }, 8000)

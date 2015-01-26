@@ -7,6 +7,7 @@ var async = require('async')
 module.exports = Instrument.extend({
 
   init: function(args) {
+    Instrument.prototype.init.apply(this, arguments)
     var sampleCount = 44100
     this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
     var noiseData = this.noiseBuffer.getChannelData(0)

@@ -21386,25 +21386,43 @@ var waaUtils = require('../core/waa')
   , _ = require('underscore')
   , muteTimeout, initialized = false
 
-window.fields.sound = {}
+window.fields.sound = {
+  clock: null,
+  clockUsers: 0,
+  audioContext: null,
+  supportedFormats: null,
+  position: null
+}
+
+// Contains all the instances of sound engines for each declared instrument
+// `{ <instrument id>: <sound instance> }`
+var instruments = {}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
 }
 
+// For all the instruments, subscribe to messages
 var subscribeAll = function() {
-  // For all the instruments, subscribe to messages
-  Object.keys(instrumentInstances).forEach(function(instrumentId) {
+  Object.keys(instruments).forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
   })
 }
 
-// Contains all the instances of sound engines for each declared instrument
-// `{ <instrument id>: <sound instance> }`
-var instrumentInstances = fields.sound.instrumentInstances = {}
+$(function() {
+  var map = $('#map')
+  map.click(function(event) {
+    fields.sound.position = {}
+    fields.sound.position.x = 1 - (map.width() - event.offsetX) / map.width()
+    fields.sound.position.y = (map.height() - event.offsetY) / map.height()
+    fields.sound.start()
+  })
+})
+
 
 // Start the whole system, when the user presses a button. 
 fields.sound.start = function() {
+  $('#status').show()
 
   // Initialize sound
   fields.sound.audioContext = waaUtils.kickStartWAA()
@@ -21425,7 +21443,7 @@ fields.sound.start = function() {
       Object.keys(config).forEach(function(instrumentId) {
         var instrumentConfig = config[instrumentId]
           , instrument = fields.instruments[instrumentConfig.instrument]
-        instrumentInstances[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
+        instruments[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
       })
       next()
     },
@@ -21435,7 +21453,7 @@ fields.sound.start = function() {
 
     // Load all instruments
     function(next) {
-      async.forEach(_.values(instrumentInstances), function(instrument, nextInstrument) {
+      async.forEach(_.values(instruments), function(instrument, nextInstrument) {
         instrument.load(nextInstrument)
       }, next)
     }
@@ -21447,7 +21465,7 @@ fields.sound.start = function() {
     fields.log('all instruments loaded')
   })
 
-  $('#startButtonContainer').fadeOut(100)
+  $('#mapContainer').fadeOut(100)
   setStatus('connecting ...')
 }
 
@@ -21458,8 +21476,8 @@ rhizome.on('connected', function() {
   // Execute those only if the connection was successfuly established before 
   if (initialized) {
     if (muteTimeout) clearTimeout(muteTimeout)
-    Object.keys(instrumentInstances).forEach(function(instrumentId) {
-      instrumentInstances[instrumentId].restore()
+    Object.keys(instruments).forEach(function(instrumentId) {
+      instruments[instrumentId].restore()
     })
   }
 })
@@ -21471,7 +21489,7 @@ rhizome.on('message', function(address, args) {
   else {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
-      , instrument = instrumentInstances[parts[1]]
+      , instrument = instruments[parts[1]]
       , portPath = parts[2]
     instrument.receive(portPath, args)
   }
@@ -21484,7 +21502,7 @@ rhizome.on('queued', function() {
 rhizome.on('connection lost', function() {
   setStatus('waiting ...')
   muteTimeout = setTimeout(function() {
-    _.forEach(_.values(instrumentInstances), function(sound) {
+    _.forEach(_.values(instruments), function(sound) {
       sound.mixer.gain.setTargetAtTime(0.0001, 0, 0.002)
     })
   }, 8000)
@@ -24170,9 +24188,8 @@ fields.instruments.Granulator = require('./Granulator')
 fields.instruments.WhiteNoise = require('./WhiteNoise')
 fields.instruments.Trigger = require('./Trigger')
 fields.instruments.Sine = require('./Sine')
-fields.instruments.NoiseBursts = require('./NoiseBursts')
 fields.instruments.Osc = require('./Osc')
-},{"./DistributedSequencer":7,"./Granulator":8,"./NoiseBursts":9,"./Osc":10,"./Sine":11,"./Trigger":12,"./WhiteNoise":13}],2:[function(require,module,exports){
+},{"./DistributedSequencer":7,"./Granulator":8,"./Osc":9,"./Sine":10,"./Trigger":11,"./WhiteNoise":12}],2:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
@@ -24193,31 +24210,46 @@ var BaseInstrument = module.exports = function(instrumentId, args) {
     var portClass = self.portDefinitions[subpath]
     self.ports[subpath] = new portClass(self, subpath)
   })
+
   this.init(args)
 }
 BaseInstrument.extend = utils.chainExtend
 
 _.extend(BaseInstrument.prototype, {
 
-  init: function(args) {},
+  init: function(args) {
+    var self = this
+
+    // Volume computation taking into account panning
+    var computeVolume = function() {
+      var panFunc = function(pan, pos) {
+        return (1 - Math.abs(pan - 0.5)) + (pos - 0.5) * (pan - 0.5) * 2
+      }
+      var volRatio = self.ports['volume'].value
+        , panning = self.ports['panning'].value
+        , position = fields.sound.position
+        , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
+      self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.3)
+      console.log(panRatio * volRatio)
+    }
+    this.ports['volume'].on('value', computeVolume)
+    this.ports['panning'].on('value', computeVolume)
+
+    // State on/off
+    this.ports['state'].on('value', function(isOn) {
+      console.log(isOn)
+      if (isOn) self.start()
+      else self.stop()
+    })
+  },
 
   portDefinitions: {
 
     'volume': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 2.5) * 2
-      },
-      onValue: function(vol) {
-        this.instrument.mixer.gain.setTargetAtTime(vol, 0, 0.3)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
     }),
-
-    'state': ports.TogglePort.extend({
-      onValue: function(isOn) {
-        if (isOn) this.instrument.start()
-        else this.instrument.stop()
-      }
-    })
+    'panning': ports.PointPort,
+    'state': ports.TogglePort
 
   },
 
@@ -24265,36 +24297,47 @@ exports.valExp = function(val, exp) {
 }
 
 },{}],4:[function(require,module,exports){
-var _ = require('underscore')
+var EventEmitter = require('events').EventEmitter
+  , _ = require('underscore')
   , utils = require('./utils')
 
 
 var BasePort = exports.BasePort = function(instrument, subpath) {
-  this.instrument = instrument 
+  EventEmitter.apply(this)
+  this.instrument = instrument
   this.path = '/' + this.instrument.instrumentId + '/' + subpath
+  this.value = this.defaultValue
 }
 BasePort.extend = utils.chainExtend
 
-_.extend(BasePort.prototype, {
+_.extend(BasePort.prototype, EventEmitter.prototype, {
+
+  defaultValue: null,
 
   restore: function() {
     rhizome.send('/sys/resend', [this.path])
   },
 
   receive: function(args) {
-    if ((args = this.validate(args)) === false) return
-    this.onValue.apply(this, args)
+    try {
+      args = this.validate(args)
+    } catch(err) {
+      console.error(err)
+      return 
+    }
+    this.value = args
+    this.emit('value', args)
   },
 
   // Validate and extract a list of arguments to apply to `onValue`.
   // If the args are unvalid, returns false
-  validate: function(args) { throw new Error('implement me!') },
-
-  onValue: function() { throw new Error('implement me!') }
+  validate: function(args) { throw new Error('implement me!') }
 })
 
 
 exports.TogglePort = BasePort.extend({
+
+  defaultValue: false,
 
   validate: function(args) {
     if (args.length !== 1) {
@@ -24305,7 +24348,7 @@ exports.TogglePort = BasePort.extend({
       console.error('unvalid args type for ' + this.path + ' : ' + args)
       return false
     }
-    return [!!args[0]] // to bool
+    return !!args[0] // to bool
   }
 
 })
@@ -24313,6 +24356,8 @@ exports.TogglePort = BasePort.extend({
 
 exports.NumberPort = BasePort.extend({
 
+  defaultValue: 0,
+
   validate: function(args) {
     if (args.length !== 1) {
       console.error('unvalid number of args for ' + this.path + ' : ' + args)
@@ -24322,7 +24367,7 @@ exports.NumberPort = BasePort.extend({
       console.error('unvalid args type for ' + this.path + ' : ' + args)
       return false
     }
-    return [this.mapping(args[0])]
+    return this.mapping(args[0])
   },
 
   mapping: function(inVal) {
@@ -24334,6 +24379,8 @@ exports.NumberPort = BasePort.extend({
 
 exports.PointPort = BasePort.extend({
 
+  defaultValue: [0, 0],
+
   validate: function(args) {
     if (args.length !== 2) {
       console.error('unvalid number of args for ' + this.path + ' : ' + args)
@@ -24343,7 +24390,7 @@ exports.PointPort = BasePort.extend({
       console.error('unvalid args type for ' + this.path + ' : ' + args)
       return false
     }
-    return [this.mappingX(args[0]), this.mappingX(args[1])]
+    return [this.mappingX(args[0]), this.mappingY(args[1])]
   },
 
   mappingX: function(inVal) {
@@ -24355,7 +24402,7 @@ exports.PointPort = BasePort.extend({
   }
 
 })
-},{"./utils":5,"underscore":16}],5:[function(require,module,exports){
+},{"./utils":5,"events":14,"underscore":16}],5:[function(require,module,exports){
 var _ = require('underscore')
 
 exports.chainExtend = function() {
@@ -24521,7 +24568,7 @@ module.exports = Instrument.extend({
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
 
     'sequence': ports.BasePort.extend({
-      
+      defaultValue: [],
       validate: function(args) {
         var sequence = []
           , t, s
@@ -24531,25 +24578,27 @@ module.exports = Instrument.extend({
           sequence.push([ args[t], args[s] ])
         
         // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
-        return [_.sortBy(sequence, function(pair) { return pair[1] })]
-      },
-
-      onValue: function(sequence) {
-        this.instrument.sequence = sequence
-        if (this.instrument.started) this.instrument._playSequence()
+        return _.sortBy(sequence, function(pair) { return pair[1] })
       }
+
     })
 
   }),
 
   init: function(args) {
+    var self = this
+    Instrument.prototype.init.apply(this, arguments)
+
     this.stepCount = args[0]
     this.tracks = args[1]
     this.buffers = []
 
     this._setTempo(args[2])
-    this.sequence = []
     this.bufferNode = null
+
+    this.ports['sequence'].on('value', function() {
+      if (self.started) self._playSequence()
+    })
   },
 
   load: function(done) {
@@ -24588,7 +24637,7 @@ module.exports = Instrument.extend({
       , t, s
 
     // Builds the looped buffer by adding all the active steps in the sequence 
-    _.forEach(this.sequence, function(beat) {
+    _.forEach(self.ports['sequence'].value, function(beat) {
       var step = beat[1]
         , track = beat[0]
         , offset = self.samplesPerBeat * step
@@ -24609,7 +24658,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":14,"underscore":16}],8:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":13,"underscore":16}],8:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -24620,47 +24669,15 @@ var _ = require('underscore')
 module.exports = Instrument.extend({
 
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'position': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['position'] = [x, y]
-      }
-    }),
-
-    'duration': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['duration'] = [x, y]
-      }
-    }),
-
-    'ratio': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['ratio'] = [x, y]
-      }
-    }),
-
-    'env': ports.NumberPort.extend({
-      onValue: function(val) {
-        this.instrument.params['env'] = val
-      }
-    }),
-
-    'density': ports.NumberPort.extend({
-      onValue: function(val) {
-        this.instrument.params['density'] = val
-      }
-    })
-
+    'position': ports.PointPort,
+    'duration': ports.PointPort.extend({ defaultValue: [0.1, 0] }),
+    'ratio': ports.PointPort.extend({ defaultValue: [1, 0] }),
+    'env': ports.NumberPort,
+    'density': ports.NumberPort
   }),
 
   init: function(args) {
-    this.params = {
-      position: [0, 0],
-      duration: [0.1, 0],
-      ratio: [1, 0],
-      env: 0,
-      density: 0
-    }
+    Instrument.prototype.init.apply(this, arguments)
     this.url = args[0]
   },
 
@@ -24692,7 +24709,7 @@ module.exports = Instrument.extend({
       if (self._enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
       else {
         duration = self._playSound(self.url, self.mixer, self._getPosition()
-          , duration, self._getRatio(), self.params.env)
+          , duration, self._getRatio(), self.ports['env'].value)
         self.grainEvent.repeat(duration || 0.005)
       }
     }, 0.1).repeat(0.1)
@@ -24710,30 +24727,28 @@ module.exports = Instrument.extend({
   },
 
   _getPosition: function() {
-    var mean = this.params.position[0]
+    var mean = this.ports['position'].value[0]
       * (this.buffer.length / fields.sound.audioContext.sampleRate)
-    return math.pickVal(mean, this.params.position[1])
+    return math.pickVal(mean, this.ports['position'].value[1])
   },
 
   _getDuration: function() {
-    var mean = this.params.duration[0]
-    return Math.max(0.01, math.pickVal(4 * math.valExp(mean), this.params.duration[1]))
+    var mean = this.ports['duration'].value[0]
+    return Math.max(0.01, math.pickVal(4 * math.valExp(mean), this.ports['duration'].value[1]))
   },
 
   _getRatio: function() {
     var ratios = [0.5, 0.75, 1]
-    var meanRatio = this.params.ratio[0]
-    if (this.params.quantize_ratio) {
-      return meanRatio * ratios[Math.floor(Math.random() * 0.99 * ratios.length)]
-    } else return Math.max(0.05, math.pickVal(meanRatio, this.params.ratio[1]))
+    var meanRatio = this.ports['ratio'].value[0]
+    return Math.max(0.05, math.pickVal(meanRatio, this.ports['ratio'].value[1]))
   },
 
   // Returns true for silence, false for grain.
   // There is twice as much chance as expected from the density 
   // to pick up a silence, but silences should be twice shorter.
   _enjoyTheSilence: function() {
-    var pick1 = Math.random() > this.params.density
-      , pick2 = Math.random() > this.params.density
+    var pick1 = Math.random() > this.ports['density'].value
+      , pick2 = Math.random() > this.ports['density'].value
     return pick1 || pick2
   },
 
@@ -24769,112 +24784,6 @@ module.exports = Instrument.extend({
 },{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"underscore":16}],9:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
-  , waaUtils = require('../core/waa')
-  , math = require('../core/math')
-  , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
-
-module.exports = Instrument.extend({
-
-  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'duration': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return Math.max(inVal * 4, 0.1)
-      },
-      onValue: function(duration) {
-        this.instrument.duration = duration
-        if (this.instrument.started)
-          this.instrument.refreshEnvelope()
-      }
-    }),
-
-    'width': ports.NumberPort.extend({
-      onValue: function(width) {
-        this.instrument.width = width
-        if (this.instrument.started)
-          this.instrument.refreshEnvelope()
-      }
-    }),
-
-    'Q': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 2.5) * 30
-      },
-      onValue: function(Q) {
-        if (this.instrument.started)
-          this.instrument.filterNode.Q.linearRampToValueAtTime(
-            Q, fields.sound.audioContext.currentTime + 0.05)
-      }
-    }),
-
-    'frequency': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 2.5) * 5000
-      },
-      onValue: function(frequency) {
-        if (this.instrument.started)
-          this.instrument.filterNode.frequency.linearRampToValueAtTime(
-            frequency, fields.sound.audioContext.currentTime + 0.05)
-      }
-    })
-  }),
-
-  init: function(args) {
-    var frameCount = fields.sound.audioContext.sampleRate * 3
-    this.duration = 1
-    this.width = 0
-    this.noiseBuffer = fields.sound.audioContext.createBuffer(1, frameCount, fields.sound.audioContext.sampleRate)
-    var noiseData = this.noiseBuffer.getChannelData(0)
-    for (var i = 0; i < frameCount; i++) noiseData[i] = Math.random()
-  },
-
-  load: function(done) {
-    this.restore()
-    done()
-  },
-
-  onStart: function() {
-    this.noiseNode = fields.sound.audioContext.createBufferSource()
-    this.noiseNode.buffer = this.noiseBuffer
-    this.noiseNode.loop = true
-    this.filterNode = fields.sound.audioContext.createBiquadFilter()
-    this.envelopeGainNode = fields.sound.audioContext.createGain()
-    this.refreshEnvelope()
-    
-    this.noiseNode.connect(this.filterNode)
-    this.filterNode.connect(this.envelopeGainNode)
-    this.envelopeGainNode.gain.value = 0
-    this.envelopeGainNode.connect(this.mixer)
-
-    this.noiseNode.start(0)
-  },
-
-  onStop: function() {
-    this.noiseNode.stop(0)
-    this.envelopeNode.stop(0)
-  },
-
-  refreshEnvelope: function() {
-    if (this.envelopeNode) this.envelopeNode.disconnect()
-    this.envelopeNode = fields.sound.audioContext.createBufferSource()
-    var frameCount = this.duration * fields.sound.audioContext.sampleRate
-      , envelopeBuffer = fields.sound.audioContext.createBuffer(1, frameCount, fields.sound.audioContext.sampleRate)
-      , envelopeData = envelopeBuffer.getChannelData(0)
-      , widthFrameCount = frameCount * this.width
-    for (var i = 0; i < widthFrameCount; i++)
-      envelopeData[i] = 1
-
-    this.envelopeNode.loop = true
-    this.envelopeNode.buffer = envelopeBuffer
-    this.envelopeNode.start(0)
-    this.envelopeNode.connect(this.envelopeGainNode.gain)
-  }
-
-})
-},{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"async":14,"underscore":16}],10:[function(require,module,exports){
-var async = require('async')
-  , _ = require('underscore')
   , WAAOffset = require('waaoffset')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -24886,67 +24795,55 @@ module.exports = Instrument.extend({
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
     
     'carrierFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 1000
-      },
-      onValue: function(carrierFreq) {
-        this.instrument.carrierFreq = carrierFreq
-        if (this.instrument.started)
-          this.instrument.freqModOffset.offset.linearRampToValueAtTime(
-            carrierFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      defaultValue: 100,
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 1000 }
     }),
 
     'freqModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 100
-      },
-      onValue: function(freqModFreq) {
-        this.instrument.freqModFreq = freqModFreq
-        if (this.instrument.started)
-          this.instrument.freqModOsc.frequency.linearRampToValueAtTime(
-            freqModFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
     }),
 
-    'freqModAmount': ports.NumberPort.extend({
-      onValue: function(freqModAmount) {
-        this.instrument.freqModAmount = freqModAmount
-        if (this.instrument.started) {
-          this.instrument.freqModAmountGain.gain.value = (this.instrument.carrierFreq * freqModAmount)
-        }
-      }
-    }),
+    'freqModAmount': ports.NumberPort,
 
     'ampModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 100
-      },
-      onValue: function(ampModFreq) {
-        this.instrument.ampModFreq = ampModFreq
-        if (this.instrument.started)
-          this.instrument.ampModOsc.frequency.linearRampToValueAtTime(
-            ampModFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
     }),
 
-    'ampModAmount': ports.NumberPort.extend({
-      onValue: function(ampModAmount) {
-        this.instrument.ampModAmount = ampModAmount
-        if (this.instrument.started) {
-          this.instrument.ampModAmountGain.gain.value = ampModAmount
-        }
-      },
-    })
+    'ampModAmount': ports.NumberPort
 
   }),
 
   init: function(args) {
-    this.carrierFreq = 100
-    this.ampModFreq = 0
-    this.freqModFreq = 0
-    this.ampModAmount = 0
-    this.freqModAmount = 0
+    Instrument.prototype.init.apply(this, arguments)
+    var self = this
+
+    this.ports['carrierFreq'].on('value', function(carrierFreq) {
+      if (self.started)
+        self.freqModOffset.offset.linearRampToValueAtTime(
+          carrierFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['freqModFreq'].on('value', function(freqModFreq) {
+      if (self.started)
+        self.freqModOsc.frequency.linearRampToValueAtTime(
+          freqModFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['freqModAmount'].on('value', function(freqModAmount) {
+      if (self.started)
+        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'] * freqModAmount)
+    })
+
+    this.ports['ampModFreq'].on('value', function(ampModFreq) {
+      if (self.started)
+        self.ampModOsc.frequency.linearRampToValueAtTime(
+          ampModFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['ampModAmount'].on('value', function(ampModAmount) {
+      if (self.started)
+        self.ampModAmountGain.gain.value = ampModAmount
+    })
   },
 
   load: function(done) {
@@ -24980,11 +24877,11 @@ module.exports = Instrument.extend({
     this.freqModOsc.start(0)
     this.carrierOsc.start(0)
 
-    this.ports['carrierFreq'].onValue(this.carrierFreq)
-    this.ports['freqModFreq'].onValue(this.freqModFreq)
-    this.ports['freqModAmount'].onValue(this.freqModAmount)
-    this.ports['ampModFreq'].onValue(this.ampModFreq)
-    this.ports['ampModAmount'].onValue(this.ampModAmount)
+    this.ports['carrierFreq'].emit('value', this.ports['carrierFreq'].value)
+    this.ports['freqModFreq'].emit('value', this.ports['freqModFreq'].value)
+    this.ports['freqModAmount'].emit('value', this.ports['freqModAmount'].value)
+    this.ports['ampModFreq'].emit('value', this.ports['ampModFreq'].value)
+    this.ports['ampModAmount'].emit('value', this.ports['ampModAmount'].value)
   },
 
   onStop: function() {
@@ -24996,7 +24893,7 @@ module.exports = Instrument.extend({
 
 })
 
-},{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"async":14,"underscore":16,"waaoffset":17}],11:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"async":13,"underscore":16,"waaoffset":17}],10:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -25005,48 +24902,49 @@ var async = require('async')
 
 module.exports = Instrument.extend({
 
-  portDefinitions: _.extend({}, _.pick(Instrument.prototype.portDefinitions, ['volume']), {
+  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
     
     'play': ports.BasePort.extend({
-      validate: function(args) {
-        return [args]
-      },
-      onValue: function(args) {
-        var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
-          , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
-          , duration = 1 + args[4] * 10
-          , currentTime = fields.sound.audioContext.currentTime
-          , latency = 1 + Math.random() * 3
-          , instrument = this.instrument
-
-        instrument.envGain.gain.cancelScheduledValues(0)
-        instrument.envGain.gain.setValueAtTime(0, latency + currentTime)
-        _.forEach(volEnvPoints, function(point) {
-          instrument.envGain.gain.linearRampToValueAtTime(
-            point[1], latency + currentTime + point[0] * duration)
-        })
-        
-        instrument.oscillatorNode.frequency.cancelScheduledValues(0)
-        instrument.oscillatorNode.frequency.setValueAtTime(instrument.f0, latency + currentTime)
-        _.forEach(pitchEnvPoints, function(point) {
-          instrument.oscillatorNode.frequency.linearRampToValueAtTime(
-            instrument.f0 + instrument.f0 * point[1], latency + currentTime + point[0] * duration)
-        })
-      }
+      validate: function(args) { return args }
     }),
 
     'f0': ports.NumberPort.extend({
-      onValue: function(f0) {
-        this.instrument.f0 = 500 + f0 * 3000
-        this.instrument.oscillatorNode.frequency.setValueAtTime(
-          this.instrument.f0, fields.sound.audioContext.currentTime + 1)
-      }
+      mapping: function(inVal) { return 500 + inVal * 3000 }
     })
 
   }),
 
   init: function(args) {
-    this.f0 = 500
+    Instrument.prototype.init.apply(this, arguments)
+    var self = this
+    
+    this.ports['play'].on('value', function(args) {
+      var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
+        , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
+        , duration = 1 + args[4] * 10
+        , currentTime = fields.sound.audioContext.currentTime
+        , latency = 1 + Math.random() * 3
+        , f0 = self.ports['f0'].value
+
+      self.envGain.gain.cancelScheduledValues(0)
+      self.envGain.gain.setValueAtTime(0, latency + currentTime)
+      _.forEach(volEnvPoints, function(point) {
+        self.envGain.gain.linearRampToValueAtTime(
+          point[1], latency + currentTime + point[0] * duration)
+      })
+      
+      self.oscillatorNode.frequency.cancelScheduledValues(0)
+      self.oscillatorNode.frequency.setValueAtTime(f0, latency + currentTime)
+      _.forEach(pitchEnvPoints, function(point) {
+        self.oscillatorNode.frequency.linearRampToValueAtTime(
+          f0 + f0 * point[1], latency + currentTime + point[0] * duration)
+      })
+    })
+
+    this.ports['f0'].on('value', function(f0) {
+      self.oscillatorNode.frequency.setValueAtTime(
+        f0, fields.sound.audioContext.currentTime + 1)
+    })
   },
 
   load: function(done) {
@@ -25062,7 +24960,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":14,"underscore":16}],12:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":13,"underscore":16}],11:[function(require,module,exports){
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -25071,9 +24969,8 @@ var _ = require('underscore')
 
 module.exports = Instrument.extend({
 
-  portDefinitions: _.pick(Instrument.prototype.portDefinitions, ['state']),
-
   init: function(args) {
+    Instrument.prototype.init.apply(this, arguments)
     this.url = args[0]
   },
 
@@ -25100,7 +24997,7 @@ module.exports = Instrument.extend({
   onStop: function() {}
   
 })
-},{"../core/BaseInstrument":2,"../core/math":3,"../core/waa":6,"underscore":16}],13:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/math":3,"../core/waa":6,"underscore":16}],12:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -25110,6 +25007,7 @@ var async = require('async')
 module.exports = Instrument.extend({
 
   init: function(args) {
+    Instrument.prototype.init.apply(this, arguments)
     var sampleCount = 44100
     this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
     var noiseData = this.noiseBuffer.getChannelData(0)
@@ -25134,7 +25032,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/waa":6,"async":14,"underscore":16}],14:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/waa":6,"async":13,"underscore":16}],13:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -26261,7 +26159,310 @@ module.exports = Instrument.extend({
 }());
 
 }).call(this,require('_process'))
-},{"_process":15}],15:[function(require,module,exports){
+},{"_process":15}],14:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}],15:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -27741,7 +27942,7 @@ WAAOffset.prototype.disconnect = function() {
         'sounds/clicks/2.' + formatUsed,
         'sounds/clicks/3.' + formatUsed,
         'sounds/clicks/4.' + formatUsed
-      ], 640]
+      ], 600]
     },
 
     'drops': {
@@ -27765,12 +27966,6 @@ WAAOffset.prototype.disconnect = function() {
     'sine': {
       index: 9,
       instrument: 'Sine',
-      args: []
-    },
-
-    'bursts': {
-      index: 11,
-      instrument: 'NoiseBursts',
       args: []
     },
 

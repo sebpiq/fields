@@ -11,67 +11,55 @@ module.exports = Instrument.extend({
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
     
     'carrierFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 1000
-      },
-      onValue: function(carrierFreq) {
-        this.instrument.carrierFreq = carrierFreq
-        if (this.instrument.started)
-          this.instrument.freqModOffset.offset.linearRampToValueAtTime(
-            carrierFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      defaultValue: 100,
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 1000 }
     }),
 
     'freqModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 100
-      },
-      onValue: function(freqModFreq) {
-        this.instrument.freqModFreq = freqModFreq
-        if (this.instrument.started)
-          this.instrument.freqModOsc.frequency.linearRampToValueAtTime(
-            freqModFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
     }),
 
-    'freqModAmount': ports.NumberPort.extend({
-      onValue: function(freqModAmount) {
-        this.instrument.freqModAmount = freqModAmount
-        if (this.instrument.started) {
-          this.instrument.freqModAmountGain.gain.value = (this.instrument.carrierFreq * freqModAmount)
-        }
-      }
-    }),
+    'freqModAmount': ports.NumberPort,
 
     'ampModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 4) * 100
-      },
-      onValue: function(ampModFreq) {
-        this.instrument.ampModFreq = ampModFreq
-        if (this.instrument.started)
-          this.instrument.ampModOsc.frequency.linearRampToValueAtTime(
-            ampModFreq, fields.sound.audioContext.currentTime + 0.05)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
     }),
 
-    'ampModAmount': ports.NumberPort.extend({
-      onValue: function(ampModAmount) {
-        this.instrument.ampModAmount = ampModAmount
-        if (this.instrument.started) {
-          this.instrument.ampModAmountGain.gain.value = ampModAmount
-        }
-      },
-    })
+    'ampModAmount': ports.NumberPort
 
   }),
 
   init: function(args) {
-    this.carrierFreq = 100
-    this.ampModFreq = 0
-    this.freqModFreq = 0
-    this.ampModAmount = 0
-    this.freqModAmount = 0
+    Instrument.prototype.init.apply(this, arguments)
+    var self = this
+
+    this.ports['carrierFreq'].on('value', function(carrierFreq) {
+      if (self.started)
+        self.freqModOffset.offset.linearRampToValueAtTime(
+          carrierFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['freqModFreq'].on('value', function(freqModFreq) {
+      if (self.started)
+        self.freqModOsc.frequency.linearRampToValueAtTime(
+          freqModFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['freqModAmount'].on('value', function(freqModAmount) {
+      if (self.started)
+        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'] * freqModAmount)
+    })
+
+    this.ports['ampModFreq'].on('value', function(ampModFreq) {
+      if (self.started)
+        self.ampModOsc.frequency.linearRampToValueAtTime(
+          ampModFreq, fields.sound.audioContext.currentTime + 0.05)
+    })
+
+    this.ports['ampModAmount'].on('value', function(ampModAmount) {
+      if (self.started)
+        self.ampModAmountGain.gain.value = ampModAmount
+    })
   },
 
   load: function(done) {
@@ -105,11 +93,11 @@ module.exports = Instrument.extend({
     this.freqModOsc.start(0)
     this.carrierOsc.start(0)
 
-    this.ports['carrierFreq'].onValue(this.carrierFreq)
-    this.ports['freqModFreq'].onValue(this.freqModFreq)
-    this.ports['freqModAmount'].onValue(this.freqModAmount)
-    this.ports['ampModFreq'].onValue(this.ampModFreq)
-    this.ports['ampModAmount'].onValue(this.ampModAmount)
+    this.ports['carrierFreq'].emit('value', this.ports['carrierFreq'].value)
+    this.ports['freqModFreq'].emit('value', this.ports['freqModFreq'].value)
+    this.ports['freqModAmount'].emit('value', this.ports['freqModAmount'].value)
+    this.ports['ampModFreq'].emit('value', this.ports['ampModFreq'].value)
+    this.ports['ampModAmount'].emit('value', this.ports['ampModAmount'].value)
   },
 
   onStop: function() {

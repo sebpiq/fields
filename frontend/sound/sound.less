@@ -23,11 +23,8 @@ button {
   color: red;
 }
 
-#pending {
-  display: none;
-}
-
 #status {
+  display: none;
   padding: 1em;
   position: fixed;
   bottom: 1em;
@@ -35,22 +32,19 @@ button {
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-#startButtonContainer {
-  width: 80%;
+#mapContainer {
+  width: 100%;
   height: 100%;
   text-align: center;
-  margin: auto;
-
-  #startButton {
-    font-size: 250%;
-    border-radius: 100%;
-    position: relative;
-    text-align: center;
-
-    color: white;
-    text-transform: uppercase;
-    background: none;
-    border: 1px solid white;
+  h2 {
+    font-size: 0.8em;
+    padding: 0 1em;
+  }
+  #map{
+    width: 100%;
+    max-width: 800px;
+    background-color: white;
+    cursor: crosshair;
   }
 }
 

@@ -38,7 +38,7 @@ fields.config = function() {
         'sounds/clicks/2.' + formatUsed,
         'sounds/clicks/3.' + formatUsed,
         'sounds/clicks/4.' + formatUsed
-      ], 640]
+      ], 600]
     },
 
     'drops': {
@@ -62,12 +62,6 @@ fields.config = function() {
     'sine': {
       index: 9,
       instrument: 'Sine',
-      args: []
-    },
-
-    'bursts': {
-      index: 11,
-      instrument: 'NoiseBursts',
       args: []
     },
 

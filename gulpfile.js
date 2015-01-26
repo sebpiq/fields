@@ -10,7 +10,7 @@ var path = require('path')
   , less = require('gulp-less')
   , rhizome = require('./rhizome')
 
-var watcher = gulp.watch(['./frontend/*.js', './frontend/*.less'], ['default'])
+var watcher = gulp.watch(['./frontend/**/*.js', './frontend/*.less'], ['default'])
 watcher.on('change', function(event) {
   console.log('File '+event.path+' was '+event.type+', running tasks...')
 })

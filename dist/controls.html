@@ -18,12 +18,16 @@
       <div panel="white-noise" class="active">
         <h2>White noise</h2>
         <canvas nx="slider" hslider="true" address="/noise/volume"></canvas>
+        <canvas nx="position" address="/noise/panning"></canvas>
+
         <canvas nx="toggle" address="/noise/state"></canvas>
       </div>
 
       <div panel="drops" class="active">
         <h2>Drops</h2>
         <canvas nx="slider" hslider="true" address="/drops/volume"></canvas>
+        <canvas nx="position" address="/drops/panning"></canvas>
+
         <canvas nx="slider" hslider="true" address="/drops/density"></canvas>
         <canvas nx="slider" hslider="true" address="/drops/env"></canvas>
 
@@ -41,6 +45,7 @@
       <div panel="bells" class="active">
         <h2>Bells</h2>
         <canvas nx="slider" hslider="true" address="/bells/volume"></canvas>
+        <canvas nx="position" address="/bells/panning"></canvas>
         <canvas nx="toggle" address="/bells/state"></canvas>
 
         <canvas nx="matrix" address="/bells/sequence" noautosend="" row="4" col="8"></canvas>
@@ -51,6 +56,7 @@
       <div panel="clicks" class="active">
         <h2>Clicks</h2>
         <canvas nx="slider" hslider="true" address="/clicks/volume"></canvas>
+        <canvas nx="position" address="/clicks/panning"></canvas>
         <canvas nx="toggle" address="/clicks/state"></canvas>
 
         <canvas nx="matrix" address="/clicks/sequence" noautosend="" row="4" col="8"></canvas>
@@ -61,6 +67,7 @@
       <div panel="sine" class="active">
         <h2>Sine</h2>
         <canvas nx="slider" hslider="true" address="/sine/volume"></canvas>
+        <canvas nx="position" address="/sine/panning"></canvas>
         <canvas nx="slider" hslider="true" address="/sine/f0"></canvas>
 
         <canvas id="sineVolEnvelope" nx="envelope"></canvas>
@@ -73,6 +80,8 @@
       <div panel="waves" class="active">
         <h2>Waves</h2>
         <canvas nx="slider" hslider="true" address="/waves/volume"></canvas>
+        <canvas nx="position" address="/waves/panning"></canvas>
+
         <canvas nx="slider" hslider="true" address="/waves/density"></canvas>
         <canvas nx="slider" hslider="true" address="/waves/env"></canvas>
 
@@ -82,20 +91,10 @@
         <canvas nx="position" address="/waves/ratio"></canvas>
       </div>
 
-      <div panel="bursts" class="active">
-        <h2>Bursts</h2>
-        <canvas nx="slider" hslider="true" address="/bursts/volume"></canvas>
-        <canvas nx="slider" hslider="true" address="/bursts/duration"></canvas>
-        <canvas nx="slider" hslider="true" address="/bursts/width"></canvas>
-        <canvas nx="slider" hslider="true" address="/bursts/frequency"></canvas>
-        <canvas nx="slider" hslider="true" address="/bursts/Q"></canvas>
-
-        <canvas nx="toggle" address="/bursts/state"></canvas>
-      </div>
-
       <div panel="osc" class="active">
         <h2>Osc</h2>
         <canvas nx="slider" hslider="true" address="/osc/volume"></canvas>
+        <canvas nx="position" address="/osc/panning"></canvas>
 
         <canvas nx="slider" hslider="true" address="/osc/carrierFreq"></canvas>
         <canvas nx="slider" hslider="true" address="/osc/ampModFreq"></canvas>

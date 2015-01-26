@@ -5,26 +5,13 @@
   <head>
     <link href="css/sound.css" rel="stylesheet" type="text/css" />
     <script src="js/sound.js"></script>
-    <script>
-      $(function() {
-        $('#startButton').click(function() {
-          fields.sound.start()
-        })
-      })
-    </script>
   </head>
 
   <body>
-    <div id="pending"></div>
-    <div id="startButtonContainer">
-      <button id="startButton">Start</button>
+    <div id="mapContainer">
+      <img id="map" src="images/map.svg" />
+      <h2>The drawing above is a map of the room you are sitting in. Please locate yourself by touching the map.</h2>
     </div>
-    <script>
-      var maxSide = Math.min($(document).height(), $(document).width())
-        , buttonSize = maxSide * 0.75
-        , topPad = ($(document).height() - buttonSize) / 2
-      $('#startButton').css({ width: buttonSize, height: buttonSize, top: topPad })
-    </script>
     <div id="console"></div>
     <div id="status"></div>
 

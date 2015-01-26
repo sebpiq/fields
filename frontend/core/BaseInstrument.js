@@ -18,31 +18,46 @@ var BaseInstrument = module.exports = function(instrumentId, args) {
     var portClass = self.portDefinitions[subpath]
     self.ports[subpath] = new portClass(self, subpath)
   })
+
   this.init(args)
 }
 BaseInstrument.extend = utils.chainExtend
 
 _.extend(BaseInstrument.prototype, {
 
-  init: function(args) {},
+  init: function(args) {
+    var self = this
+
+    // Volume computation taking into account panning
+    var computeVolume = function() {
+      var panFunc = function(pan, pos) {
+        return (1 - Math.abs(pan - 0.5)) + (pos - 0.5) * (pan - 0.5) * 2
+      }
+      var volRatio = self.ports['volume'].value
+        , panning = self.ports['panning'].value
+        , position = fields.sound.position
+        , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
+      self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.3)
+      console.log(panRatio * volRatio)
+    }
+    this.ports['volume'].on('value', computeVolume)
+    this.ports['panning'].on('value', computeVolume)
+
+    // State on/off
+    this.ports['state'].on('value', function(isOn) {
+      console.log(isOn)
+      if (isOn) self.start()
+      else self.stop()
+    })
+  },
 
   portDefinitions: {
 
     'volume': ports.NumberPort.extend({
-      mapping: function(inVal) {
-        return math.valExp(inVal, 2.5) * 2
-      },
-      onValue: function(vol) {
-        this.instrument.mixer.gain.setTargetAtTime(vol, 0, 0.3)
-      }
+      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
     }),
-
-    'state': ports.TogglePort.extend({
-      onValue: function(isOn) {
-        if (isOn) this.instrument.start()
-        else this.instrument.stop()
-      }
-    })
+    'panning': ports.PointPort,
+    'state': ports.TogglePort
 
   },
 

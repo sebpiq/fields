@@ -6,9 +6,8 @@ var _ = require('underscore')
 
 module.exports = Instrument.extend({
 
-  portDefinitions: _.pick(Instrument.prototype.portDefinitions, ['state']),
-
   init: function(args) {
+    Instrument.prototype.init.apply(this, arguments)
     this.url = args[0]
   },
 

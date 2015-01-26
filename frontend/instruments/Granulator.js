@@ -8,47 +8,15 @@ var _ = require('underscore')
 module.exports = Instrument.extend({
 
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'position': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['position'] = [x, y]
-      }
-    }),
-
-    'duration': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['duration'] = [x, y]
-      }
-    }),
-
-    'ratio': ports.PointPort.extend({
-      onValue: function(x, y) {
-        this.instrument.params['ratio'] = [x, y]
-      }
-    }),
-
-    'env': ports.NumberPort.extend({
-      onValue: function(val) {
-        this.instrument.params['env'] = val
-      }
-    }),
-
-    'density': ports.NumberPort.extend({
-      onValue: function(val) {
-        this.instrument.params['density'] = val
-      }
-    })
-
+    'position': ports.PointPort,
+    'duration': ports.PointPort.extend({ defaultValue: [0.1, 0] }),
+    'ratio': ports.PointPort.extend({ defaultValue: [1, 0] }),
+    'env': ports.NumberPort,
+    'density': ports.NumberPort
   }),
 
   init: function(args) {
-    this.params = {
-      position: [0, 0],
-      duration: [0.1, 0],
-      ratio: [1, 0],
-      env: 0,
-      density: 0
-    }
+    Instrument.prototype.init.apply(this, arguments)
     this.url = args[0]
   },
 
@@ -80,7 +48,7 @@ module.exports = Instrument.extend({
       if (self._enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
       else {
         duration = self._playSound(self.url, self.mixer, self._getPosition()
-          , duration, self._getRatio(), self.params.env)
+          , duration, self._getRatio(), self.ports['env'].value)
         self.grainEvent.repeat(duration || 0.005)
       }
     }, 0.1).repeat(0.1)
@@ -98,30 +66,28 @@ module.exports = Instrument.extend({
   },
 
   _getPosition: function() {
-    var mean = this.params.position[0]
+    var mean = this.ports['position'].value[0]
       * (this.buffer.length / fields.sound.audioContext.sampleRate)
-    return math.pickVal(mean, this.params.position[1])
+    return math.pickVal(mean, this.ports['position'].value[1])
   },
 
   _getDuration: function() {
-    var mean = this.params.duration[0]
-    return Math.max(0.01, math.pickVal(4 * math.valExp(mean), this.params.duration[1]))
+    var mean = this.ports['duration'].value[0]
+    return Math.max(0.01, math.pickVal(4 * math.valExp(mean), this.ports['duration'].value[1]))
   },
 
   _getRatio: function() {
     var ratios = [0.5, 0.75, 1]
-    var meanRatio = this.params.ratio[0]
-    if (this.params.quantize_ratio) {
-      return meanRatio * ratios[Math.floor(Math.random() * 0.99 * ratios.length)]
-    } else return Math.max(0.05, math.pickVal(meanRatio, this.params.ratio[1]))
+    var meanRatio = this.ports['ratio'].value[0]
+    return Math.max(0.05, math.pickVal(meanRatio, this.ports['ratio'].value[1]))
   },
 
   // Returns true for silence, false for grain.
   // There is twice as much chance as expected from the density 
   // to pick up a silence, but silences should be twice shorter.
   _enjoyTheSilence: function() {
-    var pick1 = Math.random() > this.params.density
-      , pick2 = Math.random() > this.params.density
+    var pick1 = Math.random() > this.ports['density'].value
+      , pick2 = Math.random() > this.ports['density'].value
     return pick1 || pick2
   },
 
