@@ -21413,8 +21413,11 @@ $(function() {
   var map = $('#map')
   map.click(function(event) {
     fields.sound.position = {}
-    fields.sound.position.x = 1 - (map.width() - event.offsetX) / map.width()
-    fields.sound.position.y = (map.height() - event.offsetY) / map.height()
+    var posX = map.offset().left
+      , posY = map.offset().top
+    
+    fields.sound.position.x = (event.pageX - posX) / map.width()
+    fields.sound.position.y = 1 - (event.pageY - posY) / map.height()
     fields.sound.start()
   })
 })
@@ -24230,14 +24233,12 @@ _.extend(BaseInstrument.prototype, {
         , position = fields.sound.position
         , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
       self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.3)
-      console.log(panRatio * volRatio)
     }
     this.ports['volume'].on('value', computeVolume)
     this.ports['panning'].on('value', computeVolume)
 
     // State on/off
     this.ports['state'].on('value', function(isOn) {
-      console.log(isOn)
       if (isOn) self.start()
       else self.stop()
     })
@@ -24589,6 +24590,21 @@ module.exports = Instrument.extend({
     var self = this
     Instrument.prototype.init.apply(this, arguments)
 
+    // Dirty hack to divide the track in several spaces
+    this.divideSpace = null
+    if(args[3]) {
+      if (fields.sound.position.x < 0.5)
+        if (fields.sound.position.y < 0.5)
+          this.divideSpace = 0
+        else 
+          this.divideSpace = 1
+      else 
+        if (fields.sound.position.y < 0.5)
+          this.divideSpace = 2
+        else
+          this.divideSpace = 3
+    }
+
     this.stepCount = args[0]
     this.tracks = args[1]
     this.buffers = []
@@ -24642,6 +24658,7 @@ module.exports = Instrument.extend({
         , track = beat[0]
         , offset = self.samplesPerBeat * step
         , soundArray = self.buffers[track].getChannelData(0)
+      if (self.divideSpace !== null && track !== self.divideSpace) return
       if ((offset + soundArray.length) >= loopArray.length)
         subarray = soundArray.subarray(0, loopArray.length - offset)
       else subarray = soundArray
@@ -24831,7 +24848,7 @@ module.exports = Instrument.extend({
 
     this.ports['freqModAmount'].on('value', function(freqModAmount) {
       if (self.started)
-        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'] * freqModAmount)
+        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'].value * freqModAmount)
     })
 
     this.ports['ampModFreq'].on('value', function(ampModFreq) {
@@ -27942,7 +27959,7 @@ WAAOffset.prototype.disconnect = function() {
         'sounds/clicks/2.' + formatUsed,
         'sounds/clicks/3.' + formatUsed,
         'sounds/clicks/4.' + formatUsed
-      ], 600]
+      ], 600, true]
     },
 
     'drops': {

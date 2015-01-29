@@ -38,14 +38,12 @@ _.extend(BaseInstrument.prototype, {
         , position = fields.sound.position
         , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
       self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.3)
-      console.log(panRatio * volRatio)
     }
     this.ports['volume'].on('value', computeVolume)
     this.ports['panning'].on('value', computeVolume)
 
     // State on/off
     this.ports['state'].on('value', function(isOn) {
-      console.log(isOn)
       if (isOn) self.start()
       else self.stop()
     })

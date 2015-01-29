@@ -38,7 +38,7 @@ fields.config = function() {
         'sounds/clicks/2.' + formatUsed,
         'sounds/clicks/3.' + formatUsed,
         'sounds/clicks/4.' + formatUsed
-      ], 600]
+      ], 600, true]
     },
 
     'drops': {

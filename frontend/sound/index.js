@@ -30,8 +30,11 @@ $(function() {
   var map = $('#map')
   map.click(function(event) {
     fields.sound.position = {}
-    fields.sound.position.x = 1 - (map.width() - event.offsetX) / map.width()
-    fields.sound.position.y = (map.height() - event.offsetY) / map.height()
+    var posX = map.offset().left
+      , posY = map.offset().top
+    
+    fields.sound.position.x = (event.pageX - posX) / map.width()
+    fields.sound.position.y = 1 - (event.pageY - posY) / map.height()
     fields.sound.start()
   })
 })

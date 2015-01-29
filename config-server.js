@@ -2,7 +2,7 @@ var path = require('path')
 
 module.exports = {
   server: {
-    port: 8000,
+    port: 80,
     tmpDir: './tmp'
   }
 }

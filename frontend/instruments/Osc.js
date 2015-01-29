@@ -47,7 +47,7 @@ module.exports = Instrument.extend({
 
     this.ports['freqModAmount'].on('value', function(freqModAmount) {
       if (self.started)
-        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'] * freqModAmount)
+        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'].value * freqModAmount)
     })
 
     this.ports['ampModFreq'].on('value', function(ampModFreq) {
