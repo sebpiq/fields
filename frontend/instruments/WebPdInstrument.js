@@ -7,9 +7,10 @@ var async = require('async')
 
 
 // Initialize WebPd to use the same audioContext and clock as fields
-Pd.start()
-Pd._glob.audio.setContext(fields.sound.audioContext)
-
+Pd.start({ 
+  audioContext: fields.sound.audioContext, 
+  waaClock: fields.sound.clock
+})
 
 var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }

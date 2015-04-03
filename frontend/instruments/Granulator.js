@@ -37,12 +37,6 @@ module.exports = Instrument.extend({
     if (this.grainEvent) this.grainEvent.clear()
     var self = this
 
-    if (fields.sound.clockUsers === 0) {
-      fields.sound.clock.start()
-      fields.log('start clock')
-    }
-    fields.sound.clockUsers++
-
     this.grainEvent = fields.sound.clock.setTimeout(function() {
       var duration = self._getDuration()
       if (self._enjoyTheSilence()) self.grainEvent.repeat(duration / 2 || 0.005)
@@ -52,17 +46,10 @@ module.exports = Instrument.extend({
         self.grainEvent.repeat(duration || 0.005)
       }
     }, 0.1).repeat(0.1)
-
-    this.grainEvent.on('expired', function() { fields.log('EXPIRED') })
   },
 
   onStop: function() {
     if (this.grainEvent) this.grainEvent.clear()
-    fields.sound.clockUsers--
-    if (fields.sound.clockUsers === 0) {
-      fields.sound.clock.stop()
-      fields.log('stop clock')
-    }
   },
 
   _getPosition: function() {

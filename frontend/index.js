@@ -1,6 +1,7 @@
 var waaUtils = require('./core/waa')
   , async = require('async')
   , _ = require('underscore')
+  , WAAClock = require('waaclock')
   , muteTimeout, initialized = false
 
 window.fields.sound = {
@@ -10,6 +11,22 @@ window.fields.sound = {
   supportedFormats: null,
   position: null
 }
+
+// clockUsers is intended to start / stop the clock if no instrument is using it.
+// At the moment it is not used though.
+/*
+if (fields.sound.clockUsers === 0) {
+  fields.sound.clock.start()
+  fields.log('start clock')
+}
+fields.sound.clockUsers++
+
+fields.sound.clockUsers--
+if (fields.sound.clockUsers === 0) {
+  fields.sound.clock.stop()
+  fields.log('stop clock')
+}
+*/
 
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <instrument instance> }`
@@ -55,6 +72,8 @@ fields.sound.start = function() {
   // Initialize sound
   fields.sound.audioContext = waaUtils.kickStartWAA()
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
+  fields.sound.clock.onexpired = function() { fields.log('expired') }
+  fields.sound.clock.start()
   fields.sound.clockUsers = 0
 
   // Declare builtin instruments
