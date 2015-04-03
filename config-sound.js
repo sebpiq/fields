@@ -14,6 +14,12 @@ fields.config = function() {
 
   instrus = {
 
+    'delays': {
+      instrument: 'WebPdInstrument',
+      args: ['patches/delays.pd']
+    }
+
+    /*
     'noise': {
       instrument: 'WhiteNoise',
       args: []
@@ -69,35 +75,8 @@ fields.config = function() {
       index: 11,
       instrument: 'Osc',
       args: []
-    }
+    }*/
   }
-
-
-  /*
-  if (rhizome.id % 2 === 0) {
-    instrus.minimal = {
-      index: 7,
-      instrument: 'DistributedSequencer',
-      args: [8, [
-        'sounds/minimal/guitar/' + formatUsed + '/1.' + formatUsed,
-        'sounds/minimal/guitar/' + formatUsed + '/2.' + formatUsed,
-        'sounds/minimal/guitar/' + formatUsed + '/3.' + formatUsed,
-        'sounds/minimal/guitar/' + formatUsed + '/4.' + formatUsed,
-      ], 396 + Math.random() * 8]
-    }
-  } else {
-    instrus.minimal = {
-      index: 8,
-      instrument: 'DistributedSequencer',
-      args: [8, [
-        'sounds/minimal/marimba2/' + formatUsed + '/1.' + formatUsed,
-        'sounds/minimal/marimba2/' + formatUsed + '/2.' + formatUsed,
-        'sounds/minimal/marimba2/' + formatUsed + '/3.' + formatUsed,
-        'sounds/minimal/marimba2/' + formatUsed + '/4.' + formatUsed,
-      ], 396 + Math.random() * 8]
-    }
-  }
-  */
 
   return instrus
 
