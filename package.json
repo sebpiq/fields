@@ -20,9 +20,8 @@
     "async": "0.9.x",
     "underscore": "1.6.x",
     "waaoffset": "0.1.x",
-
     "debug": "0.7.x",
-    "commander": "2.2.x",
+    "commander": "^2.2.0",
     "cli-color": "0.2.x",
     "express": "3.3.x"
   },

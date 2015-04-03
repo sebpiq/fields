@@ -41,15 +41,6 @@ gulp.task('browserify-instruments', function() {
     .pipe(gulp.dest('./tmp'))
 })
 
-// Browserifies the JS for controls.
-gulp.task('browserify-controls', function() {
-  return browserify({ entries: './frontend/controls/index.js' })
-    .bundle()
-    .on('error', gutil.log)
-    .pipe(source('controls.browserified.js'))
-    .pipe(gulp.dest('./tmp'))
-})
-
 // Bundles all the needed files for the sound page into one file.
 gulp.task('bundle-sound', function() {
   return gulp.src([
@@ -66,26 +57,6 @@ gulp.task('bundle-sound', function() {
     .pipe(gulp.dest('./tmp'))
 })
 
-// Bundles all the needed files for the controls page into one file.
-gulp.task('bundle-controls', function() {
-  return gulp.src([
-      './frontend/deps/AudioContextMonkeyPatch.js',
-      './frontend/deps/WAAClock-latest.js',
-      './frontend/deps/jquery-2.1.0.js',
-      './frontend/deps/nexusUI.js',
-      './tmp/rhizome.js',
-      './frontend/core/common.js',
-      './tmp/controls.browserified.js'
-    ])
-    .pipe(concat('controls.js', { newLine: ';' }))
-    .pipe(gulp.dest('./tmp'))
-})
-
-gulp.task('copy-bundle-controls', function() {
-  return gulp.src('./tmp/controls.js')
-    .pipe(gulp.dest('./dist/js'))
-})
-
 gulp.task('copy-bundle-sound', function() {
   return gulp.src('./tmp/sound.js')
     .pipe(gulp.dest('./dist/js'))
@@ -96,13 +67,6 @@ gulp.task('uglify-sound', function() {
     .pipe(uglify())
     .on('error', gutil.log)
     .pipe(gulp.dest('./dist/js'))
-})
-
-gulp.task('less-controls', function () {
-  return gulp.src('./frontend/controls/controls.less')
-    .pipe(less())
-    .on('error', gutil.log)
-    .pipe(gulp.dest('./dist/css'))
 })
 
 gulp.task('less-sound', function () {
@@ -123,25 +87,10 @@ gulp.task('sound', function(done) {
   done)
 })
 
-gulp.task('controls', function(done) {
-  runSequence(
-    'render-rhizome-client',
-    'browserify-controls',
-    'browserify-instruments',
-    'bundle-controls',
-    'copy-bundle-controls',
-    'less-controls',
-  done)
-})
-
-gulp.task('common', function(done) {
-  runSequence('sound', 'controls', done)
-})
-
 gulp.task('build', function(done) {
   runSequence('default', 'uglify-sound', done)
 })
 
 gulp.task('default', function(done) {
-  runSequence('common', 'copy-bundle-sound', done)
+  runSequence('sound', 'copy-bundle-sound', done)
 })

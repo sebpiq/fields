@@ -1,3 +1,5 @@
+var utils = require('./utils')
+
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
   audioContext = new AudioContext()
@@ -13,7 +15,7 @@ exports.kickStartWAA = function() {
 
 // Loads an audio buffer from sound file at `url`.  
 var loadBuffer = exports.loadBuffer = function(url, done) {
-  loadFile(url, function(err, blob) {
+  utils.loadFile({ url: url, responseType: 'arraybuffer' }, function(err, blob) {
     if (err) return done(err)
     decodeBlob(blob, function(err, buffer) {
       if (err) {
@@ -103,21 +105,6 @@ var decodeBlob = function(blob, done) {
   }, function(err) {
     done(err || new DecodeError('decoding error'), null)
   })
-}
-
-// Loads the file at `url` and calls `done(err, blob)` when done.
-var loadFile = function(url, done) {
-  var request = new XMLHttpRequest()
-  request.open('GET', url, true)
-  request.responseType = 'arraybuffer'
-  request.onload = function(res) {
-    if (request.status === 200) done(null, request.response)
-    else done(new HTTPError(request.statusText))
-  }
-  request.onerror = function(err) {
-    done(err || new Error('unexpected request error'), null)
-  }
-  request.send()
 }
 
 var HTTPError = function HTTPError(message) {

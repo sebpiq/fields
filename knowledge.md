@@ -23,11 +23,14 @@ Apparently having a very short lease time (< 1mn) can cause problems. This of co
 Ubiquiti
 ==========
 
+Controller url http://localhost:8080
 
-Readopting an AP
+(Re-)adopting an AP
 --------------------
 
 SSH to it, then (source http://wiki.ubnt.com/UniFi_FAQ#L3_.28Layer_3.29_Management)
+
+If first time, the AP has static IP, 192.168.1.20 so you need to set give you computer a static IP in the same network, and then do the same steps as below:
 
 ```
 # 1. make sure the AP is running the latest (or 2.1.0+)

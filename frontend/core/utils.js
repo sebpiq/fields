@@ -14,3 +14,19 @@ exports.chainExtend = function() {
   child.extend = this.extend
   return child
 }
+
+// Loads the file and calls `done(err, blob)` when done.
+// `opts` must contain `url` and `responseType`
+exports.loadFile = function(opts, done) {
+  var request = new XMLHttpRequest()
+  request.open('GET', opts.url, true)
+  request.responseType = opts.responseType
+  request.onload = function(res) {
+    if (request.status === 200) done(null, request.response)
+    else done(new HTTPError(request.statusText))
+  }
+  request.onerror = function(err) {
+    done(err || new Error('unexpected request error'), null)
+  }
+  request.send()
+}

@@ -73,8 +73,6 @@ _.extend(BaseInstrument.prototype, {
     }
   },
 
-  load: function(done) {},
-
   receive: function(subpath, args) {
     if (!this.ports.hasOwnProperty(subpath))
       return console.error('unknown port "' + subpath + '" for "' + this.instrumentId + '"')
@@ -85,6 +83,7 @@ _.extend(BaseInstrument.prototype, {
     _.values(this.ports).forEach(function(port) { port.restore() })
   },
 
+  load: function(done) {},
   onStart: function() {},
   onStop: function() {}
 })
