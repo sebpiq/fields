@@ -4,11 +4,17 @@ var async = require('async')
   , Instrument = require('../core/BaseInstrument')
   , ports = require('../core/ports')
   , utils = require('../core/utils')
-  , _initialized = false
+
+
+// Initialize WebPd to use the same audioContext and clock as fields
+Pd.start()
+Pd._glob.audio.setContext(fields.sound.audioContext)
+
 
 var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
+
 
 module.exports = Instrument.extend({
 
@@ -26,13 +32,6 @@ module.exports = Instrument.extend({
     Instrument.prototype.init.apply(this, arguments)
     this.patchUrl = args[0]
     this.patch = null
-    
-    // Initialize WebPd to use the same audioContext and clock as fields
-    if (_initialized === false) {
-      _initialized = true
-      Pd.start()
-      Pd._glob.audio.setContext(fields.sound.audioContext)
-    }
 
     this.ports.debug.on('value', function(args) {
       if (args[0] === 'reload') {

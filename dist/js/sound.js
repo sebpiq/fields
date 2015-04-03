@@ -42438,8 +42438,17 @@ fields.sound.start = function() {
 
     // Instantiate all instruments
     function(formats, next) {
+
+      // Get the format to use
       fields.log('formats supported ' + formats)
       fields.sound.supportedFormats = formats
+      if (fields.sound.supportedFormats.indexOf('ogg') !== -1)
+        fields.sound.preferredFormat = 'ogg'
+      else if (fields.sound.supportedFormats.indexOf('mp3') !== -1)
+        fields.sound.preferredFormat = 'mp3'
+      else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
+        fields.sound.preferredFormat = 'wav'
+      fields.log('format used ' + fields.sound.preferredFormat)
 
       var config = fields.config()
       Object.keys(config).forEach(function(instrumentId) {
@@ -43345,11 +43354,17 @@ var async = require('async')
   , Instrument = require('../core/BaseInstrument')
   , ports = require('../core/ports')
   , utils = require('../core/utils')
-  , _initialized = false
+
+
+// Initialize WebPd to use the same audioContext and clock as fields
+Pd.start()
+Pd._glob.audio.setContext(fields.sound.audioContext)
+
 
 var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
+
 
 module.exports = Instrument.extend({
 
@@ -43367,13 +43382,6 @@ module.exports = Instrument.extend({
     Instrument.prototype.init.apply(this, arguments)
     this.patchUrl = args[0]
     this.patch = null
-    
-    // Initialize WebPd to use the same audioContext and clock as fields
-    if (_initialized === false) {
-      _initialized = true
-      Pd.start()
-      Pd._glob.audio.setContext(fields.sound.audioContext)
-    }
 
     this.ports.debug.on('value', function(args) {
       if (args[0] === 'reload') {

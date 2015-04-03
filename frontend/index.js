@@ -74,8 +74,17 @@ fields.sound.start = function() {
 
     // Instantiate all instruments
     function(formats, next) {
+
+      // Get the format to use
       fields.log('formats supported ' + formats)
       fields.sound.supportedFormats = formats
+      if (fields.sound.supportedFormats.indexOf('ogg') !== -1)
+        fields.sound.preferredFormat = 'ogg'
+      else if (fields.sound.supportedFormats.indexOf('mp3') !== -1)
+        fields.sound.preferredFormat = 'mp3'
+      else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
+        fields.sound.preferredFormat = 'wav'
+      fields.log('format used ' + fields.sound.preferredFormat)
 
       var config = fields.config()
       Object.keys(config).forEach(function(instrumentId) {
