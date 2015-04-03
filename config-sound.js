@@ -14,11 +14,6 @@ fields.config = function() {
 
   instrus = {
 
-    'delays': {
-      instrument: 'WebPdInstrument',
-      args: ['patches/delays.pd']
-    },
-
     'osc': {
       instrument: 'WebPdInstrument',
       args: ['patches/osc.pd']

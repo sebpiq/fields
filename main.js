@@ -41,14 +41,22 @@ if (require.main === module) {
   // Websocket server
   wsServer = new rhizome.websockets.Server({ serverInstance: httpServer })
 
+  // Osc server
+  oscServer = new rhizome.osc.Server({ port: config.osc.port })
+
   // Start servers
   async.parallel([
     rhizome.connections.manager.start.bind(rhizome.connections.manager),
     httpServer.listen.bind(httpServer, app.get('port')),
-    wsServer.start.bind(wsServer)
+    wsServer.start.bind(wsServer),
+    oscServer.start.bind(oscServer)
   ], function(err) {
     if (err) throw err
-    console.log(clc.bold('Fields ' + version +' running on port ' + config.server.port) )
+    console.log(clc.bold('Fields ' + version +' running') )
+    console.log(clc.blue('- HTTP server on port ') + clc.bold.blue(config.server.port) )
+    if (config.osc) {
+      console.log(clc.blue('- OSC on port ') + clc.bold.blue(config.osc.port) )
+    }
   })
 
 }

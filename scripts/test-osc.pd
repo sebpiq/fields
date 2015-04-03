@@ -1,0 +1,27 @@
+#N canvas 405 173 738 484 10;
+#X declare -lib mrpeach;
+#X obj 2 26 import mrpeach;
+#X obj 225 254 packOSC;
+#X msg 153 64 send /osc/state \$1;
+#X obj 153 28 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X msg 286 64 send /osc/volume \$1;
+#X obj 289 26 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 1400 1;
+#X obj 251 307 udpsend;
+#X msg 331 255 connect 127.0.0.1 9000;
+#X obj 445 26 hsl 128 15 0 1000 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 12700 1;
+#X obj 331 228 loadbang;
+#X msg 442 63 send /osc/frequency \$1;
+#X msg 3 64 send /osc/debug reload;
+#X connect 1 0 6 0;
+#X connect 2 0 1 0;
+#X connect 3 0 2 0;
+#X connect 4 0 1 0;
+#X connect 5 0 4 0;
+#X connect 7 0 6 0;
+#X connect 8 0 10 0;
+#X connect 9 0 7 0;
+#X connect 10 0 1 0;
+#X connect 11 0 1 0;
