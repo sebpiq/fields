@@ -23,11 +23,15 @@
 module.exports = {
   'Midi Fighter Twister 20:0': {
     177: {
-      0: { address: '/delays/state', mapping: function(value) { return 1 } },
-      1: { address: '/delays/state', mapping: function(value) { return 0 } }
+      0: { address: '/osc/state', mapping: function(value) { return 1 } },
+      1: { address: '/osc/state', mapping: function(value) { return 0 } },
+      2: { address: '/delays/state', mapping: function(value) { return 1 } },
+      3: { address: '/delays/state', mapping: function(value) { return 0 } }
     },
     176: {
-      0: { address: '/delays/volume', mapping: function(value) { return value / 127 } }
+      0: { address: '/osc/volume', mapping: function(value) { return value / 127 } },
+      1: { address: '/osc/frequency', mapping: function(value) { return 100 + value * 10 } },
+      2: { address: '/delays/volume', mapping: function(value) { return value / 127 } },
     }
   }
 }

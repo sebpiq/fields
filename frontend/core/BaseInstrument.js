@@ -15,8 +15,7 @@ var BaseInstrument = module.exports = function(instrumentId, args) {
 
   this.ports = {}
   Object.keys(this.portDefinitions).forEach(function(subpath) {
-    var portClass = self.portDefinitions[subpath]
-    self.ports[subpath] = new portClass(self, subpath)
+    self.addPort(subpath, self.portDefinitions[subpath])
   })
 
   this.init(args)
@@ -83,7 +82,12 @@ _.extend(BaseInstrument.prototype, {
     _.values(this.ports).forEach(function(port) { port.restore() })
   },
 
+  addPort: function(subpath, portClass) {
+    this.ports[subpath] = new portClass(this, subpath)
+  },
+
+
   load: function(done) {},
   onStart: function() {},
-  onStop: function() {}
+  onStop: function() {},
 })

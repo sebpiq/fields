@@ -2,8 +2,13 @@ var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
   , utils = require('../core/utils')
   , initialized = false
+
+var WebPdPort = ports.BasePort.extend({
+  validate: function(args) { return args }
+})
 
 module.exports = Instrument.extend({
 
@@ -28,8 +33,17 @@ module.exports = Instrument.extend({
   },
 
   onStart: function() {
+    var self = this
     if (!this.patch) {
       this.patch = Pd.loadPatch(this.patchStr)
+      this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
+        .forEach(function(receive) {
+          var subpath = receive.name
+          self.addPort(subpath, WebPdPort)
+          self.ports[subpath].on('value', function(args) {
+            Pd.send(subpath, args)
+          })
+        })
     } else this.patch.start()
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },

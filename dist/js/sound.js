@@ -45211,8 +45211,7 @@ var BaseInstrument = module.exports = function(instrumentId, args) {
 
   this.ports = {}
   Object.keys(this.portDefinitions).forEach(function(subpath) {
-    var portClass = self.portDefinitions[subpath]
-    self.ports[subpath] = new portClass(self, subpath)
+    self.addPort(subpath, self.portDefinitions[subpath])
   })
 
   this.init(args)
@@ -45279,9 +45278,14 @@ _.extend(BaseInstrument.prototype, {
     _.values(this.ports).forEach(function(port) { port.restore() })
   },
 
+  addPort: function(subpath, portClass) {
+    this.ports[subpath] = new portClass(this, subpath)
+  },
+
+
   load: function(done) {},
   onStart: function() {},
-  onStop: function() {}
+  onStop: function() {},
 })
 },{"./math":3,"./ports":4,"./utils":5,"underscore":17}],3:[function(require,module,exports){
 exports.pickVal = function(mean, variance) {
@@ -46022,8 +46026,13 @@ var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
+  , ports = require('../core/ports')
   , utils = require('../core/utils')
   , initialized = false
+
+var WebPdPort = ports.BasePort.extend({
+  validate: function(args) { return args }
+})
 
 module.exports = Instrument.extend({
 
@@ -46048,8 +46057,17 @@ module.exports = Instrument.extend({
   },
 
   onStart: function() {
+    var self = this
     if (!this.patch) {
       this.patch = Pd.loadPatch(this.patchStr)
+      this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
+        .forEach(function(receive) {
+          var subpath = receive.name
+          self.addPort(subpath, WebPdPort)
+          self.ports[subpath].on('value', function(args) {
+            Pd.send(subpath, args)
+          })
+        })
     } else this.patch.start()
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
@@ -46059,7 +46077,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/utils":5,"../core/waa":6,"async":14,"underscore":17}],13:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/ports":4,"../core/utils":5,"../core/waa":6,"async":14,"underscore":17}],13:[function(require,module,exports){
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -48983,6 +49001,11 @@ WAAOffset.prototype.disconnect = function() {
     'delays': {
       instrument: 'WebPdInstrument',
       args: ['patches/delays.pd']
+    },
+
+    'osc': {
+      instrument: 'WebPdInstrument',
+      args: ['patches/osc.pd']
     }
 
     /*
