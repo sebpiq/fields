@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 var path = require('path')
-  , version = require('./package.json').version
+  , fs = require('fs')
+  , version = require('../package.json').version
   , debug = require('debug')('fields.main')
   , program = require('commander')
   , async = require('async')
   , express = require('express')
   , clc = require('cli-color')
-  , rhizome = require('./rhizome')
+  , rhizome = require('rhizome-server')
 
-var staticDir = path.join(__dirname, 'dist')
+var staticDir = path.resolve(__dirname, '..', 'dist')
+  , instrumentConfigFile = path.join(staticDir, 'js', 'config.js')
   , httpServer, wsServer
 
 // Code that will run if the module is main
@@ -37,6 +39,8 @@ if (require.main === module) {
   app.use(express.methodOverride())
   app.use(app.router)
   app.use('/', express.static(staticDir))
+  if (config.server.assetsDir)
+    app.use('/assets', express.static(config.server.assetsDir))
 
   // Websocket server
   wsServer = new rhizome.websockets.Server({ serverInstance: httpServer })
@@ -44,12 +48,18 @@ if (require.main === module) {
   // Osc server
   oscServer = new rhizome.osc.Server({ port: config.osc.port })
 
-  // Start servers
+  // Async operations
   async.parallel([
+
+    // Save the config file to a location served by the static server
+    fs.writeFile.bind(fs, instrumentConfigFile, 'fields.config = ' + config.instruments.toString()),
+
+    // Start servers
     rhizome.connections.manager.start.bind(rhizome.connections.manager),
     httpServer.listen.bind(httpServer, app.get('port')),
     wsServer.start.bind(wsServer),
     oscServer.start.bind(oscServer)
+
   ], function(err) {
     if (err) throw err
     console.log(clc.bold('Fields ' + version +' running') )

@@ -23,7 +23,8 @@
     "debug": "0.7.x",
     "commander": "^2.2.0",
     "cli-color": "0.2.x",
-    "express": "3.3.x"
+    "express": "3.3.x",
+    "rhizome-server": "git://github.com/sebpiq/rhizome.git#develop"
   },
   "engines": {
     "node": ">=0.10"

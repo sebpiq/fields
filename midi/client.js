@@ -2,7 +2,7 @@ var path = require('path')
   , _ = require('underscore')
   , midi = require('midi')
   , program = require('commander')
-  , rhizome = require('../rhizome')
+  , rhizome = require('rhizome-server')
 
 var input = new midi.input()
   , inputs = []

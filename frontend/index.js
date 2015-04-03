@@ -1,4 +1,4 @@
-var waaUtils = require('../core/waa')
+var waaUtils = require('./core/waa')
   , async = require('async')
   , _ = require('underscore')
   , muteTimeout, initialized = false
@@ -12,8 +12,16 @@ window.fields.sound = {
 }
 
 // Contains all the instances of sound engines for each declared instrument
-// `{ <instrument id>: <sound instance> }`
+// `{ <instrument id>: <instrument instance> }`
 var instruments = {}
+
+// Contains all the available classes
+// `{ <instrument class name>: <instrument class> }`
+var instrumentClasses = {}
+
+var declareInstrumentClass = function(name, cls) {
+  instrumentClasses[name] = cls
+}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
@@ -49,6 +57,16 @@ fields.sound.start = function() {
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clockUsers = 0
 
+  // Declare builtin instruments
+  declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
+  declareInstrumentClass('Granulator', require('./instruments/Granulator'))
+  declareInstrumentClass('Osc', require('./instruments/Osc'))
+  declareInstrumentClass('Sine', require('./instruments/Sine'))
+  declareInstrumentClass('Trigger', require('./instruments/Trigger'))
+  declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
+
+  // Start
   async.waterfall([
 
     // Get format support infos
@@ -62,8 +80,8 @@ fields.sound.start = function() {
       var config = fields.config()
       Object.keys(config).forEach(function(instrumentId) {
         var instrumentConfig = config[instrumentId]
-          , instrument = fields.instruments[instrumentConfig.instrument]
-        instruments[instrumentId] = new instrument(instrumentId, instrumentConfig.args)
+          , instrumentClass = instrumentClasses[instrumentConfig.instrument]
+        instruments[instrumentId] = new instrumentClass(instrumentId, instrumentConfig.args)
       })
       next()
     },

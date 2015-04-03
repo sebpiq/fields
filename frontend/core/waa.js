@@ -32,9 +32,9 @@ var loadBuffer = exports.loadBuffer = function(url, done) {
 var formatSupport = exports.formatSupport = function(done) {
   var results = []
     , formatList = [
-      ['wav', 'sounds/format-support/sample.wav'],
-      ['mp3', 'sounds/format-support/sample.mp3'],
-      ['ogg', 'sounds/format-support/sample.ogg']
+      ['wav', 'format-support/sample.wav'],
+      ['mp3', 'format-support/sample.mp3'],
+      ['ogg', 'format-support/sample.ogg']
     ]
     , format
 

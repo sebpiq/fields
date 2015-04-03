@@ -8,7 +8,7 @@ var path = require('path')
   , runSequence = require('run-sequence')
   , source = require('vinyl-source-stream')
   , less = require('gulp-less')
-  , rhizome = require('./rhizome')
+  , rhizome = require('rhizome-server')
 
 var watcher = gulp.watch(['./frontend/**/*.js', './frontend/*.less'], ['default'])
 watcher.on('change', function(event) {
@@ -24,20 +24,10 @@ gulp.task('render-rhizome-client', function() {
 // This is the file that kickstarts the sound, makes rhizome connection,
 // creates the instruments instances, etc ...
 gulp.task('browserify-sound', function() {
-  return browserify({ entries: './frontend/sound/index.js' })
+  return browserify({ entries: './frontend/index.js' })
     .bundle()
     .on('error', gutil.log)
     .pipe(source('sound.browserified.js'))
-    .pipe(gulp.dest('./tmp'))
-})
-
-// Browserifies the JS for instruments.
-// This is the file that contains the instrument classes.
-gulp.task('browserify-instruments', function() {
-  return browserify({ entries: './frontend/instruments/index.js' })
-    .bundle()
-    .on('error', gutil.log)
-    .pipe(source('instruments.browserified.js'))
     .pipe(gulp.dest('./tmp'))
 })
 
@@ -51,8 +41,6 @@ gulp.task('bundle-sound', function() {
       './tmp/rhizome.js',
       './frontend/core/common.js',
       './tmp/sound.browserified.js',
-      './tmp/instruments.browserified.js',
-      './config-sound.js'
     ])
     .pipe(concat('sound.js', { newLine: ';' }))
     .pipe(gulp.dest('./tmp'))
@@ -71,7 +59,7 @@ gulp.task('uglify-sound', function() {
 })
 
 gulp.task('less-sound', function () {
-  return gulp.src('./frontend/sound/sound.less')
+  return gulp.src('./frontend/sound.less')
     .pipe(less())
     .on('error', gutil.log)
     .pipe(gulp.dest('./dist/css'))
@@ -80,7 +68,6 @@ gulp.task('less-sound', function () {
 gulp.task('sound', function(done) {
   runSequence(
     'render-rhizome-client',
-    'browserify-instruments',
     'browserify-sound',
     'bundle-sound',
     'copy-bundle-sound',

@@ -2,3 +2,4 @@
 node_modules
 build
 tmp
+dist/js/config.js
