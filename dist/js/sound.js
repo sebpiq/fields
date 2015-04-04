@@ -2510,7 +2510,9 @@ function hasOwnProperty(obj, prop) {
 var _ = require('underscore')
   , pdfu = require('pd-fileutils')
   , Patch = require('./lib/core/Patch')
+  , PdObject = require('./lib/core/PdObject')
   , utils = require('./lib/core/utils')
+  , portlets = require('./lib/objects/portlets')
   , waa = require('./lib/waa')
   , pdGlob = require('./lib/global')
   , interfaces = require('./lib/core/interfaces')
@@ -2645,6 +2647,11 @@ var Pd = module.exports = {
     })
   },
 
+  core: {
+    PdObject: PdObject,
+    portlets: portlets
+  },
+
   // Exposing this mostly for testing
   _glob: pdGlob
 
@@ -2652,7 +2659,7 @@ var Pd = module.exports = {
 
 if (typeof window !== 'undefined') window.Pd = Pd
 
-},{"./lib/core/Patch":11,"./lib/core/interfaces":13,"./lib/core/utils":16,"./lib/global":17,"./lib/objects":20,"./lib/waa":25,"pd-fileutils":58,"underscore":66}],10:[function(require,module,exports){
+},{"./lib/core/Patch":11,"./lib/core/PdObject":12,"./lib/core/interfaces":13,"./lib/core/utils":16,"./lib/global":17,"./lib/objects":20,"./lib/objects/portlets":21,"./lib/waa":25,"pd-fileutils":58,"underscore":66}],10:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2014 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -4125,7 +4132,7 @@ exports.declareObjects = function(library) {
       this._gainNode = pdGlob.audio.context.createGain()
       this.i(0).setWaa(this._tableNode.position, 0)
       this.o(0).setWaa(this._gainNode, 0)
-      this._updateDsp(true)
+      this._updateDsp()
     },
 
     stop: function() {
@@ -4137,8 +4144,8 @@ exports.declareObjects = function(library) {
       if (this._tableNode) this._tableNode.table = this.array.resolved.data
     },
 
-    _updateDsp: function(starting) {
-      if ((pdGlob.isStarted || starting) && this.array.resolved && this.i(0).hasDspSource()) {
+    _updateDsp: function() {
+      if (this._tableNode && this.array.resolved && this.i(0).hasDspSource()) {
         this._tableNode.table = this.array.resolved.data
         this._tableNode.connect(this._gainNode)
       } else if (this._tableNode) {
@@ -4506,6 +4513,12 @@ exports.declareObjects = function(library) {
     type: 'mod',
     compute: function() { return this.valLeft % this.valRight }
   })
+
+  library['pow'] = _ArithmBase.extend({
+    type: 'pow',
+    compute: function() { return Math.pow(this.valLeft, this.valRight) }
+  })
+
 
   library['spigot'] = PdObject.extend({
     
