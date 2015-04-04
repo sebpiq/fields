@@ -16,6 +16,66 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
+Pd._glob.library['fields/clock'] = Pd.core.PdObject.extend({
+
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        this.obj.setRate(args[0])
+      }
+    })
+  ],
+  outletDefs: [Pd.core.portlets.Outlet],
+
+  init: function(args) {
+    var self = this
+      , rate = args[0] || 10000
+    //    timeOffset = clientTime - serverTime
+    // => serverTime = clientTime - timeOffset
+    //    timeToNextTick = rate - serverTime % rate
+    // => timeToNextTick = rate - (clientTime - timeOffset) % rate
+    //    tickClockTime = currentClockTime + timeToNextTick 
+    //    tickClockTime = currentClockTime + rate - (clientTime - timeOffset) % rate
+    this.setRate(rate)
+  },
+
+  setRate: function(rate) {
+    var tickClockTime = Pd._glob.audio.time + rate - (Date.now() - fields.sound.timeOffset) % rate
+    if (this._handler) Pd._glob.clock.unschedule(this._handler)
+    this._handler = Pd._glob.clock.schedule(function(event) {
+      var counter = Math.round((Date.now() - fields.sound.timeOffset) / rate)
+      //fields.log('TICK ' + counter)
+      self.o(0).message([ counter ])
+    }, tickClockTime, rate)
+  }
+
+})
+
+Pd._glob.library['fields/sequence'] = Pd.core.PdObject.extend({
+
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        if (args[0] === 'bang') this.obj._sendSequence()
+      }
+    })
+  ],
+
+  outletDefs: [Pd.core.portlets.Outlet, Pd.core.portlets.Outlet],
+
+  init: function() {
+    var self = this
+    fields.events.on('sequence:changed', function() {
+      self._sendSequence()
+    })
+  },
+
+  _sendSequence: function() {
+    console.log(fields.sequence.length, fields.sequence.index)
+    this.o(1).message([ fields.sequence.length ])
+    this.o(0).message([ fields.sequence.index ])
+  }
+})
 
 module.exports = Instrument.extend({
 
@@ -58,6 +118,13 @@ module.exports = Instrument.extend({
     var self = this
     if (!this.patch) this._initPatch()
     else this.patch.start()
+    this.patch.objects.forEach(function(obj) {
+      if (obj.type === 'receive' && obj.name === 'timeOffset') {
+        obj.o(0).message([ Math.round(fields.sound.timeOffset) ])
+      } else if (obj.type === 'receive' && obj.name === 'id') {
+        obj.o(0).message([ parseInt(rhizome.id) ])
+      } 
+    })
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 

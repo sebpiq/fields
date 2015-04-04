@@ -2510,7 +2510,9 @@ function hasOwnProperty(obj, prop) {
 var _ = require('underscore')
   , pdfu = require('pd-fileutils')
   , Patch = require('./lib/core/Patch')
+  , PdObject = require('./lib/core/PdObject')
   , utils = require('./lib/core/utils')
+  , portlets = require('./lib/objects/portlets')
   , waa = require('./lib/waa')
   , pdGlob = require('./lib/global')
   , interfaces = require('./lib/core/interfaces')
@@ -2645,6 +2647,11 @@ var Pd = module.exports = {
     })
   },
 
+  core: {
+    PdObject: PdObject,
+    portlets: portlets
+  },
+
   // Exposing this mostly for testing
   _glob: pdGlob
 
@@ -2652,7 +2659,7 @@ var Pd = module.exports = {
 
 if (typeof window !== 'undefined') window.Pd = Pd
 
-},{"./lib/core/Patch":11,"./lib/core/interfaces":13,"./lib/core/utils":16,"./lib/global":17,"./lib/objects":20,"./lib/waa":25,"pd-fileutils":58,"underscore":66}],10:[function(require,module,exports){
+},{"./lib/core/Patch":11,"./lib/core/PdObject":12,"./lib/core/interfaces":13,"./lib/core/utils":16,"./lib/global":17,"./lib/objects":20,"./lib/objects/portlets":21,"./lib/waa":25,"pd-fileutils":58,"underscore":66}],10:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2014 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -4125,7 +4132,7 @@ exports.declareObjects = function(library) {
       this._gainNode = pdGlob.audio.context.createGain()
       this.i(0).setWaa(this._tableNode.position, 0)
       this.o(0).setWaa(this._gainNode, 0)
-      this._updateDsp(true)
+      this._updateDsp()
     },
 
     stop: function() {
@@ -4137,8 +4144,8 @@ exports.declareObjects = function(library) {
       if (this._tableNode) this._tableNode.table = this.array.resolved.data
     },
 
-    _updateDsp: function(starting) {
-      if ((pdGlob.isStarted || starting) && this.array.resolved && this.i(0).hasDspSource()) {
+    _updateDsp: function() {
+      if (this._tableNode && this.array.resolved && this.i(0).hasDspSource()) {
         this._tableNode.table = this.array.resolved.data
         this._tableNode.connect(this._gainNode)
       } else if (this._tableNode) {
@@ -4506,6 +4513,12 @@ exports.declareObjects = function(library) {
     type: 'mod',
     compute: function() { return this.valLeft % this.valRight }
   })
+
+  library['pow'] = _ArithmBase.extend({
+    type: 'pow',
+    compute: function() { return Math.pow(this.valLeft, this.valRight) }
+  })
+
 
   library['spigot'] = PdObject.extend({
     
@@ -39951,7 +39964,15 @@ function ws(uri, protocols, opts) {
 if (WebSocket) ws.prototype = WebSocket.prototype;
 
 },{}]},{},[6]);
-;var fields = window.fields = {}
+;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var waaUtils = require('./core/waa')
+  , async = require('async')
+  , EventEmitter = require('events').EventEmitter
+  , _ = require('underscore')
+  , WAAClock = require('waaclock')
+  , muteTimeout, initialized = false
+
+var fields = window.fields = {}
 
 fields.isSupported = function() {
   if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
@@ -39968,36 +39989,18 @@ fields.log = function(msg) {
   $('#console .log').slice(60).remove()
 }
 //if (typeof rhizome !== 'undefined') rhizome.log = log
-;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var waaUtils = require('./core/waa')
-  , async = require('async')
-  , _ = require('underscore')
-  , WAAClock = require('waaclock')
-  , muteTimeout, initialized = false
+console = {log: fields.log, error: fields.log, warn: fields.log }
 
-window.fields.sound = {
+fields.sound = {
   clock: null,
-  clockUsers: 0,
   audioContext: null,
   supportedFormats: null,
   position: null
 }
 
-// clockUsers is intended to start / stop the clock if no instrument is using it.
-// At the moment it is not used though.
-/*
-if (fields.sound.clockUsers === 0) {
-  fields.sound.clock.start()
-  fields.log('start clock')
-}
-fields.sound.clockUsers++
+fields.sequence = {}
 
-fields.sound.clockUsers--
-if (fields.sound.clockUsers === 0) {
-  fields.sound.clock.stop()
-  fields.log('stop clock')
-}
-*/
+fields.events = new EventEmitter()
 
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <instrument instance> }`
@@ -40019,6 +40022,26 @@ var setStatus = function(msg) {
 var subscribeAll = function() {
   Object.keys(instruments).forEach(function(instrumentId) {
     rhizome.send('/sys/subscribe', ['/' + instrumentId])
+  })
+}
+
+// Load all the instruments and calls done
+var loadAllInstruments = function(done) {
+  var config = fields.config()
+  Object.keys(config).forEach(function(instrumentId) {
+    if (instrumentId === 'fields') throw new Error('fields name is reserved')
+    var instrumentConfig = config[instrumentId]
+      , instrumentClass = instrumentClasses[instrumentConfig.instrument]
+    instruments[instrumentId] = new instrumentClass(instrumentId, instrumentConfig.args)
+  })
+  subscribeAll()
+  
+  async.forEach(_.values(instruments), function(instrument, nextInstrument) {
+    instrument.load(nextInstrument)
+  }, function(err) {
+    if (err) return done(err)
+    fields.log('all instruments loaded')
+    done()
   })
 }
 
@@ -40045,7 +40068,6 @@ fields.sound.start = function() {
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clock.onexpired = function() { fields.log('expired') }
   fields.sound.clock.start()
-  fields.sound.clockUsers = 0
 
   // Declare builtin instruments
   declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
@@ -40075,31 +40097,14 @@ fields.sound.start = function() {
       else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
         fields.sound.preferredFormat = 'wav'
       fields.log('format used ' + fields.sound.preferredFormat)
-
-      var config = fields.config()
-      Object.keys(config).forEach(function(instrumentId) {
-        var instrumentConfig = config[instrumentId]
-          , instrumentClass = instrumentClasses[instrumentConfig.instrument]
-        instruments[instrumentId] = new instrumentClass(instrumentId, instrumentConfig.args)
-      })
       next()
     },
     
     // Start rhizome
     _.bind(rhizome.start, rhizome),
 
-    // Load all instruments
-    function(next) {
-      async.forEach(_.values(instruments), function(instrument, nextInstrument) {
-        instrument.load(nextInstrument)
-      }, next)
-    }
-
   ], function(err) {
-    if (err)
-      return fields.log('ERROR: ' + err)
-    initialized = true
-    fields.log('all instruments loaded')
+    if (err) return fields.log('ERROR: ' + err)
   })
 
   $('#mapContainer').fadeOut(100)
@@ -40107,8 +40112,8 @@ fields.sound.start = function() {
 }
 
 rhizome.on('connected', function() {
-  subscribeAll()
   setStatus('connected')
+  fields.log('connected with id ' + rhizome.id)
 
   // Execute those only if the connection was successfuly established before 
   if (initialized) {
@@ -40123,7 +40128,30 @@ rhizome.on('connected', function() {
 //  /<instrument id>/<name> [args]
 rhizome.on('message', function(address, args) {
   if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
-  else {
+
+  // Message sent to initialize the device, and calculate its time offset for synchronization
+  else if (address === '/fields/roundTrip')
+    rhizome.send('/fields/roundTrip', [rhizome.id, Date.now().toString()])
+  
+  // Message sent when all initialization procedure is complete
+  else if (address === '/fields/init') {
+    fields.sound.timeOffset = Math.round(args[0])
+    fields.log('timeOffset ' + fields.sound.timeOffset)
+    loadAllInstruments(function(err) {
+      if (err) return fields.log('ERROR ' + err)
+      initialized = true
+      fields.log('ready')
+    })
+
+  } else if (address === '/fields/sequence') {
+    fields.sequence.index = args[0]
+    fields.sequence.length = args[1]
+    fields.log('sequence index : ' + fields.sequence.index 
+      + ' / length : ' + fields.sequence.length)
+    fields.events.emit('sequence:changed')
+
+  // Normal messages, proxied to instruments
+  } else {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = instruments[parts[1]]
@@ -40145,7 +40173,7 @@ rhizome.on('connection lost', function() {
   }, 8000)
 })
 
-},{"./core/waa":6,"./instruments/DistributedSequencer":7,"./instruments/Granulator":8,"./instruments/Osc":9,"./instruments/Sine":10,"./instruments/Trigger":11,"./instruments/WebPdInstrument":12,"./instruments/WhiteNoise":13,"async":14,"underscore":17,"waaclock":18}],2:[function(require,module,exports){
+},{"./core/waa":6,"./instruments/DistributedSequencer":7,"./instruments/Granulator":8,"./instruments/Osc":9,"./instruments/Sine":10,"./instruments/Trigger":11,"./instruments/WebPdInstrument":12,"./instruments/WhiteNoise":13,"async":14,"events":15,"underscore":17,"waaclock":18}],2:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
@@ -40979,6 +41007,66 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
+Pd._glob.library['fields/clock'] = Pd.core.PdObject.extend({
+
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        this.obj.setRate(args[0])
+      }
+    })
+  ],
+  outletDefs: [Pd.core.portlets.Outlet],
+
+  init: function(args) {
+    var self = this
+      , rate = args[0] || 10000
+    //    timeOffset = clientTime - serverTime
+    // => serverTime = clientTime - timeOffset
+    //    timeToNextTick = rate - serverTime % rate
+    // => timeToNextTick = rate - (clientTime - timeOffset) % rate
+    //    tickClockTime = currentClockTime + timeToNextTick 
+    //    tickClockTime = currentClockTime + rate - (clientTime - timeOffset) % rate
+    this.setRate(rate)
+  },
+
+  setRate: function(rate) {
+    var tickClockTime = Pd._glob.audio.time + rate - (Date.now() - fields.sound.timeOffset) % rate
+    if (this._handler) Pd._glob.clock.unschedule(this._handler)
+    this._handler = Pd._glob.clock.schedule(function(event) {
+      var counter = Math.round((Date.now() - fields.sound.timeOffset) / rate)
+      //fields.log('TICK ' + counter)
+      self.o(0).message([ counter ])
+    }, tickClockTime, rate)
+  }
+
+})
+
+Pd._glob.library['fields/sequence'] = Pd.core.PdObject.extend({
+
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        if (args[0] === 'bang') this.obj._sendSequence()
+      }
+    })
+  ],
+
+  outletDefs: [Pd.core.portlets.Outlet, Pd.core.portlets.Outlet],
+
+  init: function() {
+    var self = this
+    fields.events.on('sequence:changed', function() {
+      self._sendSequence()
+    })
+  },
+
+  _sendSequence: function() {
+    console.log(fields.sequence.length, fields.sequence.index)
+    this.o(1).message([ fields.sequence.length ])
+    this.o(0).message([ fields.sequence.index ])
+  }
+})
 
 module.exports = Instrument.extend({
 
@@ -41021,6 +41109,13 @@ module.exports = Instrument.extend({
     var self = this
     if (!this.patch) this._initPatch()
     else this.patch.start()
+    this.patch.objects.forEach(function(obj) {
+      if (obj.type === 'receive' && obj.name === 'timeOffset') {
+        obj.o(0).message([ Math.round(fields.sound.timeOffset) ])
+      } else if (obj.type === 'receive' && obj.name === 'id') {
+        obj.o(0).message([ parseInt(rhizome.id) ])
+      } 
+    })
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 

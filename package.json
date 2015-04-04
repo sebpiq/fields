@@ -25,7 +25,8 @@
     "cli-color": "0.2.x",
     "express": "3.3.x",
     "waaclock": "0.5.x",
-    "rhizome-server": "git://github.com/sebpiq/rhizome.git#develop"
+    "rhizome-server": "git://github.com/sebpiq/rhizome.git#develop",
+    "simple-statistics": "0.9.x"
   },
   "engines": {
     "node": ">=0.10"
