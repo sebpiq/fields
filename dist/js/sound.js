@@ -2606,6 +2606,7 @@ var Pd = module.exports = {
   // Stops and forgets a patch
   destroyPatch: function(patch) {
     patch.stop()
+    patch.clean()
     delete pdGlob.patches[patch.patchId]
   },
 
@@ -2627,13 +2628,22 @@ var Pd = module.exports = {
     return patch
   },
 
+  // TODO: handling graph better? But ... what is graph :?
   _preparePatch: function(patch, patchData) {
     var createdObjs = {}
 
     // Creating nodes
     patchData.nodes.forEach(function(nodeData) {
       var proto = nodeData.proto
-        , obj = patch._createObject(proto, nodeData.args || [])
+        , obj
+      if (proto === 'graph') {
+        var arrayNodeData = nodeData.subpatch.nodes[0]
+        obj = patch._createObject('array', arrayNodeData.args || [])
+        obj.setData(new Float32Array(arrayNodeData.data), true)
+        proto = 'array'
+      } else {
+        obj = patch._createObject(proto, nodeData.args || [])
+      }
       if (proto === 'pd') Pd._preparePatch(obj, nodeData.subpatch)
       createdObjs[nodeData.id] = obj
     })
@@ -2733,7 +2743,10 @@ _.extend(BaseNode.prototype, {
 
   // This method is called when dsp is stopped
   stop: function() {},
-  
+
+  // This method is called to clean the object, remove event handlers, etc ...
+  // For example this is called when a patch is destroyed.
+  clean: function() {},
 
 /************************* Public API **********************/
 
@@ -2820,6 +2833,10 @@ _.extend(Patch.prototype, BaseNode.prototype, utils.UniqueIdsMixin, EventEmitter
   stop: function() {
     this._startStopGeneric('stop', 'stopPortlets')
     this.emit('stopped')
+  },
+
+  clean: function() {
+    this.objects.forEach(function(obj) { obj.clean() })
   },
 
   _startStopGeneric: function(methObj, methPortlets) {
@@ -3024,6 +3041,10 @@ exports.NamedMixin = {
     this.name = name
     pdGlob.namedObjects.register(this, this.type, name, this.nameIsUnique, oldName)
     this.emit('changed:name', oldName, name)
+  },
+
+  clean: function() {
+    pdGlob.namedObjects.unregister(this, this.type, this.name)
   }
 
 }
@@ -3353,6 +3374,7 @@ emitter.emit = function(eventName) {
     _.contains([], eventName)
     || eventName.indexOf('msg:') === 0
     || eventName.indexOf('namedObjects:registered') === 0
+    || eventName.indexOf('namedObjects:unregistered') === 0
   ) EventEmitter.prototype.emit.apply(this, arguments)
   else throw new Error('unknown event : ' + eventName)
 }
@@ -3402,6 +3424,18 @@ exports.namedObjects = {
     }
 
     exports.emitter.emit('namedObjects:registered:' + type, obj)
+  },
+
+  // Unregisters a named object from the store
+  unregister: function(obj, type, name) {
+    var nameMap = this._store[type]
+      , objList = nameMap ? nameMap[name] : null
+      , ind
+    if (!objList) return
+    ind = objList.indexOf(obj)
+    if (ind === -1) return 
+    objList.splice(ind, 1)
+    exports.emitter.emit('namedObjects:unregistered:' + type, obj)
   },
 
   // Returns an object list given the object `type` and `name`.
@@ -3454,8 +3488,6 @@ exports.declareObjects = function(library) {
 
   var _OscBase = PdObject.extend({
 
-    type: 'osc~',
-
     inletDefs: [
 
       portlets.DspInlet.extend({
@@ -3484,37 +3516,14 @@ exports.declareObjects = function(library) {
 
     init: function(args) {
       this.frequency = args[0] || 0
-    }
-
-  })
-
-
-  // TODO : When phase is set, the current oscillator will be immediately disconnected,
-  // while ideally, it should be disconnected only at `futureTime` 
-  library['osc~'] = _OscBase.extend({
-
-    type: 'osc~',
+    },
 
     start: function() {
       this._createOscillator(0)
     },
 
     stop: function() {
-      this._oscNode.stop(0)
-      this._oscNode = null
-    },
-
-    _createOscillator: function(phase) {
-      phase = phase * 2 * Math.PI 
-      this._oscNode = pdGlob.audio.context.createOscillator()
-      this._oscNode.setPeriodicWave(pdGlob.audio.context.createPeriodicWave(
-        new Float32Array([0, Math.cos(phase)]),
-        new Float32Array([0, Math.sin(-phase)])
-      ))
-      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
-      this.o(0).setWaa(this._oscNode, 0)
-      this.i(0).setWaa(this._oscNode.frequency, 0)
-      this.i(0).message([this.frequency])
+      this._destroyOscillator()
     },
 
     _updateFrequency: function() {
@@ -3530,20 +3539,36 @@ exports.declareObjects = function(library) {
   })
 
 
+  // TODO : When phase is set, the current oscillator will be immediately disconnected,
+  // while ideally, it should be disconnected only at `futureTime` 
+  library['osc~'] = _OscBase.extend({
+
+    type: 'osc~',
+
+    _createOscillator: function(phase) {
+      phase = phase * 2 * Math.PI 
+      this._oscNode = pdGlob.audio.context.createOscillator()
+      this._oscNode.setPeriodicWave(pdGlob.audio.context.createPeriodicWave(
+        new Float32Array([0, Math.cos(phase)]),
+        new Float32Array([0, Math.sin(-phase)])
+      ))
+      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this.o(0).setWaa(this._oscNode, 0)
+      this.i(0).setWaa(this._oscNode.frequency, 0)
+      this.i(0).message([this.frequency])
+    },
+
+    _destroyOscillator: function() {
+      this._oscNode.stop(0)
+      this._oscNode = null
+    }
+
+  })
+
+
   library['phasor~'] = _OscBase.extend({
 
     type: 'phasor~',
-
-    start: function() {
-      this._createOscillator(0)
-    },
-
-    stop: function() {
-      this._oscNode.stop(0)
-      this._oscNode = null
-      this._gainNode = null
-      this._offsetNode = null
-    },
 
     _createOscillator: function(phase) {
       this._gainNode = pdGlob.audio.context.createGain()
@@ -3563,17 +3588,57 @@ exports.declareObjects = function(library) {
       this.i(0).message([this.frequency])
     },
 
-    _updateFrequency: function() {
-      if (this._oscNode)
-        this._oscNode.frequency.setValueAtTime(this.frequency, pdGlob.futureTime / 1000 || 0)
-    },
-
-    _updatePhase: function(phase) {
-      if (pdGlob.isStarted)
-        this._createOscillator(phase)
+    _destroyOscillator: function() {
+      this._oscNode.stop(0)
+      this._oscNode = null
+      this._gainNode = null
+      this._offsetNode = null
     }
 
   })
+
+
+  library['triangle~'] = _OscBase.extend({
+
+    type: 'triangle~',
+
+    _createOscillator: function(phase) {
+      this._oscNode = pdGlob.audio.context.createOscillator()
+      this._oscNode.type = 'triangle'
+      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this.o(0).setWaa(this._oscNode, 0)
+      this.i(0).setWaa(this._oscNode.frequency, 0)
+      this.i(0).message([this.frequency])
+    },
+
+    _destroyOscillator: function() {
+      this._oscNode.stop(0)
+      this._oscNode = null
+    }
+
+  })
+
+
+  library['square~'] = _OscBase.extend({
+
+    type: 'square~',
+
+    _createOscillator: function(phase) {
+      this._oscNode = pdGlob.audio.context.createOscillator()
+      this._oscNode.type = 'square'
+      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this.o(0).setWaa(this._oscNode, 0)
+      this.i(0).setWaa(this._oscNode.frequency, 0)
+      this.i(0).message([this.frequency])
+    },
+
+    _destroyOscillator: function() {
+      this._oscNode.stop(0)
+      this._oscNode = null
+    }
+
+  })
+
 
   // NB : This should work, but for now it doesn't seem to.
   // issues filed for chrome here : https://code.google.com/p/chromium/issues/detail?id=471675
@@ -3630,8 +3695,6 @@ exports.declareObjects = function(library) {
     }
 
   })*/
-
-
 
 
   library['noise~'] = PdObject.extend({
@@ -4177,6 +4240,10 @@ exports.declareObjects = function(library) {
     stop: function() {
       this._pipeNode.disconnect()
       this._pipeNode = null
+    },
+
+    clean: function() {
+      mixins.NamedMixin.clean.apply(this, arguments)
     }
 
   })
@@ -4255,6 +4322,86 @@ exports.declareObjects = function(library) {
 
   })
 
+
+  // TODO : should change curve in the future
+  library['clip~'] = PdObject.extend({
+
+    type: 'clip~',
+
+    inletDefs: [
+
+      portlets.DspInlet,
+
+      portlets.Inlet.extend({
+        message: function(args) {
+          var minValue = args[0]
+          expect(minValue).to.be.a('number', 'clip~::min')
+          this.obj.minValue = minValue
+          this.obj._updateGains()
+        }
+      }),
+
+      portlets.Inlet.extend({
+        message: function(args) {
+          var maxValue = args[0]
+          expect(maxValue).to.be.a('number', 'clip~::max')
+          this.obj.maxValue = maxValue
+          this.obj._updateGains()
+        }
+      })
+
+    ],
+
+    outletDefs: [portlets.DspOutlet],
+
+    init: function(args) {
+      this.minValue = args[0] || 0
+      this.maxValue = args[1] || 0
+    },
+
+    start: function() {
+      this._gainInNode = pdGlob.audio.context.createGain()
+      this._gainOutNode = pdGlob.audio.context.createGain()
+      this._waveShaperNode = pdGlob.audio.context.createWaveShaper()
+
+      this._gainInNode.connect(this._waveShaperNode)
+      //this._waveShaperNode.connect(this._gainOutNode)
+      
+      this.i(0).setWaa(this._gainInNode, 0)
+      //this.o(0).setWaa(this._gainOutNode, 0)
+      this.o(0).setWaa(this._waveShaperNode, 0)
+
+      this._updateGains()
+    },
+
+    stop: function() {
+      this._gainInNode = null
+      this._waveShaperNode = null
+      this._gainOutNode.disconnect()
+      this._gainOutNode = null
+    },
+
+    _updateGains: function() {
+      if (this._waveShaperNode) {
+        var bound = Math.max(Math.abs(this.minValue), Math.abs(this.maxValue))
+          , sampleRate = Pd.getSampleRate()
+          , curve = new Float32Array(sampleRate)
+          , i, acc = -bound, k = bound * 2 / sampleRate
+        for (i = 0; i < sampleRate; i++) {
+          if (acc >= this.minValue && acc <= this.maxValue) curve[i] = acc
+          else if (acc > this.maxValue) curve[i] = this.maxValue
+          else curve[i] = this.minValue
+          acc += k
+        }
+        this._waveShaperNode.curve = curve
+        this._gainInNode.gain.setValueAtTime(bound !== 0 ? 1 / bound : 0, 0)
+        //this._gainOutNode.gain.setValueAtTime(bound, 0)
+      }
+    }
+
+  })
+
+
   library['dac~'] = PdObject.extend({
     type: 'dac~',
 
@@ -4301,6 +4448,7 @@ var EventEmitter = require('events').EventEmitter
   , pdGlob = require('../global')
   , portlets = require('./portlets')
 
+
 exports.declareObjects = function(library) {
 
   library['receive'] = library['r'] = PdObject.extend(mixins.NamedMixin, EventEmitter.prototype, {
@@ -4318,6 +4466,10 @@ exports.declareObjects = function(library) {
         pdGlob.emitter.on('msg:' + newName, _onMessageReceived)
       })
       this.setName(name)
+    },
+
+    clean: function() {
+      mixins.NamedMixin.clean.apply(this, arguments)
     },
 
     _onMessageReceived: function(args) {
@@ -4342,7 +4494,11 @@ exports.declareObjects = function(library) {
 
     abbreviations: ['s'],
 
-    init: function(args) { this.setName(args[0]) }
+    init: function(args) { this.setName(args[0]) },
+
+    clean: function() {
+      mixins.NamedMixin.clean.apply(this, arguments)
+    }
 
   })
 
@@ -4738,6 +4894,18 @@ exports.declareObjects = function(library) {
     maxMidiNote: 8.17579891564 * Math.exp((0.0577622650 * 1499))
   })
 
+  library['samplerate~'] = PdObject.extend({
+    type: 'samplerate~',
+    inletDefs: [
+      portlets.Inlet.extend({
+        message: function(args) {
+          this.obj.o(0).message([ pdGlob.settings.sampleRate ])
+        }
+      })
+    ],
+    outletDefs: [portlets.Outlet],
+  })
+
   library['random'] = PdObject.extend({
 
     type: 'random',
@@ -4820,6 +4988,10 @@ exports.declareObjects = function(library) {
       this.rate = Math.max(rate, 1)
     },
 
+    clean: function() {
+      this._stopMetroTick()
+    },
+
     _startMetroTick: function() {
       var self = this
       if (this._metroHandle === null) {
@@ -4900,6 +5072,10 @@ exports.declareObjects = function(library) {
     setDelay: function(delay) {
       expect(delay).to.be.a('number', 'delay::time')
       this.delay = delay
+    },
+
+    clean: function() {
+      this._stopDelay()
     },
 
     _startDelay: function() {
@@ -4989,6 +5165,10 @@ exports.declareObjects = function(library) {
       if (name) this.setName(name)
       this.size = size
       this.data = new Float32Array(size)
+    },
+
+    clean: function() {
+      mixins.NamedMixin.clean.apply(this, arguments)
     },
 
     setData: function(audioData, resize) {
@@ -5338,9 +5518,12 @@ exports.declareObjects = function(library) {
 }
 
 },{"../core/PdObject":12,"../core/portlets":15,"../core/utils":16,"../global":17,"chai":26,"underscore":66,"waawire":77}],22:[function(require,module,exports){
+var pdGlob = require('../global')
+
 var Audio = module.exports = function(opts) {
   this.channelCount = opts.channelCount
   this.setContext(opts.audioContext || new AudioContext)
+  pdGlob.settings.sampleRate = this.context.sampleRate
   Object.defineProperty(this, 'time', {
     get: function() { return this.context.currentTime * 1000 },
   })
@@ -5377,7 +5560,7 @@ Audio.prototype.setContext = function(context) {
     this.channels[ch].connect(this._channelMerger, 0, ch)
   }
 }
-},{}],23:[function(require,module,exports){
+},{"../global":17}],23:[function(require,module,exports){
 var _ = require('underscore')
   , WAAClock = require('waaclock')
 
@@ -39990,27 +40173,11 @@ var waaUtils = require('./core/waa')
 
 window.fields.sound = {
   clock: null,
-  clockUsers: 0,
   audioContext: null,
   supportedFormats: null,
+  preferredFormat: null,
   position: null
 }
-
-// clockUsers is intended to start / stop the clock if no instrument is using it.
-// At the moment it is not used though.
-/*
-if (fields.sound.clockUsers === 0) {
-  fields.sound.clock.start()
-  fields.log('start clock')
-}
-fields.sound.clockUsers++
-
-fields.sound.clockUsers--
-if (fields.sound.clockUsers === 0) {
-  fields.sound.clock.stop()
-  fields.log('stop clock')
-}
-*/
 
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <instrument instance> }`
@@ -40058,7 +40225,6 @@ fields.sound.start = function() {
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clock.onexpired = function() { fields.log('expired') }
   fields.sound.clock.start()
-  fields.sound.clockUsers = 0
 
   // Declare builtin instruments
   declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
@@ -40992,6 +41158,16 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
+Pd._glob.library['fields/preferred-format'] = Pd.core.PdObject.extend({
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        this.obj.o(0).message([fields.sound.preferredFormat])
+      }
+    })
+  ],
+  outletDefs: [Pd.core.portlets.Outlet]
+})
 
 module.exports = Instrument.extend({
 
@@ -41008,11 +41184,17 @@ module.exports = Instrument.extend({
     var self = this
     Instrument.prototype.init.apply(this, arguments)
     this.patchUrl = args[0]
+    this._patchPortsInitialized = false
     this.patch = null
+    this._pdReceivePaths = []
 
     this.ports.debug.on('value', function(args) {
       if (args[0] === 'reload') {
-        if (self.patch) self._clearPatch()
+        if (self.patch) {
+          Pd.destroyPatch(this.patch)
+          this.patch = null
+        }
+        self._clearPatchPorts()
         self.stop()
         self.load(function() {})
       }
@@ -41032,43 +41214,42 @@ module.exports = Instrument.extend({
 
   onStart: function() {
     var self = this
-    if (!this.patch) this._initPatch()
-    else this.patch.start()
+    this.patch = Pd.loadPatch(this.patchStr)
+    if (!this._patchPortsInitialized) this._initPatchPorts()
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 
   onStop: function() {
-    if (this.patch) this.patch.stop()
+    if (this.patch) {
+      Pd.destroyPatch(this.patch)
+      this.patch = null
+    }
   },
 
-  _clearPatch: function() {
+  _clearPatchPorts: function() {
     var self = this
-    Pd.destroyPatch(this.patch)
-    this.patch = null
-    
     // Removing all the ports that are not base ports
     var basePorts = Object.keys(this.portDefinitions)
     Object.keys(this.ports).forEach(function(subpath) {
       if (!_.contains(basePorts, subpath)) delete self.ports[subpath]
     })
+    this._patchPortsInitialized = false
   },
 
-  _initPatch: function() {
+  _initPatchPorts: function() {
     var self = this
-    // Load the patch
-    this.patch = Pd.loadPatch(this.patchStr)
-
     // Create a port for each object [receive <portName>]
     this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
       .forEach(function(receive) {
         var subpath = receive.name
         self.addPort(subpath, WebPdPort)
+        self._pdReceivePaths.push(subpath)
         self.ports[subpath].on('value', function(args) {
           Pd.send(subpath, args)
         })
       })
-
     this.restore() // Once ports are created, we call restore again
+    this._patchPortsInitialized = true
   }
 
 

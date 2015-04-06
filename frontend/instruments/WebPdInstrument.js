@@ -16,6 +16,16 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
+Pd._glob.library['fields/preferred-format'] = Pd.core.PdObject.extend({
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        this.obj.o(0).message([fields.sound.preferredFormat])
+      }
+    })
+  ],
+  outletDefs: [Pd.core.portlets.Outlet]
+})
 
 module.exports = Instrument.extend({
 
@@ -32,11 +42,17 @@ module.exports = Instrument.extend({
     var self = this
     Instrument.prototype.init.apply(this, arguments)
     this.patchUrl = args[0]
+    this._patchPortsInitialized = false
     this.patch = null
+    this._pdReceivePaths = []
 
     this.ports.debug.on('value', function(args) {
       if (args[0] === 'reload') {
-        if (self.patch) self._clearPatch()
+        if (self.patch) {
+          Pd.destroyPatch(this.patch)
+          this.patch = null
+        }
+        self._clearPatchPorts()
         self.stop()
         self.load(function() {})
       }
@@ -56,43 +72,42 @@ module.exports = Instrument.extend({
 
   onStart: function() {
     var self = this
-    if (!this.patch) this._initPatch()
-    else this.patch.start()
+    this.patch = Pd.loadPatch(this.patchStr)
+    if (!this._patchPortsInitialized) this._initPatchPorts()
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 
   onStop: function() {
-    if (this.patch) this.patch.stop()
+    if (this.patch) {
+      Pd.destroyPatch(this.patch)
+      this.patch = null
+    }
   },
 
-  _clearPatch: function() {
+  _clearPatchPorts: function() {
     var self = this
-    Pd.destroyPatch(this.patch)
-    this.patch = null
-    
     // Removing all the ports that are not base ports
     var basePorts = Object.keys(this.portDefinitions)
     Object.keys(this.ports).forEach(function(subpath) {
       if (!_.contains(basePorts, subpath)) delete self.ports[subpath]
     })
+    this._patchPortsInitialized = false
   },
 
-  _initPatch: function() {
+  _initPatchPorts: function() {
     var self = this
-    // Load the patch
-    this.patch = Pd.loadPatch(this.patchStr)
-
     // Create a port for each object [receive <portName>]
     this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
       .forEach(function(receive) {
         var subpath = receive.name
         self.addPort(subpath, WebPdPort)
+        self._pdReceivePaths.push(subpath)
         self.ports[subpath].on('value', function(args) {
           Pd.send(subpath, args)
         })
       })
-
     this.restore() // Once ports are created, we call restore again
+    this._patchPortsInitialized = true
   }
 
 
