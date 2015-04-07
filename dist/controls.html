@@ -1,0 +1,117 @@
+<!doctype html>
+
+<html>
+  
+  <head>
+    <link href="css/controls.css" rel="stylesheet" type="text/css" />
+    <script src="js/jquery-2.1.0.js"></script>
+    <script src="js/nexusUI.js"></script>
+    <script src="js/controls.js"></script>
+  </head>
+
+  <body>
+    <div id="console"></div>
+    
+    <div id="fields-panel-buttons">
+    </div>
+
+    <div id="fields-panels">
+
+      <div panel="white-noise" class="active">
+        <h2>White noise</h2>
+        <canvas nx="slider" hslider="true" address="/noise/volume"></canvas>
+
+        <canvas nx="toggle" address="/noise/state"></canvas>
+      </div>
+
+      <div panel="drops" class="active">
+        <h2>Drops</h2>
+        <canvas nx="slider" hslider="true" address="/drops/volume"></canvas>
+
+        <canvas nx="slider" hslider="true" address="/drops/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/drops/env"></canvas>
+
+        <canvas nx="toggle" address="/drops/state"></canvas>
+        <canvas nx="position" address="/drops/position"></canvas>
+        <canvas nx="position" address="/drops/duration"></canvas>
+        <canvas nx="position" address="/drops/ratio"></canvas>
+      </div>
+
+      <div panel="sparkles" class="active">
+        <h2>Sparkles</h2>
+        <canvas nx="button" address="/sparkles/state"></canvas>
+      </div>
+
+      <div panel="bells" class="active">
+        <h2>Bells</h2>
+        <canvas nx="slider" hslider="true" address="/bells/volume"></canvas>
+        <canvas nx="toggle" address="/bells/state"></canvas>
+
+        <canvas nx="matrix" address="/bells/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/bells/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/bells/sequence')"></canvas>
+      </div>
+
+      <div panel="clicks" class="active">
+        <h2>Clicks</h2>
+        <canvas nx="slider" hslider="true" address="/clicks/volume"></canvas>
+        <canvas nx="toggle" address="/clicks/state"></canvas>
+
+        <canvas nx="matrix" address="/clicks/sequence" noautosend="" row="4" col="8"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendMatrix('/clicks/sequence')"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.resetMatrix('/clicks/sequence')"></canvas>
+      </div>
+
+      <div panel="sine" class="active">
+        <h2>Sine</h2>
+        <canvas nx="slider" hslider="true" address="/sine/volume"></canvas>
+        <canvas nx="slider" hslider="true" address="/sine/f0"></canvas>
+
+        <canvas id="sineVolEnvelope" nx="envelope"></canvas>
+        <canvas id="sinePitchEnvelope" nx="envelope"></canvas>
+
+        <canvas id="sineSlider" nx="slider"></canvas>
+        <canvas nx="button" onvalue="if(data.press === 1) fields.controls.sendSineEnvelope()"></canvas>
+      </div>
+
+      <div panel="waves" class="active">
+        <h2>Waves</h2>
+        <canvas nx="slider" hslider="true" address="/waves/volume"></canvas>
+
+        <canvas nx="slider" hslider="true" address="/waves/density"></canvas>
+        <canvas nx="slider" hslider="true" address="/waves/env"></canvas>
+
+        <canvas nx="toggle" address="/waves/state"></canvas>
+        <canvas nx="position" address="/waves/position"></canvas>
+        <canvas nx="position" address="/waves/duration"></canvas>
+        <canvas nx="position" address="/waves/ratio"></canvas>
+      </div>
+
+      <div panel="osc" class="active">
+        <h2>Osc</h2>
+        <canvas nx="slider" hslider="true" address="/osc/volume"></canvas>
+
+        <canvas nx="slider" hslider="true" address="/osc/carrierFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/ampModFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/ampModAmount"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/freqModFreq"></canvas>
+        <canvas nx="slider" hslider="true" address="/osc/freqModAmount"></canvas>
+
+        <canvas nx="toggle" address="/osc/state"></canvas>
+      </div>
+
+    </div>
+
+    <script>
+      $(function() {
+        //try {
+          fields.controls.start()
+        /*} catch(e) {
+          fields.log(e)
+          throw e
+        }*/
+      })
+    </script>
+  </body>
+  
+</html>

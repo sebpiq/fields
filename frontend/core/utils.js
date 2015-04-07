@@ -17,6 +17,7 @@ exports.chainExtend = function() {
 
 // Loads the file and calls `done(err, blob)` when done.
 // `opts` must contain `url` and `responseType`
+// TODO : HTTPError
 exports.loadFile = function(opts, done) {
   var request = new XMLHttpRequest()
   request.open('GET', opts.url, true)
