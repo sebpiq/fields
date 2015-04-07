@@ -4,12 +4,36 @@ var waaUtils = require('./core/waa')
   , WAAClock = require('waaclock')
   , muteTimeout, initialized = false
 
-window.fields.sound = {
+var fields = window.fields = {}
+
+fields.isSupported = function() {
+  if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
+    if (window.AudioContext) return true
+    else return false
+  } else return false
+  return false
+}
+
+fields.log = function(msg) {
+  $('<div>', { class: 'log' })
+    .html(msg)
+    .prependTo('#console')
+  $('#console .log').slice(60).remove()
+}
+
+fields.sound = {
   clock: null,
   audioContext: null,
   supportedFormats: null,
   preferredFormat: null,
   position: null
+}
+
+fields.core = {
+  BaseInstrument: require('./core/BaseInstrument'),
+  ports: require('./core/ports'),
+  waa: require('./core/waa'),
+  declareInstrumentClass: function(name, cls) { instrumentClasses[name] = cls }
 }
 
 // Contains all the instances of sound engines for each declared instrument
@@ -19,10 +43,6 @@ var instruments = {}
 // Contains all the available classes
 // `{ <instrument class name>: <instrument class> }`
 var instrumentClasses = {}
-
-var declareInstrumentClass = function(name, cls) {
-  instrumentClasses[name] = cls
-}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
@@ -60,13 +80,13 @@ fields.sound.start = function() {
   fields.sound.clock.start()
 
   // Declare builtin instruments
-  declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
-  declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  declareInstrumentClass('Osc', require('./instruments/Osc'))
-  declareInstrumentClass('Sine', require('./instruments/Sine'))
-  declareInstrumentClass('Trigger', require('./instruments/Trigger'))
-  declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
-  declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
+  fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
+  fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
+  fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
+  fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
+  fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
+  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   // Start
   async.waterfall([

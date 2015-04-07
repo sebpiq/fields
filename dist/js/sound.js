@@ -40147,7 +40147,14 @@ function ws(uri, protocols, opts) {
 if (WebSocket) ws.prototype = WebSocket.prototype;
 
 },{}]},{},[6]);
-;var fields = window.fields = {}
+;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var waaUtils = require('./core/waa')
+  , async = require('async')
+  , _ = require('underscore')
+  , WAAClock = require('waaclock')
+  , muteTimeout, initialized = false
+
+var fields = window.fields = {}
 
 fields.isSupported = function() {
   if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
@@ -40163,20 +40170,20 @@ fields.log = function(msg) {
     .prependTo('#console')
   $('#console .log').slice(60).remove()
 }
-//if (typeof rhizome !== 'undefined') rhizome.log = log
-;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var waaUtils = require('./core/waa')
-  , async = require('async')
-  , _ = require('underscore')
-  , WAAClock = require('waaclock')
-  , muteTimeout, initialized = false
 
-window.fields.sound = {
+fields.sound = {
   clock: null,
   audioContext: null,
   supportedFormats: null,
   preferredFormat: null,
   position: null
+}
+
+fields.core = {
+  BaseInstrument: require('./core/BaseInstrument'),
+  ports: require('./core/ports'),
+  waa: require('./core/waa'),
+  declareInstrumentClass: function(name, cls) { instrumentClasses[name] = cls }
 }
 
 // Contains all the instances of sound engines for each declared instrument
@@ -40186,10 +40193,6 @@ var instruments = {}
 // Contains all the available classes
 // `{ <instrument class name>: <instrument class> }`
 var instrumentClasses = {}
-
-var declareInstrumentClass = function(name, cls) {
-  instrumentClasses[name] = cls
-}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
@@ -40227,13 +40230,13 @@ fields.sound.start = function() {
   fields.sound.clock.start()
 
   // Declare builtin instruments
-  declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
-  declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  declareInstrumentClass('Osc', require('./instruments/Osc'))
-  declareInstrumentClass('Sine', require('./instruments/Sine'))
-  declareInstrumentClass('Trigger', require('./instruments/Trigger'))
-  declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
-  declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
+  fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
+  fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
+  fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
+  fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
+  fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
+  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   // Start
   async.waterfall([
@@ -40324,7 +40327,7 @@ rhizome.on('connection lost', function() {
   }, 8000)
 })
 
-},{"./core/waa":6,"./instruments/DistributedSequencer":7,"./instruments/Granulator":8,"./instruments/Osc":9,"./instruments/Sine":10,"./instruments/Trigger":11,"./instruments/WebPdInstrument":12,"./instruments/WhiteNoise":13,"async":14,"underscore":17,"waaclock":18}],2:[function(require,module,exports){
+},{"./core/BaseInstrument":2,"./core/ports":4,"./core/waa":6,"./instruments/DistributedSequencer":7,"./instruments/Granulator":8,"./instruments/Osc":9,"./instruments/Sine":10,"./instruments/Trigger":11,"./instruments/WebPdInstrument":12,"./instruments/WhiteNoise":13,"async":14,"underscore":17,"waaclock":18}],2:[function(require,module,exports){
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')

@@ -21,13 +21,13 @@ _.extend(BasePort.prototype, EventEmitter.prototype, {
 
   receive: function(args) {
     try {
-      args = this.validate(args)
+      validated = this.validate(args)
     } catch(err) {
       console.error(err)
       return 
     }
-    this.value = args
-    this.emit('value', args)
+    this.value = validated
+    this.emit('value', validated)
   },
 
   // Validate and extract a list of arguments to apply to `onValue`.

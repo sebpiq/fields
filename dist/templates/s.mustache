@@ -6,6 +6,9 @@
     <link href="css/sound.css" rel="stylesheet" type="text/css" />
     <script src="js/sound.js"></script>
     <script src="js/config.js"></script>
+    {{#extraInstruments}}
+    <script src="{{{.}}}"></script>
+    {{/extraInstruments}}
   </head>
 
   <body>

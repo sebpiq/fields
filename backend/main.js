@@ -6,6 +6,7 @@ var path = require('path')
   , program = require('commander')
   , async = require('async')
   , express = require('express')
+  , mustacheExpress = require('mustache-express')
   , clc = require('cli-color')
   , rhizome = require('rhizome-server')
 
@@ -38,7 +39,14 @@ if (require.main === module) {
   app.use(express.bodyParser())
   app.use(express.methodOverride())
   app.use(app.router)
+  app.engine('mustache', mustacheExpress())
+  app.set('view engine', 'mustache')
+  app.set('views', path.join(staticDir, 'templates'))
   app.use('/', express.static(staticDir))
+  app.get('/s.html', function (req, res) {
+    var context = { extraInstruments: config.extraInstruments || [] }
+    res.render('s', context)
+  })
   if (config.server.assetsDir)
     app.use('/assets', express.static(config.server.assetsDir))
 
