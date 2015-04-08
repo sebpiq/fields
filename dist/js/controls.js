@@ -12382,7 +12382,6 @@ var nx = function() {
 	}
 	
 	
-	
 	//event listeners
 	this.getHandlers = function(self) {
 		if (manager.is_touch_device) {
@@ -12817,8 +12816,10 @@ $(document).ready(function() {
 });
 
 
-
+var _canvasTransformed = false
 function transformCanvases() {
+  if (_canvasTransformed) return
+  _canvasTransformed = true
 
 		// get all canvases on the page
 	var allcanvi = document.getElementsByTagName("canvas");
@@ -27813,6 +27814,7 @@ rhizome.on('message', function(address, args) {
       return address === widget.canvas.getAttribute('address')
     })[0]
 
+    if (!widget) return
     if (widget.getName() === 'position') widget.set({x: args[0], y: 1 - args[1]})
     else if (widget.getName() === 'matrix') {
       fields.controls.setMatrix(address, args)

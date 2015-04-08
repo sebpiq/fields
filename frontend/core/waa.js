@@ -16,8 +16,11 @@ exports.kickStartWAA = function() {
 // Loads an audio buffer from sound file at `url`.  
 var loadBuffer = exports.loadBuffer = function(url, done) {
   utils.loadFile({ url: url, responseType: 'arraybuffer' }, function(err, blob) {
+    //if (url.indexOf('assets/samples/clicks') === 0) console.log('loaded', url, err)
     if (err) return done(err)
     decodeBlob(blob, function(err, buffer) {
+      //if (url.indexOf('assets/samples/clicks') === 0) console.log('decoded', url)
+      //if (url.indexOf('assets/samples/clicks') === 0) debugger
       if (err) {
         if (err instanceof DecodeError) err.message += ' ' + url
         return done(err)
@@ -100,7 +103,7 @@ exports.plotBuffer = function(buffer, svg) {
 
 // Decodes `blob` and calls `done(err, blob)` when done.
 var decodeBlob = function(blob, done) {
-  audioContext.decodeAudioData(blob, function(buffer) {
+  fields.sound.audioContext.decodeAudioData(blob, function(buffer) {
     done(null, buffer)
   }, function(err) {
     done(err || new DecodeError('decoding error'), null)

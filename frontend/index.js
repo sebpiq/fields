@@ -85,7 +85,7 @@ fields.sound.start = function() {
   fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
   fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
   fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
-  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  //fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
   fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   // Start
