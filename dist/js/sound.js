@@ -19512,21 +19512,6 @@ module.exports = Instrument.extend({
     var self = this
     Instrument.prototype.init.apply(this, arguments)
 
-    // Dirty hack to divide the track in several spaces
-    this.divideSpace = null
-    if(args[3]) {
-      if (fields.sound.position.x < 0.5)
-        if (fields.sound.position.y < 0.5)
-          this.divideSpace = 0
-        else 
-          this.divideSpace = 1
-      else 
-        if (fields.sound.position.y < 0.5)
-          this.divideSpace = 2
-        else
-          this.divideSpace = 3
-    }
-
     this.stepCount = args[0]
     this.tracks = args[1]
     this.buffers = []
@@ -19580,7 +19565,6 @@ module.exports = Instrument.extend({
         , track = beat[0]
         , offset = self.samplesPerBeat * step
         , soundArray = self.buffers[track].getChannelData(0)
-      if (self.divideSpace !== null && track !== self.divideSpace) return
       if ((offset + soundArray.length) >= loopArray.length)
         subarray = soundArray.subarray(0, loopArray.length - offset)
       else subarray = soundArray
