@@ -35,7 +35,7 @@ gulp.task('browserify-sound', function() {
 gulp.task('bundle-sound', function() {
   return gulp.src([
       './frontend/deps/AudioContextMonkeyPatch.js',
-      //'./frontend/deps/webpd-latest.js',
+      './frontend/deps/webpd-latest.js',
       './frontend/deps/jquery-2.1.0.js',
       './tmp/rhizome.js',
       './frontend/core/common.js',
