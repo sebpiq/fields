@@ -18,7 +18,6 @@
  
 var waaUtils = require('./core/waa')
   , async = require('async')
-  , EventEmitter = require('events').EventEmitter
   , _ = require('underscore')
   , WAAClock = require('waaclock')
   , muteTimeout, initialized = false
@@ -74,26 +73,6 @@ var subscribeAll = function() {
   })
 }
 
-// Load all the instruments and calls done
-var loadAllInstruments = function(done) {
-  var config = fields.config()
-  Object.keys(config).forEach(function(instrumentId) {
-    if (instrumentId === 'fields') throw new Error('fields name is reserved')
-    var instrumentConfig = config[instrumentId]
-      , instrumentClass = instrumentClasses[instrumentConfig.instrument]
-    instruments[instrumentId] = new instrumentClass(instrumentId, instrumentConfig.args)
-  })
-  subscribeAll()
-  
-  async.forEach(_.values(instruments), function(instrument, nextInstrument) {
-    instrument.load(nextInstrument)
-  }, function(err) {
-    if (err) return done(err)
-    fields.log('all instruments loaded')
-    done()
-  })
-}
-
 $(function() {
   var map = $('#map')
   map.click(function(event) {
@@ -146,14 +125,31 @@ fields.sound.start = function() {
       else if (fields.sound.supportedFormats.indexOf('wav') !== -1)
         fields.sound.preferredFormat = 'wav'
       fields.log('format used ' + fields.sound.preferredFormat)
+
+      var config = fields.config()
+      Object.keys(config).forEach(function(instrumentId) {
+        var instrumentConfig = config[instrumentId]
+          , instrumentClass = instrumentClasses[instrumentConfig.instrument]
+        instruments[instrumentId] = new instrumentClass(instrumentId, instrumentConfig.args)
+      })
       next()
     },
     
     // Start rhizome
     _.bind(rhizome.start, rhizome),
 
+    // Load all instruments
+    function(next) {
+      async.forEach(_.values(instruments), function(instrument, nextInstrument) {
+        instrument.load(nextInstrument)
+      }, next)
+    }
+
   ], function(err) {
-    if (err) return fields.log('ERROR: ' + err)
+    if (err)
+      return fields.log('ERROR: ' + err)
+    initialized = true
+    fields.log('all instruments loaded')
   })
 
   $('#mapContainer').fadeOut(100)
@@ -161,8 +157,8 @@ fields.sound.start = function() {
 }
 
 rhizome.on('connected', function() {
+  subscribeAll()
   setStatus('connected')
-  fields.log('connected with id ' + rhizome.id)
 
   // Execute those only if the connection was successfuly established before 
   if (initialized) {
@@ -177,30 +173,7 @@ rhizome.on('connected', function() {
 //  /<instrument id>/<name> [args]
 rhizome.on('message', function(address, args) {
   if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
-
-  // Message sent to initialize the device, and calculate its time offset for synchronization
-  else if (address === '/fields/roundTrip')
-    rhizome.send('/fields/roundTrip', [rhizome.id, Date.now().toString()])
-  
-  // Message sent when all initialization procedure is complete
-  else if (address === '/fields/init') {
-    fields.sound.timeOffset = Math.round(args[0])
-    fields.log('timeOffset ' + fields.sound.timeOffset)
-    loadAllInstruments(function(err) {
-      if (err) return fields.log('ERROR ' + err)
-      initialized = true
-      fields.log('ready')
-    })
-
-  } else if (address === '/fields/sequence') {
-    fields.sequence.index = args[0]
-    fields.sequence.length = args[1]
-    fields.log('sequence index : ' + fields.sequence.index 
-      + ' / length : ' + fields.sequence.length)
-    fields.events.emit('sequence:changed')
-
-  // Normal messages, proxied to instruments
-  } else {
+  else {
     fields.log('' + address + ' ' + args)
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = instruments[parts[1]]

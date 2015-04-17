@@ -49,5 +49,6 @@ button {
   width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  color: #555;
+  color: white;
+  /*#171717*/
 }
