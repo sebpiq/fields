@@ -20,7 +20,7 @@ if (require.main === module) {
     .version(version)
     .parse(process.argv)
   if (process.argv.length !== 3) {
-    console.log('usage : main.js <config.js>')
+    console.log('usage : ' + path.basename(process.argv[1]) + ' <config.js>')
     process.exit(1)
   }
 

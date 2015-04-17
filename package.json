@@ -28,7 +28,10 @@
     "rhizome-server": "git://github.com/sebpiq/rhizome.git#develop",
     "mustache-express": "1.2.x"
   },
+  "bin": {
+    "fields": "./backend/main.js"
+  },
   "engines": {
-    "node": ">=0.10"
+    "node": "0.10.x"
   }
 }
