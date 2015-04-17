@@ -74,6 +74,9 @@ module.exports = Instrument.extend({
     var self = this
     this.patch = Pd.loadPatch(this.patchStr)
     if (!this._patchPortsInitialized) this._initPatchPorts()
+    else this._pdReceivePaths.forEach(function(subpath) {
+      Pd.send(subpath, self.ports[subpath].value)
+    })
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 
