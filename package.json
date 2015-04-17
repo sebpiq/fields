@@ -1,8 +1,9 @@
 {
   "name": "fields",
-  "version": "0.0.0",
+  "preferGlobal": true,
+  "version": "0.1.0",
   "author": "Sébastien Piquemal <sebpiq@gmail.com>",
-  "description": "Fields",
+  "description": "Sound diffusion using audience's mobile devices",
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:sebpiq/fields-_.git"
@@ -33,5 +34,6 @@
   },
   "engines": {
     "node": "0.10.x"
-  }
+  },
+  "license": "GPL"
 }

@@ -40244,6 +40244,24 @@ if (WebSocket) ws.prototype = WebSocket.prototype;
 
 },{}]},{},[6]);
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var waaUtils = require('./core/waa')
   , async = require('async')
   , _ = require('underscore')
@@ -40424,6 +40442,24 @@ rhizome.on('connection lost', function() {
 })
 
 },{"./core/BaseInstrument":2,"./core/ports":4,"./core/waa":6,"./instruments/DistributedSequencer":7,"./instruments/Granulator":8,"./instruments/Osc":9,"./instruments/Sine":10,"./instruments/Trigger":11,"./instruments/WebPdInstrument":12,"./instruments/WhiteNoise":13,"async":14,"underscore":17,"waaclock":18}],2:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
@@ -40518,6 +40554,24 @@ _.extend(BaseInstrument.prototype, {
   onStop: function() {},
 })
 },{"./math":3,"./ports":4,"./utils":5,"underscore":17}],3:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 exports.pickVal = function(mean, variance) {
   return mean + mean * variance * (1 - 2 * Math.random())
 }
@@ -40532,6 +40586,24 @@ exports.valExp = function(val, exp) {
 }
 
 },{}],4:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var EventEmitter = require('events').EventEmitter
   , _ = require('underscore')
   , utils = require('./utils')
@@ -40638,6 +40710,24 @@ exports.PointPort = BasePort.extend({
 
 })
 },{"./utils":5,"events":15,"underscore":17}],5:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var _ = require('underscore')
 
 exports.chainExtend = function() {
@@ -40672,6 +40762,24 @@ exports.loadFile = function(opts, done) {
   request.send()
 }
 },{"underscore":17}],6:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var utils = require('./utils')
 
 // This must be executed on a user action, and will return a working audio context.
@@ -40797,6 +40905,24 @@ DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
 
 },{"./utils":5}],7:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var _ = require('underscore')
   , async = require('async')
   , waaUtils = require('../core/waa')
@@ -40901,6 +41027,24 @@ module.exports = Instrument.extend({
 
 })
 },{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":14,"underscore":17}],8:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -41011,6 +41155,24 @@ module.exports = Instrument.extend({
 
 })
 },{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"underscore":17}],9:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var async = require('async')
   , _ = require('underscore')
   , WAAOffset = require('waaoffset')
@@ -41123,6 +41285,24 @@ module.exports = Instrument.extend({
 })
 
 },{"../core/BaseInstrument":2,"../core/math":3,"../core/ports":4,"../core/waa":6,"async":14,"underscore":17,"waaoffset":20}],10:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -41207,6 +41387,24 @@ module.exports = Instrument.extend({
 
 })
 },{"../core/BaseInstrument":2,"../core/ports":4,"../core/waa":6,"async":14,"underscore":17}],11:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
@@ -41244,6 +41442,24 @@ module.exports = Instrument.extend({
   
 })
 },{"../core/BaseInstrument":2,"../core/math":3,"../core/waa":6,"underscore":17}],12:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -41362,6 +41578,24 @@ module.exports = Instrument.extend({
 
 })
 },{"../core/BaseInstrument":2,"../core/ports":4,"../core/utils":5,"../core/waa":6,"async":14,"underscore":17}],13:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
