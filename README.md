@@ -11,7 +11,7 @@ Installation
 
 You first need to install [node.js](https://nodejs.org/). I recommend to install it through [nvm](https://github.com/creationix/nvm).
 
-Then, in a terminal run `npm install -g fields`.
+Then, in a terminal run `npm install -g fields-system`.
 
 Finally, simply create a configuration file, and start the **Fields** server by running `fields config.js` in a terminal. 
 
