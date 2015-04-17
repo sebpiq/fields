@@ -1,3 +1,21 @@
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var utils = require('./utils')
 
 // This must be executed on a user action, and will return a working audio context.
@@ -16,8 +34,11 @@ exports.kickStartWAA = function() {
 // Loads an audio buffer from sound file at `url`.  
 var loadBuffer = exports.loadBuffer = function(url, done) {
   utils.loadFile({ url: url, responseType: 'arraybuffer' }, function(err, blob) {
+    //if (url.indexOf('assets/samples/clicks') === 0) console.log('loaded', url, err)
     if (err) return done(err)
     decodeBlob(blob, function(err, buffer) {
+      //if (url.indexOf('assets/samples/clicks') === 0) console.log('decoded', url)
+      //if (url.indexOf('assets/samples/clicks') === 0) debugger
       if (err) {
         if (err instanceof DecodeError) err.message += ' ' + url
         return done(err)
@@ -100,7 +121,7 @@ exports.plotBuffer = function(buffer, svg) {
 
 // Decodes `blob` and calls `done(err, blob)` when done.
 var decodeBlob = function(blob, done) {
-  audioContext.decodeAudioData(blob, function(buffer) {
+  fields.sound.audioContext.decodeAudioData(blob, function(buffer) {
     done(null, buffer)
   }, function(err) {
     done(err || new DecodeError('decoding error'), null)

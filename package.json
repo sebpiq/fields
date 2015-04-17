@@ -1,8 +1,9 @@
 {
   "name": "fields",
-  "version": "0.0.0",
+  "preferGlobal": true,
+  "version": "0.1.0",
   "author": "Sébastien Piquemal <sebpiq@gmail.com>",
-  "description": "Fields",
+  "description": "Sound diffusion using audience's mobile devices",
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:sebpiq/fields-_.git"
@@ -26,9 +27,13 @@
     "express": "3.3.x",
     "waaclock": "0.5.x",
     "rhizome-server": "git://github.com/sebpiq/rhizome.git#develop",
-    "simple-statistics": "0.9.x"
+    "mustache-express": "1.2.x"
+  },
+  "bin": {
+    "fields": "./backend/main.js"
   },
   "engines": {
-    "node": ">=0.10"
-  }
+    "node": "0.10.x"
+  },
+  "license": "GPL"
 }

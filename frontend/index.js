@@ -1,3 +1,21 @@
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var waaUtils = require('./core/waa')
   , async = require('async')
   , EventEmitter = require('events').EventEmitter
@@ -21,19 +39,21 @@ fields.log = function(msg) {
     .prependTo('#console')
   $('#console .log').slice(60).remove()
 }
-//if (typeof rhizome !== 'undefined') rhizome.log = log
-console = {log: fields.log, error: fields.log, warn: fields.log }
 
 fields.sound = {
   clock: null,
   audioContext: null,
   supportedFormats: null,
+  preferredFormat: null,
   position: null
 }
 
-fields.sequence = {}
-
-fields.events = new EventEmitter()
+fields.core = {
+  BaseInstrument: require('./core/BaseInstrument'),
+  ports: require('./core/ports'),
+  waa: require('./core/waa'),
+  declareInstrumentClass: function(name, cls) { instrumentClasses[name] = cls }
+}
 
 // Contains all the instances of sound engines for each declared instrument
 // `{ <instrument id>: <instrument instance> }`
@@ -42,10 +62,6 @@ var instruments = {}
 // Contains all the available classes
 // `{ <instrument class name>: <instrument class> }`
 var instrumentClasses = {}
-
-var declareInstrumentClass = function(name, cls) {
-  instrumentClasses[name] = cls
-}
 
 var setStatus = function(msg) {
   $('#status').html('status : ' + msg)
@@ -103,13 +119,13 @@ fields.sound.start = function() {
   fields.sound.clock.start()
 
   // Declare builtin instruments
-  declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
-  declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  declareInstrumentClass('Osc', require('./instruments/Osc'))
-  declareInstrumentClass('Sine', require('./instruments/Sine'))
-  declareInstrumentClass('Trigger', require('./instruments/Trigger'))
-  declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
-  declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
+  fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
+  fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
+  fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
+  fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
+  fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
+  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   // Start
   async.waterfall([

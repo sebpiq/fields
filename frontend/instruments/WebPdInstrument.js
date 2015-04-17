@@ -1,3 +1,21 @@
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
 var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
@@ -16,65 +34,15 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
-Pd._glob.library['fields/clock'] = Pd.core.PdObject.extend({
-
+Pd._glob.library['fields/preferred-format'] = Pd.core.PdObject.extend({
   inletDefs: [
     Pd.core.portlets.Inlet.extend({
       message: function(args) {
-        this.obj.setRate(args[0])
+        this.obj.o(0).message([fields.sound.preferredFormat])
       }
     })
   ],
-  outletDefs: [Pd.core.portlets.Outlet],
-
-  init: function(args) {
-    var self = this
-      , rate = args[0] || 10000
-    //    timeOffset = clientTime - serverTime
-    // => serverTime = clientTime - timeOffset
-    //    timeToNextTick = rate - serverTime % rate
-    // => timeToNextTick = rate - (clientTime - timeOffset) % rate
-    //    tickClockTime = currentClockTime + timeToNextTick 
-    //    tickClockTime = currentClockTime + rate - (clientTime - timeOffset) % rate
-    this.setRate(rate)
-  },
-
-  setRate: function(rate) {
-    var tickClockTime = Pd._glob.audio.time + rate - (Date.now() - fields.sound.timeOffset) % rate
-    if (this._handler) Pd._glob.clock.unschedule(this._handler)
-    this._handler = Pd._glob.clock.schedule(function(event) {
-      var counter = Math.round((Date.now() - fields.sound.timeOffset) / rate)
-      //fields.log('TICK ' + counter)
-      self.o(0).message([ counter ])
-    }, tickClockTime, rate)
-  }
-
-})
-
-Pd._glob.library['fields/sequence'] = Pd.core.PdObject.extend({
-
-  inletDefs: [
-    Pd.core.portlets.Inlet.extend({
-      message: function(args) {
-        if (args[0] === 'bang') this.obj._sendSequence()
-      }
-    })
-  ],
-
-  outletDefs: [Pd.core.portlets.Outlet, Pd.core.portlets.Outlet],
-
-  init: function() {
-    var self = this
-    fields.events.on('sequence:changed', function() {
-      self._sendSequence()
-    })
-  },
-
-  _sendSequence: function() {
-    console.log(fields.sequence.length, fields.sequence.index)
-    this.o(1).message([ fields.sequence.length ])
-    this.o(0).message([ fields.sequence.index ])
-  }
+  outletDefs: [Pd.core.portlets.Outlet]
 })
 
 module.exports = Instrument.extend({
@@ -92,11 +60,17 @@ module.exports = Instrument.extend({
     var self = this
     Instrument.prototype.init.apply(this, arguments)
     this.patchUrl = args[0]
+    this._patchPortsInitialized = false
     this.patch = null
+    this._pdReceivePaths = []
 
     this.ports.debug.on('value', function(args) {
       if (args[0] === 'reload') {
-        if (self.patch) self._clearPatch()
+        if (self.patch) {
+          Pd.destroyPatch(this.patch)
+          this.patch = null
+        }
+        self._clearPatchPorts()
         self.stop()
         self.load(function() {})
       }
@@ -116,50 +90,45 @@ module.exports = Instrument.extend({
 
   onStart: function() {
     var self = this
-    if (!this.patch) this._initPatch()
-    else this.patch.start()
-    this.patch.objects.forEach(function(obj) {
-      if (obj.type === 'receive' && obj.name === 'timeOffset') {
-        obj.o(0).message([ Math.round(fields.sound.timeOffset) ])
-      } else if (obj.type === 'receive' && obj.name === 'id') {
-        obj.o(0).message([ parseInt(rhizome.id) ])
-      } 
+    this.patch = Pd.loadPatch(this.patchStr)
+    if (!this._patchPortsInitialized) this._initPatchPorts()
+    else this._pdReceivePaths.forEach(function(subpath) {
+      Pd.send(subpath, self.ports[subpath].value)
     })
     this.patch.o(0).obj._gainNode.connect(this.mixer)
   },
 
   onStop: function() {
-    if (this.patch) this.patch.stop()
+    if (this.patch) {
+      Pd.destroyPatch(this.patch)
+      this.patch = null
+    }
   },
 
-  _clearPatch: function() {
+  _clearPatchPorts: function() {
     var self = this
-    Pd.destroyPatch(this.patch)
-    this.patch = null
-    
     // Removing all the ports that are not base ports
     var basePorts = Object.keys(this.portDefinitions)
     Object.keys(this.ports).forEach(function(subpath) {
       if (!_.contains(basePorts, subpath)) delete self.ports[subpath]
     })
+    this._patchPortsInitialized = false
   },
 
-  _initPatch: function() {
+  _initPatchPorts: function() {
     var self = this
-    // Load the patch
-    this.patch = Pd.loadPatch(this.patchStr)
-
     // Create a port for each object [receive <portName>]
     this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
       .forEach(function(receive) {
         var subpath = receive.name
         self.addPort(subpath, WebPdPort)
+        self._pdReceivePaths.push(subpath)
         self.ports[subpath].on('value', function(args) {
           Pd.send(subpath, args)
         })
       })
-
     this.restore() // Once ports are created, we call restore again
+    this._patchPortsInitialized = true
   }
 
 

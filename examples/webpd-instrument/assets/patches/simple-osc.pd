@@ -1,0 +1,6 @@
+#N canvas 270 229 450 300 10;
+#X obj 97 54 r frequency;
+#X obj 97 87 osc~;
+#X obj 96 120 outlet~;
+#X connect 0 0 1 0;
+#X connect 1 0 2 0;
