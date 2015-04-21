@@ -23,29 +23,31 @@ Examples of working applications with full configuration files can be found [her
 Full instructions
 --------------------
 
+**NB** : these instructions are for mac or linux.
+
 ### Node.js installation
 
 #### Prerequisites
 
-- If you are using a mac, you first need to install command-line tools or Xcode through the app store.
+- If you are using a mac, you first need to install **command-line tools** or **Xcode** through the app store.
 - All users will also need **git**
 
 
 #### Installation
 
-Node.js is an open source environment for programming applications in JavaScript, **Fields** is built on top of it. I recommend to install node by using [nvm](https://github.com/creationix/nvm) . Node comes with two command-line tools `node` which is the programming environment and `npm`, which is the package manager, and allows to easily install third-party packages from the web.
+**Node.js** is an open-source environment for programming applications in JavaScript, **fields** is built on top of it. I recommend to install node by using [nvm](https://github.com/creationix/nvm) . Node comes with two command-line tools `node` which is the programming environment and `npm`, which is the package manager, and allows to easily install third-party packages from the web.
 
-**nvm** is a small command-line tool which allows you to easily install a specific version of node, and switch between different versions. To install it, first make sure that you have a `.profile` or `.bashrc` file in your home directory. If not, open a terminal and run `touch ~/.profile` . Then, follow the instruction on [nvm github page](https://github.com/creationix/nvm).
+**nvm** is a small command-line tool which allows you to easily install a specific version of node, and switch between different versions. To install it, first make sure that you have either `.profile` or `.bashrc` file in your home directory (they are hidden files, so they will not appear in Finder). If not, open a terminal and run `touch ~/.profile` . Then, follow the instruction on [nvm github page](https://github.com/creationix/nvm).
 
-When the installation of **nvm** is complete, close and re-open your terminal. Type `nvm` and if installation succeeded, you should see nvm's help message. You can now install node by running `nvm install 0.10` . Once node installation is complete, you should be able to use the commands `node` or `npm` from your terminal.
+When the installation of **nvm** is complete, close and re-open your terminal. Type `nvm` and if the installation succeeded, you should see nvm's help message. You can now install node 0.10 by running `nvm install 0.10` . Once node installation is complete, you should be able to use the commands `node` or `npm` from your terminal.
 
 
 ### Installing Fields and running an example
 
 #### Prerequisites
 
-- The example for **fields** requires Pure data extended. So please install it first.
-- Node and npm
+- The example for **fields** requires **Pure Data Extended**. So please install it first.
+- **Node** and **npm**
 
 
 #### Installation
@@ -59,7 +61,7 @@ Try to type `fields` in your terminal, you should get a very short help message.
 
 Download the example [here](https://github.com/sebpiq/fields/tree/master/examples/webpd-instrument). To do that, you can either download all the files one by one, or [download the whole fields code](https://github.com/sebpiq/fields/archive/master.zip) (including a lot of files you don't need to care about). Create a folder, and copy all the files from the example inside. Then with you terminal, navigate to that folder, and run `fields config.js`. It should start the **fields** server, print a copyright notice, and a few other informations on your configuration. 
 
-Now that the server is running, open your browser and go to [localhost:8000/s.html]. You should see a page with a start button. Press that button, and an instrument should be loaded in your browser. By sending OSC messages you should be able to control that instrument. Open the patch `controls.pd` with Pd-extended, and try start the instrument, change the volume and frequency.
+Now that the server is running, open your browser and go to [localhost:8000/s.html](localhost:8000/s.html). You should see a page with a start button. Press that button, and an instrument should be loaded in your browser. By sending OSC messages you should be able to control that instrument. Open the patch `controls.pd` with Pd-extended, and try to start the instrument, change the volume and the frequency.
 
 
 ### Re-opening Fields after you've shutdown your computer
