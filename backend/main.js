@@ -30,7 +30,7 @@ var path = require('path')
 
 var staticDir = path.resolve(__dirname, '..', 'dist')
   , instrumentConfigFile = path.join(staticDir, 'js', 'config.js')
-  , httpServer, wsServer
+  , httpServer, wsServer, oscServer, manager
 
 // Code that will run if the module is main
 if (require.main === module) {
@@ -46,34 +46,39 @@ if (require.main === module) {
 
   var config = require(path.join(process.cwd(), process.argv[2]))
 
-  // Connection manager
-  rhizome.connections.manager = new rhizome.connections.ConnectionManager({
+  var HTTPServer = function() {
+    var app = express()
+    this._httpServer = require('http').createServer(app)
+    this._port = config.server.port
+    app.set('port', this._port)
+    app.use(express.logger('dev'))
+    app.use(express.bodyParser())
+    app.use(express.methodOverride())
+    app.use(app.router)
+    app.engine('mustache', mustacheExpress())
+    app.set('view engine', 'mustache')
+    app.set('views', path.join(staticDir, 'templates'))
+    app.use('/', express.static(staticDir))
+    app.get('/s.html', function (req, res) {
+      var context = { extraInstruments: config.extraInstruments || [] }
+      res.render('s', context)
+    })
+    if (config.server.assetsDir)
+      app.use('/assets', express.static(config.server.assetsDir))
+  }
+
+  HTTPServer.prototype.start = function(done) {
+    this._httpServer.listen(this._port, done)
+  }
+
+  HTTPServer.prototype.validateConfig = function(done) { done() }
+
+  // Rhizome servers and connection manager
+  manager = new rhizome.connections.ConnectionManager({
     store: config.server.tmpDir
   })
-
-  // HTTP server
-  var app = express()
-  httpServer = require('http').createServer(app)
-  app.set('port', config.server.port)
-  app.use(express.logger('dev'))
-  app.use(express.bodyParser())
-  app.use(express.methodOverride())
-  app.use(app.router)
-  app.engine('mustache', mustacheExpress())
-  app.set('view engine', 'mustache')
-  app.set('views', path.join(staticDir, 'templates'))
-  app.use('/', express.static(staticDir))
-  app.get('/s.html', function (req, res) {
-    var context = { extraInstruments: config.extraInstruments || [] }
-    res.render('s', context)
-  })
-  if (config.server.assetsDir)
-    app.use('/assets', express.static(config.server.assetsDir))
-
-  // Websocket server
-  wsServer = new rhizome.websockets.Server({ serverInstance: httpServer })
-
-  // Osc server
+  httpServer = new HTTPServer()
+  wsServer = new rhizome.websockets.Server({ serverInstance: httpServer._httpServer })
   oscServer = new rhizome.osc.Server({ port: config.osc.port })
 
   // Async operations
@@ -83,10 +88,7 @@ if (require.main === module) {
     fs.writeFile.bind(fs, instrumentConfigFile, 'fields.config = ' + config.instruments.toString()),
 
     // Start servers
-    rhizome.connections.manager.start.bind(rhizome.connections.manager),
-    httpServer.listen.bind(httpServer, app.get('port')),
-    wsServer.start.bind(wsServer),
-    oscServer.start.bind(oscServer)
+    rhizome.starter.bind(rhizome.starter, manager, [wsServer, oscServer, httpServer]),
 
   ], function(err) {
     if (err) throw err
