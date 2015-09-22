@@ -26,7 +26,7 @@ var BaseInstrument = module.exports = function(instrumentId, args) {
   var self = this
   this.mixer = fields.sound.audioContext.createGain()
   this.mixer.gain.value = 0
-  this.mixer.connect(fields.sound.audioContext.destination)
+  this.mixer.connect(fields.sound.masterMixer)
 
   this.started = false
   this.instrumentId = instrumentId
@@ -52,7 +52,7 @@ _.extend(BaseInstrument.prototype, {
       }
       var volRatio = self.ports['volume'].value
         , panning = self.ports['panning'].value
-        , position = fields.sound.position
+        , position = fields.position
         , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
       self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.3)
     }

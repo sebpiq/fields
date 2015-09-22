@@ -20,64 +20,61 @@ gulp.task('render-rhizome-client', function() {
   return rhizome.websockets.renderClientBrowserGulp('./tmp')
 })
 
-// Browserifies the JS for sound.
-// This is the file that kickstarts the sound, makes rhizome connection,
-// creates the instruments instances, etc ...
-gulp.task('browserify-sound', function() {
+// Browserifies the fields frontend.
+gulp.task('browserify', function() {
   return browserify({ entries: './frontend/index.js' })
     .bundle()
     .on('error', gutil.log)
-    .pipe(source('sound.browserified.js'))
+    .pipe(source('fields.browserified.js'))
     .pipe(gulp.dest('./tmp'))
 })
 
-// Bundles all the needed files for the sound page into one file.
-gulp.task('bundle-sound', function() {
+// Bundles all the needed files for fields frontend into one file.
+gulp.task('bundle', function() {
   return gulp.src([
       './frontend/deps/AudioContextMonkeyPatch.js',
       './frontend/deps/webpd-latest.js',
       './frontend/deps/jquery-2.1.0.js',
       './tmp/rhizome.js',
-      './frontend/core/common.js',
-      './tmp/sound.browserified.js',
+      './tmp/fields.browserified.js',
     ])
-    .pipe(concat('sound.js', { newLine: ';' }))
+    .pipe(concat('fields.js', { newLine: ';' }))
     .pipe(gulp.dest('./tmp'))
 })
 
-gulp.task('copy-bundle-sound', function() {
-  return gulp.src('./tmp/sound.js')
-    .pipe(gulp.dest('./dist/js'))
+gulp.task('copy-bundle', function() {
+  return gulp.src('./tmp/fields.js')
+    .pipe(gulp.dest('./dist/baseAssets/js'))
 })
 
-gulp.task('uglify-sound', function() {
-  return gulp.src('./tmp/sound.js')
+gulp.task('uglify', function() {
+  return gulp.src('./tmp/fields.js')
     .pipe(uglify())
     .on('error', gutil.log)
-    .pipe(gulp.dest('./dist/js'))
+    .pipe(gulp.dest('./dist/baseAssets/js'))
 })
 
-gulp.task('less-sound', function () {
-  return gulp.src('./frontend/sound.less')
+// Builds the css
+gulp.task('less', function () {
+  return gulp.src('./frontend/fields.less')
     .pipe(less())
     .on('error', gutil.log)
-    .pipe(gulp.dest('./dist/css'))
+    .pipe(gulp.dest('./dist/baseAssets/css'))
 })
 
-gulp.task('sound', function(done) {
+gulp.task('fields', function(done) {
   runSequence(
     'render-rhizome-client',
-    'browserify-sound',
-    'bundle-sound',
-    'copy-bundle-sound',
-    'less-sound',
+    'browserify',
+    'bundle',
+    'less',
   done)
 })
 
 gulp.task('build', function(done) {
-  runSequence('default', 'uglify-sound', done)
+  runSequence('fields', 'uglify', done)
 })
 
 gulp.task('default', function(done) {
-  runSequence('sound', 'copy-bundle-sound', done)
+  runSequence('fields', 'copy-bundle', done)
 })

@@ -28,20 +28,33 @@ button {
   right: 1em;
   background-color: rgba(0, 0, 0, 0.8);
 }
-#mapContainer {
+#startContainer {
   width: 100%;
   height: 100%;
   text-align: center;
 }
-#mapContainer h2 {
+#startContainer h2 {
   font-size: 0.8em;
   padding: 0 1em;
 }
-#mapContainer #map {
-  width: 100%;
-  max-width: 800px;
-  background-color: white;
+#startContainer #start {
+  position: relative;
+  width: 12em;
+  height: 12em;
+  top: 10%;
+  border-radius: 6em;
+  background-color: black;
   cursor: crosshair;
+  color: white;
+  margin: auto;
+  border: solid 1px white;
+}
+#startContainer #start span {
+  display: block;
+  position: absolute;
+  width: 100%;
+  top: 45%;
+  left: 0;
 }
 #console .log {
   font-size: 200%;

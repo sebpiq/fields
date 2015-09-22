@@ -206,12 +206,12 @@ var _ = require('underscore')
   , pdfu = require('pd-fileutils')
   , Patch = require('./lib/core/Patch')
   , PdObject = require('./lib/core/PdObject')
-  , utils = require('./lib/core/utils')
+  , mixins = require('./lib/core/mixins')
   , portlets = require('./lib/objects/portlets')
   , waa = require('./lib/waa')
   , pdGlob = require('./lib/global')
   , interfaces = require('./lib/core/interfaces')
-  , patchIds = _.extend({}, utils.UniqueIdsMixin)
+  , patchIds = _.extend({}, mixins.UniqueIdsMixin)
 
 // Various initializations
 require('./lib/objects').declareObjects(pdGlob.library)
@@ -315,8 +315,6 @@ var Pd = module.exports = {
   },
 
   // Loads a patch from a string (Pd file), or from an object (pd.json)
-  // TODO : problems of scheduling on load, for example executing [loadbang] ???
-  //         should we use the `futureTime` hack? 
   loadPatch: function(patchData) {
     var patch = this._createPatch()
     if (_.isString(patchData)) patchData = pdfu.parse(patchData)
@@ -373,7 +371,7 @@ var Pd = module.exports = {
 
 if (typeof window !== 'undefined') window.Pd = Pd
 
-},{"./lib/core/Patch":3,"./lib/core/PdObject":4,"./lib/core/interfaces":5,"./lib/core/utils":8,"./lib/global":9,"./lib/objects":13,"./lib/objects/portlets":14,"./lib/waa":18,"pd-fileutils":62,"underscore":69}],2:[function(require,module,exports){
+},{"./lib/core/Patch":3,"./lib/core/PdObject":4,"./lib/core/interfaces":5,"./lib/core/mixins":6,"./lib/global":9,"./lib/objects":13,"./lib/objects/portlets":14,"./lib/waa":18,"pd-fileutils":62,"underscore":69}],2:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -507,6 +505,7 @@ _.extend(BaseNode.prototype, {
 
 var _ = require('underscore')
   , EventEmitter = require('events').EventEmitter
+  , mixins = require('./mixins')
   , utils = require('./utils')
   , BaseNode = require('./BaseNode')
   , pdGlob = require('../global')
@@ -524,7 +523,7 @@ var Patch = module.exports = function() {
   this.blockSize = pdGlob.settings.blockSize
 }
 
-_.extend(Patch.prototype, BaseNode.prototype, utils.UniqueIdsMixin, EventEmitter.prototype, {
+_.extend(Patch.prototype, BaseNode.prototype, mixins.UniqueIdsMixin, EventEmitter.prototype, {
 
   type: 'patch',
 
@@ -647,7 +646,7 @@ var isOutletObject = function(obj) {
   })
 }
 
-},{"../global":9,"./BaseNode":2,"./utils":8,"events":24,"underscore":69}],4:[function(require,module,exports){
+},{"../global":9,"./BaseNode":2,"./mixins":6,"./utils":8,"events":24,"underscore":69}],4:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -787,8 +786,18 @@ exports.NamedMixin = {
 }
 
 
-// A mixin for objects that reference another named object, such as [tabread~] or [delread~]
-// Everytime for any reason the `resolved` of the reference changes, "changed" is emitted,
+// Simple EventEmitter mixin, with a destroy method
+var EventEmitterMixin = exports.EventEmitterMixin = _.extend({}, EventEmitter.prototype, {
+
+  destroy: function() {
+    this.removeAllListeners()
+  }
+
+})
+
+
+// Helper to reference a named object (which uses the `NamedMixin`)
+// Every time for any reason the `resolved` of the reference changes, "changed" is emitted,
 // with arguments (newResolved, oldResolved)
 var Reference = exports.Reference = function(referencedType) {
   this.referencedType = referencedType
@@ -796,9 +805,10 @@ var Reference = exports.Reference = function(referencedType) {
   this._onChangedName = null
   this.resolved = null
   this._eventName = 'namedObjects:registered:' + this.referencedType
+  this._eventReceiver = new EventReceiver()
 }
 
-_.extend(Reference.prototype, EventEmitter.prototype, {
+_.extend(Reference.prototype, EventEmitterMixin, {
 
   set: function(name) {
     // Try to fetch the referenced object from `namedObjects`
@@ -820,15 +830,13 @@ _.extend(Reference.prototype, EventEmitter.prototype, {
           self._setResolved(obj)
         }
       }
-      pdGlob.emitter.on(this._eventName, this._onNewObject)
+      this._eventReceiver.on(pdGlob.emitter, this._eventName, this._onNewObject)
     }
   },
 
   destroy: function() {
-    this._stopListening()
-    if (this.resolved)
-      this.resolved.removeListener('changing:name', this._onChangedName)
-    this.removeAllListeners()
+    this._eventReceiver.destroy()
+    EventEmitterMixin.destroy.apply(this)
   },
 
   _setResolved: function(newObj) {
@@ -840,19 +848,78 @@ _.extend(Reference.prototype, EventEmitter.prototype, {
 
     if (newObj) {
       this._onChangedName = function() { self._setResolved(null) }
-      newObj.on('changing:name', this._onChangedName)
+      this._eventReceiver.on(newObj, 'changing:name', this._onChangedName)
     }
     this.emit('changed', newObj, oldObj)
   },
 
   _stopListening: function() {
     if (this._onNewObject) {
-      pdGlob.emitter.removeListener(this._eventName, this._onNewObject)
+      this._eventReceiver.removeListener(pdGlob.emitter, this._eventName, this._onNewObject)
       this._onNewObject = null
     }
   }
 
 })
+
+
+// Simple mixin to add functionalities for generating unique ids.
+// Each object extended with this mixin has a separate id counter.
+// Therefore ids are not unique globally but unique for object.
+exports.UniqueIdsMixin = {
+
+  // Every time it is called, this method returns a new unique id.
+  _generateId: function() {
+    this._idCounter++
+    return this._idCounter
+  },
+
+  // Counter used internally to assign a unique id to objects
+  // this counter should never be decremented to ensure the id unicity
+  _idCounter: -1
+}
+
+
+// This is a object to help managing event handlers, and especially clean
+// properly on destruction of the parent object.
+var EventReceiver = exports.EventReceiver = function() {
+  this._handlers = []
+}
+
+_.extend(EventReceiver.prototype, {
+
+  addListener: function(emitter, eventName, handler) {
+    this._handlers.push([emitter, eventName, handler])
+    emitter.addListener(eventName, handler)
+  },
+
+  once: function(emitter, eventName, handler) {
+    var self = this
+      , handlerData = [emitter, eventName, handler]
+    this._handlers.push(handlerData)
+    emitter.once(eventName, handler)
+  },
+
+  removeListener: function(emitter, eventName, handler) {
+    this._handlers = _.reject(this._handlers, function(handlerData) {
+      var rejected = (handlerData[0] === emitter
+            && handlerData[1] === eventName 
+            && handlerData[2] === handler)
+      if (rejected) emitter.removeListener(eventName, handler)
+      return rejected
+    })
+  },
+
+  destroy: function() {
+    this._handlers.forEach(function(handlerData) {
+      handlerData[0].removeListener(handlerData[1], handlerData[2])
+    })
+    this._handlers = []
+  }
+
+})
+
+EventReceiver.prototype.on = EventReceiver.prototype.addListener
 },{"../global":9,"chai":30,"events":24,"underscore":69}],7:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
@@ -970,6 +1037,7 @@ var Outlet = exports.Outlet = Portlet.extend({})
 
 var _ = require('underscore')
   , expect = require('chai').expect
+  , pdGlob = require('../global')
 
 // Regular expressions to deal with dollar-args
 var dollarVarRe = /\$(\d+)/,
@@ -1035,6 +1103,10 @@ exports.getDollarResolver = function(rawOutArray) {
 }
 
 
+// Helper to be able to extend a prototype `BaseClass` :
+// BaseClass.extend = chainExtend
+// SubClass = BaseClass.extend({ <name1>: <var1> ... })
+// The returned `SubClass` will also have an `extend` method.
 exports.chainExtend = function() {
   var sources = Array.prototype.slice.call(arguments, 0)
     , parent = this
@@ -1051,22 +1123,21 @@ exports.chainExtend = function() {
 }
 
 
-// Simple mixin to add functionalities for generating unique ids.
-// Each object extended with this mixin has a separate id counter.
-// Therefore ids are not unique globally but unique for object.
-exports.UniqueIdsMixin = {
-
-  // Every time it is called, this method returns a new unique id.
-  _generateId: function() {
-    this._idCounter++
-    return this._idCounter
-  },
-
-  // Counter used internally to assign a unique id to objects
-  // this counter should never be decremented to ensure the id unicity
-  _idCounter: -1
+// Helper function to add a time tag to a list of arguments.
+exports.timeTag = function(args, timeTag) {
+  if (!timeTag) return args
+  else if (_.isNumber(timeTag)) args.timeTag = timeTag
+  else args.timeTag = timeTag.timeTag
+  return args
 }
-},{"chai":30,"underscore":69}],9:[function(require,module,exports){
+
+
+// Helper function to get the timeTag of a list of arguments.
+// Returns current clock time if `args` is not time tagged.
+exports.getTimeTag = function(args) {
+  return (args && args.timeTag) || pdGlob.clock.time
+}
+},{"../global":9,"chai":30,"underscore":69}],9:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -1240,13 +1311,14 @@ exports.declareObjects = function(library) {
     outletDefs: [portlets.Outlet],
 
     init: function(receiveName, sendName, pdInit) {
+      this._eventReceiver = new mixins.EventReceiver()
       if (receiveName && receiveName !== '-' && receiveName !== 'empty') {
         this.receiveName = receiveName
         // ! because the extend method instantiates the object for inheritance, 
         // we need this "if"
         if (this._onMessageReceived) {
           this._onMessageReceived = this._onMessageReceived.bind(this)
-          pdGlob.emitter.on('msg:' + this.receiveName, this._onMessageReceived)
+          this._eventReceiver.on(pdGlob.emitter, 'msg:' + this.receiveName, this._onMessageReceived)
         }
       }
 
@@ -1257,14 +1329,12 @@ exports.declareObjects = function(library) {
       if (pdInit && this.patch) {
         var self = this
         this._onPatchStarted = function() { self._sendMessage([self.value]) }
-        this.patch.on('started', this._onPatchStarted)
+        this._eventReceiver.on(this.patch, 'started', this._onPatchStarted)
       }
     },
 
     destroy: function() {
-      pdGlob.emitter.removeListener('msg:' + this.receiveName, this._onMessageReceived)
-      if (this._onPatchStarted)
-        this.patch.removeListener('started', this._onPatchStarted)
+      this._eventReceiver.destroy()
     },
 
     _sendMessage: function(args) {
@@ -1507,8 +1577,7 @@ exports.declareObjects = function(library) {
  *
  */
 
-var EventEmitter = require('events').EventEmitter
-  , _ = require('underscore')
+var _ = require('underscore')
   , expect = require('chai').expect
   , WAAOffset = require('waaoffsetnode')
   , WAAWhiteNoise = require('waawhitenoisenode')
@@ -1532,7 +1601,7 @@ exports.declareObjects = function(library) {
             expect(frequency).to.be.a('number', this.obj.type + '::frequency')
             if (frequency === Infinity) frequency = 0
             this.obj.frequency = frequency
-            this.obj._updateFrequency()
+            this.obj._updateFrequency(utils.getTimeTag(args))
           }
         }
       }),
@@ -1541,7 +1610,7 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var phase = args[0]
           expect(phase).to.be.a('number', 'osc~::phase')
-          this.obj._updatePhase(phase)
+          this.obj._updatePhase(phase, utils.getTimeTag(args))
         }
       })
 
@@ -1554,40 +1623,40 @@ exports.declareObjects = function(library) {
     },
 
     start: function() {
-      this._createOscillator(0)
+      this._createOscillator(0, 0)
     },
 
     stop: function() {
       this._destroyOscillator()
     },
 
-    _updateFrequency: function() {
+    _updateFrequency: function(timeTag) {
       if (this._oscNode)
-        this._oscNode.frequency.setValueAtTime(this.frequency, pdGlob.futureTime / 1000 || 0)
+        this._oscNode.frequency.setValueAtTime(this.frequency, timeTag / 1000)
     },
 
-    _updatePhase: function(phase) {
+    _updatePhase: function(phase, timeTag) {
       if (pdGlob.isStarted)
-        this._createOscillator(phase)
+        this._createOscillator(phase, timeTag)
     }
 
   })
 
 
   // TODO : When phase is set, the current oscillator will be immediately disconnected,
-  // while ideally, it should be disconnected only at `futureTime` 
+  // while ideally, it should be disconnected only at `timeTag` 
   library['osc~'] = _OscBase.extend({
 
     type: 'osc~',
 
-    _createOscillator: function(phase) {
+    _createOscillator: function(phase, timeTag) {
       phase = phase * 2 * Math.PI 
       this._oscNode = pdGlob.audio.context.createOscillator()
       this._oscNode.setPeriodicWave(pdGlob.audio.context.createPeriodicWave(
         new Float32Array([0, Math.cos(phase)]),
         new Float32Array([0, Math.sin(-phase)])
       ))
-      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this._oscNode.start(timeTag / 1000)
       this.o(0).setWaa(this._oscNode, 0)
       this.i(0).setWaa(this._oscNode.frequency, 0)
       this.i(0).message([this.frequency])
@@ -1605,13 +1674,13 @@ exports.declareObjects = function(library) {
 
     type: 'phasor~',
 
-    _createOscillator: function(phase) {
+    _createOscillator: function(phase, timeTag) {
       this._gainNode = pdGlob.audio.context.createGain()
       this._gainNode.gain.value = 0.5
 
       this._oscNode = pdGlob.audio.context.createOscillator()
       this._oscNode.type = 'sawtooth'
-      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this._oscNode.start(timeTag / 1000)
       this._oscNode.connect(this._gainNode)
       
       this._offsetNode = new WAAOffset(pdGlob.audio.context)
@@ -1637,10 +1706,10 @@ exports.declareObjects = function(library) {
 
     type: 'triangle~',
 
-    _createOscillator: function(phase) {
+    _createOscillator: function(phase, timeTag) {
       this._oscNode = pdGlob.audio.context.createOscillator()
       this._oscNode.type = 'triangle'
-      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this._oscNode.start(timeTag / 1000)
       this.o(0).setWaa(this._oscNode, 0)
       this.i(0).setWaa(this._oscNode.frequency, 0)
       this.i(0).message([this.frequency])
@@ -1658,10 +1727,10 @@ exports.declareObjects = function(library) {
 
     type: 'square~',
 
-    _createOscillator: function(phase) {
+    _createOscillator: function(phase, timeTag) {
       this._oscNode = pdGlob.audio.context.createOscillator()
       this._oscNode.type = 'square'
-      this._oscNode.start(pdGlob.futureTime / 1000 || 0)
+      this._oscNode.start(timeTag / 1000)
       this.o(0).setWaa(this._oscNode, 0)
       this.i(0).setWaa(this._oscNode.frequency, 0)
       this.i(0).message([this.frequency])
@@ -1770,7 +1839,7 @@ exports.declareObjects = function(library) {
           var self = this
           if (this.obj._offsetNode) {
             var v2 = args[0]
-              , t1 = (pdGlob.futureTime || pdGlob.audio.time)
+              , t1 = utils.getTimeTag(args)
               , duration = args[1] || 0
 
             // Deal with arguments
@@ -1894,7 +1963,7 @@ exports.declareObjects = function(library) {
           expect(value).to.be.a('number', 'sig~::value')
           this.obj.value = value
           if (this.obj._offsetNode)
-            this.obj._offsetNode.offset.setValueAtTime(value, pdGlob.futureTime / 1000 || 0)
+            this.obj._offsetNode.offset.setValueAtTime(value, utils.getTimeTag(args) / 1000)
         }
       })
 
@@ -1926,7 +1995,7 @@ exports.declareObjects = function(library) {
       expect(frequency).to.be.a('number', this.obj.type + '::frequency')
       this.obj.frequency = frequency
       if (this.obj._filterNode)
-        this.obj._filterNode.frequency.setValueAtTime(frequency, pdGlob.futureTime / 1000 || 0)
+        this.obj._filterNode.frequency.setValueAtTime(frequency, utils.getTimeTag(args) / 1000)
     }
   }
 
@@ -1936,7 +2005,7 @@ exports.declareObjects = function(library) {
       expect(Q).to.be.a('number', this.obj.type + '::Q')
       this.obj.Q = Q
       if (this.obj._filterNode)
-        this.obj._filterNode.Q.setValueAtTime(Q, pdGlob.futureTime / 1000 || 0)
+        this.obj._filterNode.Q.setValueAtTime(Q, utils.getTimeTag(args) / 1000)
     }
   }
 
@@ -2044,13 +2113,13 @@ exports.declareObjects = function(library) {
     message: function(args) {
       var val = args[0]
       this.obj.setVal(val)
-      if (!this.hasDspSource()) this._setValNoDsp(val)
+      if (!this.hasDspSource()) this._setValNoDsp(val, utils.getTimeTag(args))
     },
     
     disconnection: function(outlet) {
       portlets.DspInlet.prototype.disconnection.apply(this, arguments) 
       if (outlet instanceof portlets.DspOutlet && !this.hasDspSource())
-        this._setValNoDsp(this.obj.val)
+        this._setValNoDsp(this.obj.val, 0)
     }
   }
 
@@ -2063,9 +2132,9 @@ exports.declareObjects = function(library) {
       portlets.DspInlet,
 
       portlets.DspInlet.extend(_DspArithmValInletMixin, {
-        _setValNoDsp: function(val) {
+        _setValNoDsp: function(val, timeTag) {
           if (this.obj._gainNode)
-            this.obj._gainNode.gain.setValueAtTime(val, pdGlob.futureTime / 1000 || 0)
+            this.obj._gainNode.gain.setValueAtTime(val, timeTag / 1000)
         }
       })
 
@@ -2076,7 +2145,7 @@ exports.declareObjects = function(library) {
       this.i(0).setWaa(this._gainNode, 0)
       this.i(1).setWaa(this._gainNode.gain, 0)
       this.o(0).setWaa(this._gainNode, 0)
-      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val)
+      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val, 0)
     },
 
     stop: function() {
@@ -2094,9 +2163,9 @@ exports.declareObjects = function(library) {
       portlets.DspInlet,
 
       portlets.DspInlet.extend(_DspArithmValInletMixin, {
-        _setValNoDsp: function(val) { 
+        _setValNoDsp: function(val, timeTag) { 
           if (this.obj._offsetNode)
-            this.obj._offsetNode.offset.setValueAtTime(val, pdGlob.futureTime / 1000 || 0)
+            this.obj._offsetNode.offset.setValueAtTime(val, timeTag / 1000)
         }
       })
 
@@ -2111,7 +2180,7 @@ exports.declareObjects = function(library) {
       this.i(0).setWaa(this._gainNode, 0)
       this.i(1).setWaa(this._offsetNode.offset, 0)
       this.o(0).setWaa(this._gainNode, 0)
-      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val)
+      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val, 0)
     },
 
     stop: function() {
@@ -2131,9 +2200,9 @@ exports.declareObjects = function(library) {
       portlets.DspInlet,
 
       portlets.DspInlet.extend(_DspArithmValInletMixin, {
-        _setValNoDsp: function(val) { 
+        _setValNoDsp: function(val, timeTag) { 
           if (this.obj._offsetNode)
-            this.obj._offsetNode.offset.setValueAtTime(val, pdGlob.futureTime / 1000 || 0)
+            this.obj._offsetNode.offset.setValueAtTime(val, timeTag / 1000)
         }
       })
 
@@ -2151,7 +2220,7 @@ exports.declareObjects = function(library) {
       this.i(0).setWaa(this._gainNode, 0)
       this.i(1).setWaa(this._offsetNode.offset, 0)
       this.o(0).setWaa(this._gainNode, 0)
-      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val)
+      if (!this.i(1).hasDspSource()) this.i(1)._setValNoDsp(this.val, 0)
     },
 
     stop: function() {
@@ -2171,13 +2240,14 @@ exports.declareObjects = function(library) {
       var self = this
       this.array = new mixins.Reference('array')
       this._onDataChangedHandler = null
+      this._eventReceiver = new mixins.EventReceiver()
 
       // When name of the referenced array is changing, we need to detach handlers
-      this.array.on('changed', function(newArray, oldArray) {
+      this._eventReceiver.on(this.array, 'changed', function(newArray, oldArray) {
         if (oldArray) oldArray.removeListener('changed:data', self._onDataChangedHandler)
         if (newArray) {
           self._onDataChangedHandler = function() { self.dataChanged() }
-          newArray.on('changed:data', self._onDataChangedHandler)
+          self._eventReceiver.on(newArray, 'changed:data', self._onDataChangedHandler)
         }
       })
     },
@@ -2185,8 +2255,7 @@ exports.declareObjects = function(library) {
     dataChanged: function() {},
 
     destroy: function() {
-      if (this.array.resolved)
-        this.array.resolved.removeListener('changed:data', this._onDataChangedHandler)
+      this._eventReceiver.destroy()
       this.array.destroy()
     }
 
@@ -2227,7 +2296,7 @@ exports.declareObjects = function(library) {
       var self = this
         , arrayName = args[0]
       _TabBase.prototype.init.apply(this, arguments)
-      this.array.on('changed', function() { self._updateDsp() })
+      this._eventReceiver.on(this.array, 'changed', function() { self._updateDsp() })
       if (arrayName) this.array.set(arrayName)
     },
 
@@ -2242,10 +2311,6 @@ exports.declareObjects = function(library) {
     stop: function() {
       this._tableNode = null
       this._gainNode = null
-    },
-
-    destroy: function() {
-      _TabBase.prototype.destroy.apply(this, arguments)
     },
 
     dataChanged: function() {
@@ -2263,7 +2328,7 @@ exports.declareObjects = function(library) {
 
   })
 
-  library['delwrite~'] = PdObject.extend(mixins.NamedMixin, EventEmitter.prototype, {
+  library['delwrite~'] = PdObject.extend(mixins.NamedMixin, mixins.EventEmitterMixin, {
 
     type: 'delwrite~',
 
@@ -2289,7 +2354,7 @@ exports.declareObjects = function(library) {
 
     destroy: function() {
       mixins.NamedMixin.destroy.apply(this, arguments)
-      this.removeAllListeners()
+      mixins.EventEmitterMixin.destroy.apply(this, arguments)
     }
 
   })
@@ -2302,7 +2367,7 @@ exports.declareObjects = function(library) {
       portlets.DspInlet.extend({
         message: function(args) {
           var delayTime = args[0]
-          this.obj.setDelayTime(delayTime)
+          this.obj.setDelayTime(delayTime, utils.getTimeTag(args))
         }
       })
     ],
@@ -2312,6 +2377,7 @@ exports.declareObjects = function(library) {
       var self = this
         , delayName = args[0]
         , initialDelayTime = args[1]
+      this._eventReceiver = new mixins.EventReceiver()
       this._delayTime = initialDelayTime || 0
       this._delWrite = new mixins.Reference('delwrite~')
       this._onDelWriteStarted = null
@@ -2323,7 +2389,7 @@ exports.declareObjects = function(library) {
       this._onDelWriteChanged = function(newObj, oldObj) {
         if (pdGlob.isStarted && newObj) self._createDelay()
       }
-      this._delWrite.on('changed', this._onDelWriteChanged)
+      this._eventReceiver.on(this._delWrite, 'changed', this._onDelWriteChanged)
     },
 
     stop: function() {
@@ -2336,15 +2402,14 @@ exports.declareObjects = function(library) {
 
     destroy: function() {
       this._delWrite.destroy()
-      if (this._delWrite.resolved && this._onDelWriteStarted)
-        this._delWrite.resolved.removeListener('started', this._onDelWriteStarted)
+      this._eventReceiver.destroy()
     },
 
-    setDelayTime: function(delayTime) {
+    setDelayTime: function(delayTime, timeTag) {
       expect(delayTime).to.be.a('number')
       this._delayTime = delayTime
       if (this._delayNode && !this.i(0).hasDspSource())
-        this._delayNode.delayTime.setValueAtTime(this._delayTime / 1000, pdGlob.futureTime / 1000 || 0)
+        this._delayNode.delayTime.setValueAtTime(this._delayTime / 1000, timeTag / 1000 || 0)
     },
 
     _createDelay: function() {
@@ -2368,7 +2433,7 @@ exports.declareObjects = function(library) {
           doConnection()
         else {
           this._onDelWriteStarted = doConnection
-          this._delWrite.resolved.once('started', this._onDelWriteStarted)
+          this._eventReceiver.once(this._delWrite.resolved, 'started', this._onDelWriteStarted)
         }
       }
         
@@ -2472,7 +2537,7 @@ exports.declareObjects = function(library) {
 
 }
 
-},{"../core/PdObject":4,"../core/mixins":6,"../core/utils":8,"../global":9,"./portlets":14,"chai":30,"events":24,"underscore":69,"waaoffsetnode":72,"waatablenode":74,"waawhitenoisenode":78}],12:[function(require,module,exports){
+},{"../core/PdObject":4,"../core/mixins":6,"../core/utils":8,"../global":9,"./portlets":14,"chai":30,"underscore":69,"waaoffsetnode":72,"waatablenode":74,"waawhitenoisenode":78}],12:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -2492,8 +2557,7 @@ exports.declareObjects = function(library) {
  *  along with WebPd.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-var EventEmitter = require('events').EventEmitter
-  , _ = require('underscore')
+var _ = require('underscore')
   , expect = require('chai').expect
   , utils = require('../core/utils')
   , mixins = require('../core/mixins')
@@ -2505,7 +2569,7 @@ var EventEmitter = require('events').EventEmitter
 
 exports.declareObjects = function(library) {
 
-  library['receive'] = library['r'] = PdObject.extend(mixins.NamedMixin, EventEmitter.prototype, {
+  library['receive'] = library['r'] = PdObject.extend(mixins.NamedMixin, mixins.EventEmitterMixin, {
 
     type: 'receive',
 
@@ -2515,18 +2579,20 @@ exports.declareObjects = function(library) {
     init: function(args) {
       var name = args[0]
         , self = this
+      this._eventReceiver = new mixins.EventReceiver()
       this._onMessageReceived = this._onMessageReceived.bind(this)
-      this.on('changed:name', function(oldName, newName) {
-        if (oldName) pdGlob.emitter.removeListener('msg:' + oldName, self._onMessageReceived)
-        pdGlob.emitter.on('msg:' + newName, self._onMessageReceived)
+      this._eventReceiver.on(this, 'changed:name', function(oldName, newName) {
+        if (oldName) 
+          self._eventReceiver.removeListener(pdGlob.emitter, 'msg:' + oldName, self._onMessageReceived)
+        self._eventReceiver.on(pdGlob.emitter, 'msg:' + newName, self._onMessageReceived)
       })
       this.setName(name)
     },
 
     destroy: function() {
       mixins.NamedMixin.destroy.apply(this, arguments)
-      pdGlob.emitter.removeListener('msg:' + this.name, this._onMessageReceived)
-      this.removeAllListeners()
+      this._eventReceiver.destroy()
+      mixins.EventEmitterMixin.destroy.apply(this, arguments)
     },
 
     _onMessageReceived: function(args) {
@@ -2535,7 +2601,7 @@ exports.declareObjects = function(library) {
 
   })
 
-  library['send'] = library['s'] = PdObject.extend(mixins.NamedMixin, EventEmitter.prototype, {
+  library['send'] = library['s'] = PdObject.extend(mixins.NamedMixin, mixins.EventEmitterMixin, {
 
     type: 'send',
 
@@ -2555,7 +2621,7 @@ exports.declareObjects = function(library) {
 
     destroy: function() {
       mixins.NamedMixin.destroy.apply(this, arguments)
-      this.removeAllListeners()
+      mixins.EventEmitterMixin.destroy.apply(this, arguments)
     }
 
   })
@@ -2570,10 +2636,11 @@ exports.declareObjects = function(library) {
 
       portlets.Inlet.extend({
         message: function(args) {
+          var timeTag = args.timeTag
           // For some reason in Pd $0 in a message is always 0.
           args = args.slice(0)
           args.unshift(0)
-          this.obj.outlets[0].message(this.obj.resolver(args))
+          this.obj.outlets[0].message(utils.timeTag(this.obj.resolver(args), timeTag))
         }
       })
 
@@ -2625,14 +2692,15 @@ exports.declareObjects = function(library) {
 
     init: function() {
       var self = this
+      this._eventReceiver = new mixins.EventReceiver()
       this._onPatchStarted = function() {
         self.o(0).message(['bang'])
       }
-      this.patch.on('started', this._onPatchStarted)
+      this._eventReceiver.on(this.patch, 'started', this._onPatchStarted)
     },
 
     destroy: function() {
-      this.patch.removeListener('started', this._onPatchStarted)
+      this._eventReceiver.destroy()
     }
 
   })
@@ -2645,7 +2713,7 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var val = args[0]
           if (val !== 'bang') this.obj.setVal(val)
-          this.obj.o(0).message([this.obj.val])
+          this.obj.o(0).message(utils.timeTag([this.obj.val], args))
         }
       }),
 
@@ -2691,7 +2759,7 @@ exports.declareObjects = function(library) {
 
   })
 
-  var _ArithmBase = PdObject.extend({
+  var _TwoVarFunctionBase = PdObject.extend({
 
     inletDefs: [
       portlets.Inlet.extend({
@@ -2701,7 +2769,7 @@ exports.declareObjects = function(library) {
             this.obj.valLeft = val
           else if (val !== 'bang')
             console.error('invalid message : ' + args)
-          this.obj.o(0).message([this.obj.compute()])
+          this.obj.o(0).message(utils.timeTag([this.obj.compute()], args))
         }
       }),
 
@@ -2724,92 +2792,118 @@ exports.declareObjects = function(library) {
     compute: function() { return }
   })
 
-  library['+'] = _ArithmBase.extend({
+  library['+'] = _TwoVarFunctionBase.extend({
     type: '+',
 
     compute: function() { return this.valLeft + this.valRight }
   })
 
-  library['-'] = _ArithmBase.extend({
+  library['-'] = _TwoVarFunctionBase.extend({
     type: '-',
     compute: function() { return this.valLeft - this.valRight }
   })
 
-  library['*'] = _ArithmBase.extend({
+  library['*'] = _TwoVarFunctionBase.extend({
     type: '*',
     compute: function() { return this.valLeft * this.valRight }
   })
 
-  library['/'] = _ArithmBase.extend({
+  library['/'] = _TwoVarFunctionBase.extend({
     type: '/',
     compute: function() { return this.valLeft / this.valRight }
   })
 
-  library['mod'] = library['%'] = _ArithmBase.extend({
+  library['mod'] = library['%'] = _TwoVarFunctionBase.extend({
     type: 'mod',
     compute: function() { return this.valLeft % this.valRight }
   })
 
-  library['pow'] = _ArithmBase.extend({
+  library['pow'] = _TwoVarFunctionBase.extend({
     type: 'pow',
     compute: function() { return Math.pow(this.valLeft, this.valRight) }
   })
 
-  var _NumberFunctionBase = PdObject.extend({
+  var _OneVarFunctionBase = PdObject.extend({
 
     inletDefs: [
       portlets.Inlet.extend({
         message: function(args) {
           var inVal = args[0]
-          expect(inVal).to.be.a('number')
-          this.obj.o(0).message([this.obj.compute(inVal)])
+          this.obj.checkInput(inVal)
+          this.obj.o(0).message(utils.timeTag([this.obj.compute(inVal)], args))
         }
       })
     ],
     outletDefs: [portlets.Outlet],
-    
+
+    // Must be overriden    
+    checkInput: function(inVal) {},
+
     // Must be overriden
     compute: function() { return }
   })
 
-  library['cos'] = _NumberFunctionBase.extend({
+  var _OneNumVarFunctionBase = _OneVarFunctionBase.extend({
+    checkInput: function(inVal) { expect(inVal).to.be.a('number') }
+  })
+
+  library['cos'] = _OneNumVarFunctionBase.extend({
     type: 'cos',
     compute: function(inVal) { return Math.cos(inVal) }
   })
 
-  library['sin'] = _NumberFunctionBase.extend({
+  library['sin'] = _OneNumVarFunctionBase.extend({
     type: 'sin',
     compute: function(inVal) { return Math.sin(inVal) }
   })
 
-  library['tan'] = _NumberFunctionBase.extend({
+  library['tan'] = _OneNumVarFunctionBase.extend({
     type: 'tan',
     compute: function(inVal) { return Math.tan(inVal) }
   })
 
-  library['atan'] = _NumberFunctionBase.extend({
+  library['atan'] = _OneNumVarFunctionBase.extend({
     type: 'atan',
     compute: function(inVal) { return Math.atan(inVal) }
   })
 
-  library['exp'] = _NumberFunctionBase.extend({
+  library['exp'] = _OneNumVarFunctionBase.extend({
     type: 'exp',
     compute: function(inVal) { return Math.exp(inVal) }
   })
 
-  library['log'] = _NumberFunctionBase.extend({
+  library['log'] = _OneNumVarFunctionBase.extend({
     type: 'log',
     compute: function(inVal) { return Math.log(inVal) }
   })
 
-  library['abs'] = _NumberFunctionBase.extend({
+  library['abs'] = _OneNumVarFunctionBase.extend({
     type: 'abs',
     compute: function(inVal) { return Math.abs(inVal) }
   })
 
-  library['sqrt'] = _NumberFunctionBase.extend({
+  library['sqrt'] = _OneNumVarFunctionBase.extend({
     type: 'sqrt',
     compute: function(inVal) { return Math.sqrt(inVal) }
+  })
+
+  library['mtof'] = _OneNumVarFunctionBase.extend({
+    type: 'mtof',
+    maxMidiNote: 8.17579891564 * Math.exp((0.0577622650 * 1499)),
+    // TODO: round output ?
+    compute: function(note) { 
+      var out = 0
+      expect(note).to.be.a('number', 'mtof::value')
+      if (note <= -1500) out = 0
+      else if (note > 1499) out = this.maxMidiNote
+      else out = 8.17579891564 * Math.exp((0.0577622650 * note))
+      return out 
+    }
+  })
+
+  library['samplerate~'] = _OneVarFunctionBase.extend({
+    type: 'samplerate~',
+    compute: function () { return pdGlob.settings.sampleRate }
   })
 
   library['spigot'] = PdObject.extend({
@@ -2860,20 +2954,20 @@ exports.declareObjects = function(library) {
           for (i = this.obj.filters.length - 1; i >= 0; i--) {
             filter = this.obj.filters[i]
             if (filter === 'bang')
-              this.obj.o(i).message(['bang'])
+              this.obj.o(i).message(utils.timeTag(['bang'], args))
             else if (filter === 'list' || filter === 'anything')
               this.obj.o(i).message(args)
             else if (filter === 'float' || _.isNumber(filter)) {
               msg = args[0]
-              if (_.isNumber(msg)) this.obj.o(i).message([msg])
-              else this.obj.o(i).message([0])
+              if (_.isNumber(msg)) this.obj.o(i).message(utils.timeTag([msg], args))
+              else this.obj.o(i).message(utils.timeTag([0], args))
             } else if (filter === 'symbol') {
               msg = args[0]
-              if (msg === 'bang') this.obj.o(i).message(['symbol'])
-              else if (_.isNumber(msg)) this.obj.o(i).message(['float'])
-              else if (_.isString(msg)) this.obj.o(i).message([msg])
+              if (msg === 'bang') this.obj.o(i).message(utils.timeTag(['symbol'], args))
+              else if (_.isNumber(msg)) this.obj.o(i).message(utils.timeTag(['float'], args))
+              else if (_.isString(msg)) this.obj.o(i).message(utils.timeTag([msg], args))
               else throw new Error('Got unexpected input ' + args)
-            } else this.obj.o(i).message(['bang'])
+            } else this.obj.o(i).message(utils.timeTag(['bang'], args))
           }
         }
 
@@ -2895,7 +2989,7 @@ exports.declareObjects = function(library) {
     message: function(args) {
       var msg = args[0]
       if (msg !== 'bang') this.obj.memory[0] = msg
-      this.obj.o(0).message(this.obj.memory.slice(0))
+      this.obj.o(0).message(utils.timeTag(this.obj.memory.slice(0), args))
     }
   })
 
@@ -2943,8 +3037,8 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var ind, msg = args[0]
           if ((ind = this.obj.filters.indexOf(msg)) !== -1)
-            this.obj.o(ind).message(['bang'])
-          else this.obj.outlets.slice(-1)[0].message([msg])
+            this.obj.o(ind).message(utils.timeTag(['bang'], args))
+          else this.obj.outlets.slice(-1)[0].message(utils.timeTag([msg], args))
         }
       }),
 
@@ -2979,8 +3073,8 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var val = args[0]
           expect(val).to.be.a('number', 'moses::value')
-          if (val < this.obj.val) this.obj.o(0).message([val])
-          else this.obj.o(1).message([val])
+          if (val < this.obj.val) this.obj.o(0).message(utils.timeTag([val], args))
+          else this.obj.o(1).message(utils.timeTag([val], args))
         }
       }),
 
@@ -3017,10 +3111,10 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var val = args[0]
           if (val === 'bang') {
-            this.obj._startLoop()
+            this.obj._startLoop(args.timeTag)
           } else {
             expect(val).to.be.a('number', 'moses::value')
-            this.obj._startLoop(val)
+            this.obj._startLoop(args.timeTag, val)
           }
         }
       }),
@@ -3041,11 +3135,11 @@ exports.declareObjects = function(library) {
       this._looping = false
     },
 
-    _startLoop: function(max) {
+    _startLoop: function(timeTag, max) {
       this._looping = true
       var self = this
         , counter = 0
-        , sendBang =  function() { self.o(0).message(['bang']) }
+        , sendBang =  function() { self.o(0).message(utils.timeTag(['bang'], timeTag)) }
 
       if (_.isNumber(max)) {
         while (this._looping && counter < max) {
@@ -3063,41 +3157,6 @@ exports.declareObjects = function(library) {
 
   })
 
-  library['mtof'] = PdObject.extend({
-
-    type: 'mtof',
-
-    inletDefs: [
-      portlets.Inlet.extend({
-        // TODO: round output ?
-        message: function(args) {
-          var out = 0
-            , note = args[0]
-          expect(note).to.be.a('number', 'mtof::value')
-          if (note <= -1500) out = 0
-          else if (note > 1499) out = this.obj.maxMidiNote
-          else out = 8.17579891564 * Math.exp((0.0577622650 * note))
-          this.obj.o(0).message([out])
-        }
-      })
-    ],
-
-    outletDefs: [portlets.Outlet],
-    maxMidiNote: 8.17579891564 * Math.exp((0.0577622650 * 1499))
-  })
-
-  library['samplerate~'] = PdObject.extend({
-    type: 'samplerate~',
-    inletDefs: [
-      portlets.Inlet.extend({
-        message: function(args) {
-          this.obj.o(0).message([ pdGlob.settings.sampleRate ])
-        }
-      })
-    ],
-    outletDefs: [portlets.Outlet],
-  })
-
   library['random'] = PdObject.extend({
 
     type: 'random',
@@ -3108,7 +3167,7 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var msg = args[0]
           if (msg === 'bang')
-            this.obj.o(0).message([Math.floor(Math.random() * this.obj.max)])
+            this.obj.o(0).message(utils.timeTag([Math.floor(Math.random() * this.obj.max)], args))
           else if (msg === 'seed') 1 // TODO: seeding, not available with `Math.rand`
         }
       }),
@@ -3135,7 +3194,7 @@ exports.declareObjects = function(library) {
 
   })
 
-  // Should tick happen at future time ?
+
   library['metro'] = PdObject.extend({
 
     type: 'metro',
@@ -3145,12 +3204,12 @@ exports.declareObjects = function(library) {
       portlets.Inlet.extend({
         message: function(args) {
           var msg = args[0]
-          if (msg === 'bang') this.obj._restartMetroTick()
+          if (msg === 'bang') this.obj._restartMetroTick(utils.getTimeTag(args))
           else if (msg === 'stop') this.obj._stopMetroTick() 
           else {
             expect(msg).to.be.a('number', 'metro::command')
             if (msg === 0) this.obj._stopMetroTick()
-            else this.obj._restartMetroTick()
+            else this.obj._restartMetroTick(utils.getTimeTag(args))
           }
         }
       }),
@@ -3184,14 +3243,12 @@ exports.declareObjects = function(library) {
       this._stopMetroTick()
     },
 
-    _startMetroTick: function() {
+    _startMetroTick: function(timeTag) {
       var self = this
       if (this._metroHandle === null) {
         this._metroHandle = pdGlob.clock.schedule(function(event) {
-          //if (event) pdGlob.futureTime = event.deadline * 1000
-          self._metroTick()
-          //if (event) delete pdGlob.futureTime
-        }, pdGlob.futureTime || pdGlob.clock.time, this.rate)
+          self._metroTick(event.time)
+        }, timeTag, this.rate)
       }
     },
 
@@ -3202,22 +3259,24 @@ exports.declareObjects = function(library) {
       }
     },
 
-    _restartMetroTick: function() {
+    _restartMetroTick: function(timeTag) {
       // If a rate change was made and `_restartMetroTick` is called before the next tick,
       // we should do this to avoid `_restartMetroTick` to be called twice recursively,
       // which would cause _metroHandle to not be unscheduled properly... 
       if (this._metroTick === this._metroTickRateChange)
         this._metroTick = this._metroTickNormal
       this._stopMetroTick()
-      this._startMetroTick()
+      this._startMetroTick(timeTag)
     },
 
-    _metroTickNormal: function() { this.outlets[0].message(['bang']) },
+    _metroTickNormal: function(timeTag) { 
+      this.outlets[0].message(utils.timeTag(['bang'], timeTag))
+    },
 
     // On next tick, restarts the interval and switches to normal ticking.
-    _metroTickRateChange: function() {
+    _metroTickRateChange: function(timeTag) {
       this._metroTick = this._metroTickNormal
-      this._restartMetroTick()
+      this._restartMetroTick(timeTag)
     }
   })
 
@@ -3232,13 +3291,13 @@ exports.declareObjects = function(library) {
           var msg = args[0]
           if (msg === 'bang') {
             this.obj._stopDelay()
-            this.obj._startDelay()
+            this.obj._startDelay(utils.getTimeTag(args))
           } else if (msg === 'stop') {
             this.obj._stopDelay() 
           } else {
             this.obj.setDelay(msg)
             this.obj._stopDelay()
-            this.obj._startDelay()
+            this.obj._startDelay(utils.getTimeTag(args))
           }
         }
       }),
@@ -3270,12 +3329,12 @@ exports.declareObjects = function(library) {
       this._stopDelay()
     },
 
-    _startDelay: function() {
+    _startDelay: function(timeTag) {
       var self = this
       if (this._delayHandle === null) {
         this._delayHandle = pdGlob.clock.schedule(function() {
           self.outlets[0].message(['bang'])
-        }, (pdGlob.futureTime || pdGlob.clock.time) + this.delay)
+        }, timeTag + this.delay)
       }
     },
 
@@ -3298,7 +3357,7 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var msg = args[0]
           expect(msg).to.be.equal('bang', 'timer::startStop')
-          this.obj.refTime = (pdGlob.futureTime || pdGlob.clock.time)
+          this.obj.refTime = utils.getTimeTag(args)
         }
       }),
 
@@ -3306,7 +3365,7 @@ exports.declareObjects = function(library) {
         message: function(args) {
           var msg = args[0]
           expect(msg).to.be.equal('bang', 'timer::measure')
-          this.obj.outlets[0].message([(pdGlob.futureTime || pdGlob.clock.time) - this.obj.refTime])
+          this.obj.outlets[0].message(utils.timeTag([utils.getTimeTag(args) - this.obj.refTime], args))
         }
       })
 
@@ -3331,7 +3390,7 @@ exports.declareObjects = function(library) {
           var val = args[0]
           if (val !== this.obj.last) {
             this.obj.last = val
-            this.obj.o(0).message([val])
+            this.obj.o(0).message(utils.timeTag([val], args))
           }
         }
       })
@@ -3345,7 +3404,7 @@ exports.declareObjects = function(library) {
 
   })
 
-  library['array'] = library['table'] = PdObject.extend(mixins.NamedMixin, EventEmitter.prototype, {
+  library['array'] = library['table'] = PdObject.extend(mixins.NamedMixin, mixins.EventEmitterMixin, {
 
     type: 'array',
 
@@ -3361,7 +3420,7 @@ exports.declareObjects = function(library) {
 
     destroy: function() {
       mixins.NamedMixin.destroy.apply(this, arguments)
-      this.removeAllListeners()
+      mixins.EventEmitterMixin.destroy.apply(this, arguments)
     },
 
     setData: function(audioData, resize) {
@@ -3451,7 +3510,7 @@ exports.declareObjects = function(library) {
 
 }
 
-},{"../core/Patch":3,"../core/PdObject":4,"../core/mixins":6,"../core/utils":8,"../global":9,"./portlets":14,"chai":30,"events":24,"underscore":69}],13:[function(require,module,exports){
+},{"../core/Patch":3,"../core/PdObject":4,"../core/mixins":6,"../core/utils":8,"../global":9,"./portlets":14,"chai":30,"underscore":69}],13:[function(require,module,exports){
 /*
  * Copyright (c) 2011-2015 Chris McCormick, Sébastien Piquemal <sebpiq@gmail.com>
  *
@@ -3519,9 +3578,7 @@ var InletMixin = {
   // That way DSP objects that can schedule stuff, have a bit of time
   // before the event must actually happen.
   future: function(time, args) {
-    pdGlob.futureTime = time
-    this.message(args)
-    delete pdGlob.futureTime
+    this.message(utils.timeTag(args, time))
   }
 
 }
@@ -3673,6 +3730,19 @@ exports.declareObjects = function(library) {
     }
   })
 
+  var PortletDspObjectMixin = {
+    start: function() {
+      this._gainNode = pdGlob.audio.context.createGain()
+      this._gainNode.gain.value = 1
+      this.i(0).setWaa(this._gainNode, 0)
+      this.o(0).setWaa(this._gainNode, 0)
+    },
+
+    stop: function() {
+      this._gainNode = null
+    }
+  }
+
   library['outlet'] = PdObject.extend({
     type: 'outlet',
     inletDefs: [ InletInlet ],
@@ -3685,28 +3755,16 @@ exports.declareObjects = function(library) {
     outletDefs: [ Outlet ]
   })
 
-  library['outlet~'] = PdObject.extend({
-    
+  library['outlet~'] = PdObject.extend(PortletDspObjectMixin, {
     type: 'outlet~',
     inletDefs: [ InletInletDsp ],
     outletDefs: [ OutletOutletDsp.extend({ crossPatch: true }) ],
-
-    start: function() {
-      this._gainNode = pdGlob.audio.context.createGain()
-      this._gainNode.gain.value = 1
-      this.i(0).setWaa(this._gainNode, 0)
-      this.o(0).setWaa(this._gainNode, 0)
-    },
-
-    stop: function() {
-      this._gainNode = null
-    }
   })
 
-  library['inlet~'] = PdObject.extend({
+  library['inlet~'] = PdObject.extend(PortletDspObjectMixin, {
     type: 'inlet~',
     inletDefs: [ InletInletDsp.extend({ crossPatch: true }) ],
-    outletDefs: [ OutletOutletDsp ]
+    outletDefs: [ OutletOutletDsp ],
   })
 
 }

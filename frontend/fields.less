@@ -32,7 +32,7 @@ button {
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-#mapContainer {
+#startContainer {
   width: 100%;
   height: 100%;
   text-align: center;
@@ -40,11 +40,25 @@ button {
     font-size: 0.8em;
     padding: 0 1em;
   }
-  #map{
-    width: 100%;
-    max-width: 800px;
-    background-color: white;
+  #start {
+    @buttonSize: 12em;
+    position: relative;
+    width: @buttonSize;
+    height: @buttonSize;
+    top: 10%;
+    border-radius: @buttonSize / 2;
+    background-color: black;
     cursor: crosshair;
+    color: white; 
+    margin: auto; 
+    border: solid 1px white;
+    span {
+      display: block;
+      position: absolute;
+      width: 100%;
+      top: 45%;
+      left: 0;
+    }
   }
 }
 

@@ -1,0 +1,56 @@
+<!doctype html>
+
+<html>
+  
+  <head>
+    <link href="baseAssets/css/fields.css" rel="stylesheet" type="text/css" />
+    <script src="baseAssets/js/fields.js"></script>
+    <script src="builtAssets/config.js"></script>
+  </head>
+
+  <body>
+    <div id="startContainer">
+      <div id="start"><span>PRESS TO START</span></div>
+      <!--<img id="start" src="images/map.svg" />-->
+      <!--<h2>The drawing above is a map of the room you are sitting in. Please locate yourself by touching the map.</h2>-->
+    </div>
+    <div id="console"></div>
+    <div id="status"></div>
+
+    <script>
+      if (!fields.isSupported()) {
+        $('body').html('<div id="notSupported">Sorry, but this web browser is not supported by our system. You should try with a recent version of Chrome or Firefox.</div>')
+        throw new Error('fields not supported!')
+      }
+
+      $(function() {
+        var startEl = $('#start')
+        startEl.click(function(event) {
+          $('#status').show()
+          $('#startContainer').fadeOut(100)
+
+          fields.position = {}
+          var posX = startEl.offset().left
+            , posY = startEl.offset().top
+          
+          fields.position.x = (event.pageX - posX) / startEl.width()
+          fields.position.y = 1 - (event.pageY - posY) / startEl.height()
+          fields.start(fields.config())
+        })
+      })
+
+      fields.log = function(msg) {
+        $('<div>', { class: 'log' })
+          .html(msg)
+          .prependTo('#console')
+        $('#console .log').slice(60).remove()
+      }
+
+      fields.statusChanged = function(status) {
+        $('#status').html('status : ' + status)
+      }
+    </script>
+
+  </body>
+  
+</html>

@@ -1,6 +1,5 @@
 *~
 node_modules
 npm-debug.log
-build
 tmp
 dist/js/config.js

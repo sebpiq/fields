@@ -17,6 +17,7 @@
  */
  
 var _ = require('underscore')
+  , errors = require('./errors')
 
 exports.chainExtend = function() {
   var sources = Array.prototype.slice.call(arguments, 0)
@@ -35,14 +36,13 @@ exports.chainExtend = function() {
 
 // Loads the file and calls `done(err, blob)` when done.
 // `opts` must contain `url` and `responseType`
-// TODO : HTTPError
 exports.loadFile = function(opts, done) {
   var request = new XMLHttpRequest()
   request.open('GET', opts.url, true)
   request.responseType = opts.responseType
   request.onload = function(res) {
     if (request.status === 200) done(null, request.response)
-    else done(new HTTPError(request.statusText))
+    else done(new errors.HTTPError(request.statusText))
   }
   request.onerror = function(err) {
     done(err || new Error('unexpected request error'), null)

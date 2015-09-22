@@ -17,6 +17,7 @@
  */
  
 var utils = require('./utils')
+  , errors = require('./errors')
 
 // This must be executed on a user action, and will return a working audio context.
 exports.kickStartWAA = function() {
@@ -40,7 +41,7 @@ var loadBuffer = exports.loadBuffer = function(url, done) {
       //if (url.indexOf('assets/samples/clicks') === 0) console.log('decoded', url)
       //if (url.indexOf('assets/samples/clicks') === 0) debugger
       if (err) {
-        if (err instanceof DecodeError) err.message += ' ' + url
+        if (err instanceof errors.DecodeError) err.message += ' ' + url
         return done(err)
       }
       done(null, buffer)
@@ -53,9 +54,9 @@ var loadBuffer = exports.loadBuffer = function(url, done) {
 var formatSupport = exports.formatSupport = function(done) {
   var results = []
     , formatList = [
-      ['wav', 'format-support/sample.wav'],
-      ['mp3', 'format-support/sample.mp3'],
-      ['ogg', 'format-support/sample.ogg']
+      ['wav', 'baseAssets/format-support/sample.wav'],
+      ['mp3', 'baseAssets/format-support/sample.mp3'],
+      ['ogg', 'baseAssets/format-support/sample.ogg']
     ]
     , format
 
@@ -64,7 +65,7 @@ var formatSupport = exports.formatSupport = function(done) {
 
     // catch error only if decoding error
     if (err) {
-      if (err instanceof DecodeError) support = false 
+      if (err instanceof errors.DecodeError) support = false 
       else return done(err)
 
     // if no error, we test that the buffer is decoded as expected
@@ -124,18 +125,6 @@ var decodeBlob = function(blob, done) {
   fields.sound.audioContext.decodeAudioData(blob, function(buffer) {
     done(null, buffer)
   }, function(err) {
-    done(err || new DecodeError('decoding error'), null)
+    done(err || new errors.DecodeError('decoding error'), null)
   })
 }
-
-var HTTPError = function HTTPError(message) {
-  this.message = (message || '')
-}
-HTTPError.prototype = Object.create(Error.prototype)
-HTTPError.prototype.name = 'HTTPError'
-
-var DecodeError = function DecodeError(message) {
-  this.message = (message || '')
-}
-DecodeError.prototype = Object.create(Error.prototype)
-DecodeError.prototype.name = 'DecodeError'

@@ -27,7 +27,7 @@
     "express": "3.3.x",
     "waaclock": "0.5.x",
     "rhizome-server": "^0.7.0",
-    "mustache-express": "1.2.x"
+    "mkdirp": "^0.5.1"
   },
   "bin": {
     "fields": "./backend/main.js"
