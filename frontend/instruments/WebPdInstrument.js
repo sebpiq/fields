@@ -96,8 +96,9 @@ module.exports = Instrument.extend({
     // If already created, restore the previous values.
     if (!this._patchPortsInitialized) this._initPatchPorts()
     else this._pdReceivePaths.forEach(function(subpath) {
+      var port = self.ports[subpath]
       if (_.isArray(self.ports[subpath].value))
-        Pd.send(subpath, self.ports[subpath].value)
+        Pd.send(port.path, port.value)
     })
 
     // If the patch has a dsp outlet, connect it to the instrument mixer
@@ -125,14 +126,22 @@ module.exports = Instrument.extend({
 
   _initPatchPorts: function() {
     var self = this
-    // Create a port for each object [receive <portName>]
+      , pathRoot = '/' + self.instrumentId + '/'
+    // Create a port for each object [receive <portName>] that starts with '/<instrumentId>/'
     this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
       .forEach(function(receive) {
-        var subpath = receive.name
+        var path = receive.name
+          , rootInd = path.indexOf(pathRoot)
+          , subpath
+
+        // If we can't find `pathRoot` at the beginning of the name of the [receive] object,
+        // we don't create a port for it. 
+        if (rootInd !== 0) return
+        else subpath = path.slice(pathRoot.length)
         self.addPort(subpath, WebPdPort)
         self._pdReceivePaths.push(subpath)
         self.ports[subpath].on('value', function(args) {
-          Pd.send(subpath, args)
+          Pd.send(path, args)
         })
       })
     this.restore() // Once ports are created, we call restore again
