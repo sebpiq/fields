@@ -46122,11 +46122,19 @@ module.exports = Instrument.extend({
   onStart: function() {
     var self = this
     this.patch = Pd.loadPatch(this.patchStr)
+    
+    // Create and initialize patch ports.
+    // If already created, restore the previous values.
     if (!this._patchPortsInitialized) this._initPatchPorts()
     else this._pdReceivePaths.forEach(function(subpath) {
-      Pd.send(subpath, self.ports[subpath].value)
+      if (_.isArray(self.ports[subpath].value))
+        Pd.send(subpath, self.ports[subpath].value)
     })
-    this.patch.o(0).obj._gainNode.connect(this.mixer)
+
+    // If the patch has a dsp outlet, connect it to the instrument mixer
+    if (this.patch.outlets.length && this.patch.o(0) instanceof Pd.core.portlets.DspOutlet)
+      this.patch.o(0).obj._gainNode.connect(this.mixer)
+    else console.warn('WebPdInstrument "' + this.instrumentId + '" patch has no [outlet~]')
   },
 
   onStop: function() {
