@@ -46191,7 +46191,7 @@ var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
 
-Pd._glob.library['fields/preferred-format'] = Pd.core.PdObject.extend({
+Pd.registerExternal('fields/preferred-format', Pd.core.PdObject.extend({
   inletDefs: [
     Pd.core.portlets.Inlet.extend({
       message: function(args) {
@@ -46200,7 +46200,18 @@ Pd._glob.library['fields/preferred-format'] = Pd.core.PdObject.extend({
     })
   ],
   outletDefs: [Pd.core.portlets.Outlet]
-})
+}))
+
+Pd.registerExternal('fields/id', Pd.core.PdObject.extend({
+  inletDefs: [
+    Pd.core.portlets.Inlet.extend({
+      message: function(args) {
+        this.obj.o(0).message([rhizome.id])
+      }
+    })
+  ],
+  outletDefs: [Pd.core.portlets.Outlet]
+}))
 
 module.exports = Instrument.extend({
 
