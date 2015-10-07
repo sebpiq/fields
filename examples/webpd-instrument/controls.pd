@@ -1,4 +1,4 @@
-#N canvas 248 149 945 369 10;
+#N canvas 245 154 945 369 10;
 #X declare -lib mrpeach;
 #X obj 65 144 import mrpeach;
 #X obj 163 144 packOSC;
@@ -16,6 +16,12 @@
 1;
 #X obj 173 26 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
 -1 -1 0 1;
+#X obj 15 306 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+1;
+#X obj 224 307 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 0 1;
+#X msg 15 334 /simple-file-playback/state \$1;
+#X msg 221 333 /simple-file-playback/volume \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 3 0;
 #X connect 4 0 2 0;
@@ -26,3 +32,7 @@
 #X connect 9 0 1 0;
 #X connect 10 0 9 0;
 #X connect 11 0 8 0;
+#X connect 12 0 14 0;
+#X connect 13 0 15 0;
+#X connect 14 0 1 0;
+#X connect 15 0 1 0;

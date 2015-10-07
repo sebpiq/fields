@@ -1,7 +1,7 @@
 {
   "name": "fields-system",
   "preferGlobal": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "author": "Sébastien Piquemal <sebpiq@gmail.com>",
   "description": "Sound diffusion using audience's mobile devices",
   "repository": {
