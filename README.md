@@ -61,7 +61,7 @@ Try to type `fields` in your terminal, you should get a very short help message.
 
 Download the example [here](https://github.com/sebpiq/fields/tree/master/examples/webpd-instrument). To do that, you can either download all the files one by one, or [download the whole fields code](https://github.com/sebpiq/fields/archive/master.zip) (including a lot of files you don't need to care about). Create a folder, and copy all the files from the example inside. Then with you terminal, navigate to that folder, and run `fields config.js`. It should start the **fields** server, print a copyright notice, and a few other informations on your configuration. 
 
-Now that the server is running, open your browser and go to [localhost:8000/s.html](localhost:8000/s.html). You should see a page with a start button. Press that button, and an instrument should be loaded in your browser. By sending OSC messages you should be able to control that instrument. Open the patch `controls.pd` with Pd-extended, and try to start the instrument, change the volume and the frequency.
+Now that the server is running, open your browser and go to [localhost:8000/s.html](http://localhost:8000/s.html). You should see a page with a start button. Press that button, and an instrument should be loaded in your browser. By sending OSC messages you should be able to control that instrument. Open the patch `controls.pd` with Pd-extended, and try to start the instrument, change the volume and the frequency.
 
 
 ### Re-opening Fields after you've shutdown your computer
