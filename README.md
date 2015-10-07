@@ -11,7 +11,7 @@ Quick start
 
 **NB** : if you have never heard of Node.js, you should read the *full instructions*.
 
-You first need to install [node.js](https://nodejs.org/) version **0.10**. I highly recommend to install it through [nvm](https://github.com/creationix/nvm).
+You first need to install [node.js](https://nodejs.org/) version **0.12**. I highly recommend to install it through [nvm](https://github.com/creationix/nvm).
 
 Then, in a terminal run `npm install -g fields-system`.
 
@@ -39,7 +39,7 @@ Full instructions
 
 **nvm** is a small command-line tool which allows you to easily install a specific version of node, and switch between different versions. To install it, first make sure that you have either `.profile` or `.bashrc` file in your home directory (they are hidden files, so they will not appear in Finder). If not, open a terminal and run `touch ~/.profile` . Then, follow the instruction on [nvm github page](https://github.com/creationix/nvm).
 
-When the installation of **nvm** is complete, close and re-open your terminal. Type `nvm` and if the installation succeeded, you should see nvm's help message. You can now install node 0.10 by running `nvm install 0.10` . Once node installation is complete, you should be able to use the commands `node` or `npm` from your terminal.
+When the installation of **nvm** is complete, close and re-open your terminal. Type `nvm` and if the installation succeeded, you should see nvm's help message. You can now install node 0.12 by running `nvm install 0.12` . Once node installation is complete, you should be able to use the commands `node` or `npm` from your terminal.
 
 
 ### Installing Fields and running an example
@@ -66,4 +66,4 @@ Now that the server is running, open your browser and go to [localhost:8000/s.ht
 
 ### Re-opening Fields after you've shutdown your computer
 
-If you've done all of the above, and have shut down your computer and you want to come back to it! Then simply open a terminal, activate the node version you installed with nvm by running `nvm use 0.10`, navigate to the folder containing your project (or the example), and start the fields server by running `fields config.js`. 
+If you've done all of the above, and have shut down your computer and you want to come back to it! Then simply open a terminal, activate the node version you installed with nvm by running `nvm use 0.12`, navigate to the folder containing your project (or the example), and start the fields server by running `fields config.js`. 
