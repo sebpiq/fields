@@ -40,7 +40,7 @@ module.exports = Instrument.extend({
 
   load: function(done) {
     var self = this
-    waaUtils.loadBuffer(this.url, function(err, buffer) {  
+    waaUtils.loadBuffer(this.url + '.' + fields.sound.preferredFormat, function(err, buffer) {  
       if (!err) {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
