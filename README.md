@@ -5,6 +5,12 @@ Fields
 
 Fields uses **node.js** to run a server. Sound can be programmed with Pure Data (through [WebPd](http://github.com/sebpiq/WebPd)).
 
+Watch
+-------
+
+-> [Fields - Connect The Dots, Sheffield 10/10/2015](https://vimeo.com/144312243)
+
+-> [Fields - Mix 2014](https://vimeo.com/120524097)
 
 Quick start
 --------------
