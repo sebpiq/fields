@@ -91,7 +91,7 @@ if (config.instruments) {
 }
 
 // Start servers
-asyncOps.push(rhizome.starter.bind(rhizome.starter, manager, [wsServer, oscServer, httpServer]))
+asyncOps.push(rhizome.starter.bind(rhizome.starter, manager, [oscServer, httpServer, wsServer]))
 
 // Async operations
 async.series(asyncOps, function(err) {
