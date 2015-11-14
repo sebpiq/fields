@@ -40,7 +40,6 @@ _.extend(BaseInstrument.prototype, {
     'volume': ports.NumberPort.extend({
       mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
     }),
-    'panning': ports.PointPort,
     'state': ports.TogglePort
   },
 
@@ -52,20 +51,10 @@ _.extend(BaseInstrument.prototype, {
     this.mixer.gain.value = 0
     this.mixer.connect(fields.sound.masterMixer)
 
-    // Volume computation taking into account panning
-    var computeVolume = function() {
-      var panFunc = function(pan, pos) {
-        return (1 - Math.abs(pan - 0.5)) + (pos - 0.5) * (pan - 0.5) * 2
-      }
-      var volRatio = self.ports['volume'].value
-        , panning = self.ports['panning'].value
-        , position = fields.position
-        , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
-      alert(panRatio * volRatio)
-      self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.05)
-    }
-    this.ports['volume'].on('value', computeVolume)
-    this.ports['panning'].on('value', computeVolume)
+    // Volume
+    this.ports['volume'].on('value', function() {
+      self.mixer.gain.setTargetAtTime(self.ports['volume'].value, 0, 0.05)
+    })
 
     // State on/off
     this.ports['state'].on('value', function(isOn) {
