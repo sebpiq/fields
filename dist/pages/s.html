@@ -11,8 +11,6 @@
   <body>
     <div id="startContainer">
       <div id="start"><span>PRESS TO START</span></div>
-      <!--<img id="start" src="images/map.svg" />-->
-      <!--<h2>The drawing above is a map of the room you are sitting in. Please locate yourself by touching the map.</h2>-->
     </div>
     <div id="console"></div>
     <div id="status"></div>
@@ -23,20 +21,23 @@
         throw new Error('fields not supported!')
       }
 
-      $(function() {
-        var startEl = $('#start')
-        startEl.click(function(event) {
-          $('#status').show()
-          $('#startContainer').fadeOut(100)
+      var startEl = $('#start')
+        , is_iOS = /iPad|iPhone|iPod/.test(navigator.platform)
+        , eventType = is_iOS ? 'touchend' : 'click'
 
-          fields.position = {}
-          var posX = startEl.offset().left
-            , posY = startEl.offset().top
-          
-          fields.position.x = (event.pageX - posX) / startEl.width()
-          fields.position.y = 1 - (event.pageY - posY) / startEl.height()
-          fields.start(fields.config())
-        })
+      fields.load(fields.config())
+
+      $(startEl).on(eventType, function(event) {
+        $('#status').show()
+        $('#startContainer').fadeOut(100)
+
+        fields.position = {}
+        var posX = startEl.offset().left
+          , posY = startEl.offset().top
+        
+        fields.position.x = (event.pageX - posX) / startEl.width()
+        fields.position.y = 1 - (event.pageY - posY) / startEl.height()
+        fields.start()
       })
 
       fields.log = function(msg) {

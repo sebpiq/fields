@@ -20,7 +20,7 @@ var waaUtils = require('./core/waa')
   , async = require('async')
   , _ = require('underscore')
   , WAAClock = require('waaclock')
-  , muteTimeout, initialized = false
+  , muteTimeout, connectionSuccessful = false
 
 
 var fields = window.fields = {
@@ -73,31 +73,8 @@ var subscribeAll = function() {
   })
 }
 
-// Start the whole system, when the user presses a button. 
-fields.start = function(config) {
-  fields.statusChanged('connecting ...')
-
-  // Initialize sound
-  fields.sound.audioContext = waaUtils.kickStartWAA()
-  fields.sound.masterMixer = fields.sound.audioContext.createGain()
-  fields.sound.masterMixer.gain.value = 1
-  fields.sound.masterMixer.connect(fields.sound.audioContext.destination)
-  fields.sound.clock = new WAAClock(fields.sound.audioContext)
-  fields.sound.clock.onexpired = function() { fields.log('expired') }
-  fields.sound.clock.start()
-
-  if (fields.sound.fftDataHandler) {
-    var fftArray
-    fields.sound.analyserNode = fields.sound.audioContext.createAnalyser()
-    fields.sound.analyserNode.fftSize = 128
-    fields.sound.masterMixer.connect(fields.sound.analyserNode)
-    
-    fields.sound.clock.callbackAtTime(function() {
-      fftArray = new Float32Array(fields.sound.analyserNode.frequencyBinCount)
-      fields.sound.analyserNode.getFloatFrequencyData(fftArray)
-      fields.sound.fftDataHandler(fftArray)
-    }, 0).repeat(0.05)
-  }
+fields.load = function(config) {
+  fields.sound.audioContext = new AudioContext
 
   // Declare builtin instruments
   fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
@@ -108,10 +85,8 @@ fields.start = function(config) {
   fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
   fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
-  // Start
-  async.waterfall([
-
-    // Get format support infos
+  async.waterfall([    
+      // Get format support infos
     _.bind(waaUtils.formatSupport, waaUtils),
 
     // Instantiate all instruments
@@ -135,9 +110,6 @@ fields.start = function(config) {
       })
       next()
     },
-    
-    // Start rhizome
-    _.bind(rhizome.start, rhizome),
 
     // Load all instruments
     function(next) {
@@ -147,10 +119,49 @@ fields.start = function(config) {
     }
 
   ], function(err) {
-    if (err)
-      return fields.log('ERROR: ' + err)
-    initialized = true
-    fields.log('all instruments loaded')
+    if (err) return fields.log('ERROR: ' + err)
+    fields.log('all loaded')
+  })
+}
+
+// Start the whole system, when the user presses a button.
+// Evrything must happen synchronously to not freak out web audio on iOS.
+fields.start = function() {
+  fields.statusChanged('connecting ...')
+
+  // Initialize sound
+  fields.sound.audioContext = waaUtils.kickStartWAA()
+  fields.sound.masterMixer = fields.sound.audioContext.createGain()
+  fields.sound.masterMixer.gain.value = 1
+  fields.sound.masterMixer.connect(fields.sound.audioContext.destination)
+  fields.sound.clock = new WAAClock(fields.sound.audioContext)
+  fields.sound.clock.onexpired = function() { fields.log('expired') }
+  fields.sound.clock.start()
+  Pd.start({ audioContext: fields.sound.audioContext })
+
+  // Create an analyser for visualizations
+  if (fields.sound.fftDataHandler) {
+    var fftArray
+    fields.sound.analyserNode = fields.sound.audioContext.createAnalyser()
+    fields.sound.analyserNode.fftSize = 128
+    fields.sound.masterMixer.connect(fields.sound.analyserNode)
+    fields.sound.clock.callbackAtTime(function() {
+      fftArray = new Float32Array(fields.sound.analyserNode.frequencyBinCount)
+      fields.sound.analyserNode.getFloatFrequencyData(fftArray)
+      fields.sound.fftDataHandler(fftArray)
+    }, 0).repeat(0.05)
+  }
+
+  // Initializing instruments
+  _.chain(instruments).forEach(function(instrument) {
+    instrument.init()
+  }).value()
+
+  // Start rhizome
+  rhizome.start(function(err) {
+    if (err) return fields.log('ERROR: ' + err)
+    connectionSuccessful = true
+    fields.log('connection established')
   })
 }
 
@@ -159,7 +170,7 @@ rhizome.on('connected', function() {
   fields.statusChanged('connected')
 
   // Execute those only if the connection was successfuly established before 
-  if (initialized) {
+  if (connectionSuccessful) {
     if (muteTimeout) clearTimeout(muteTimeout)
     Object.keys(instruments).forEach(function(instrumentId) {
       instruments[instrumentId].restore()

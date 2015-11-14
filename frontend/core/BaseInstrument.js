@@ -24,26 +24,33 @@ var _ = require('underscore')
 // -------------------- Instruments -------------------- // 
 var BaseInstrument = module.exports = function(instrumentId, args) {
   var self = this
-  this.mixer = fields.sound.audioContext.createGain()
-  this.mixer.gain.value = 0
-  this.mixer.connect(fields.sound.masterMixer)
-
   this.started = false
   this.instrumentId = instrumentId
-
+  this.args = args
   this.ports = {}
   Object.keys(this.portDefinitions).forEach(function(subpath) {
     self.addPort(subpath, self.portDefinitions[subpath])
   })
-
-  this.init(args)
 }
 BaseInstrument.extend = utils.chainExtend
 
 _.extend(BaseInstrument.prototype, {
 
-  init: function(args) {
+  portDefinitions: {
+    'volume': ports.NumberPort.extend({
+      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
+    }),
+    'panning': ports.PointPort,
+    'state': ports.TogglePort
+  },
+
+  load: function(done) {},
+
+  init: function() {
     var self = this
+    this.mixer = fields.sound.audioContext.createGain()
+    this.mixer.gain.value = 0
+    this.mixer.connect(fields.sound.masterMixer)
 
     // Volume computation taking into account panning
     var computeVolume = function() {
@@ -54,6 +61,7 @@ _.extend(BaseInstrument.prototype, {
         , panning = self.ports['panning'].value
         , position = fields.position
         , panRatio = panFunc(panning[0], position.x) * panFunc(panning[1], position.y)
+      alert(panRatio * volRatio)
       self.mixer.gain.setTargetAtTime(panRatio * volRatio, 0, 0.05)
     }
     this.ports['volume'].on('value', computeVolume)
@@ -66,22 +74,13 @@ _.extend(BaseInstrument.prototype, {
     })
   },
 
-  portDefinitions: {
-
-    'volume': ports.NumberPort.extend({
-      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
-    }),
-    'panning': ports.PointPort,
-    'state': ports.TogglePort
-
-  },
-
   start: function() {
     if (this.started === false) {
       this.started = true
       this.onStart()
     }
   },
+  onStart: function() {},
 
   stop: function() {
     if (this.started === true) {
@@ -89,6 +88,7 @@ _.extend(BaseInstrument.prototype, {
       this.onStop()
     }
   },
+  onStop: function() {},
 
   receive: function(subpath, args) {
     if (!this.ports.hasOwnProperty(subpath))
@@ -102,10 +102,6 @@ _.extend(BaseInstrument.prototype, {
 
   addPort: function(subpath, portClass) {
     this.ports[subpath] = new portClass(this, subpath)
-  },
+  }
 
-
-  load: function(done) {},
-  onStart: function() {},
-  onStop: function() {},
 })

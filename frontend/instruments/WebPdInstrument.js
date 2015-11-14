@@ -24,12 +24,6 @@ var async = require('async')
   , utils = require('../core/utils')
 
 
-// Initialize WebPd to use the same audioContext and clock as fields
-Pd.start({ 
-  audioContext: fields.sound.audioContext
-  //waaClock: fields.sound.clock
-})
-
 var WebPdPort = ports.BasePort.extend({
   validate: function(args) { return args }
 })
@@ -58,54 +52,53 @@ Pd.registerExternal('fields/id', Pd.core.PdObject.extend({
 
 module.exports = Instrument.extend({
 
-  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'debug': ports.BasePort.extend({
-      validate: function(args) { return args },
-      restore: function() {},
-    })
-
-  }),
-
-  init: function(args) {
-    var self = this
-    Instrument.prototype.init.apply(this, arguments)
-    this.patchUrl = args[0]
-    this._patchPortsInitialized = false
-    this.patch = null
-    this._pdReceivePaths = []
-
-    this.ports.debug.on('value', function(args) {
-      if (args[0] === 'reload') {
-        if (self.patch) {
-          Pd.destroyPatch(this.patch)
-          this.patch = null
-        }
-        self._clearPatchPorts()
-        self.stop()
-        self.load(function() {})
-      }
-    })
-
-  },
-
   load: function(done) {
     var self = this
+    this.patchUrl = this.args[0]
     utils.loadFile({ url: this.patchUrl, responseType: 'text' }, function(err, patchStr) {
       fields.log('Patch ' + self.patchUrl + ' loaded')
       self.patchStr = patchStr
-      self.restore() // Ports are created dynamically so this will only restore state and volume
       done(err)
     })
   },
 
+  init: function(args) {
+    Instrument.prototype.init.apply(this, arguments)
+    var self = this
+    this.patch = null
+    this._pdReceivePaths = []
+    this._patchPortsInitialized = false
+  },
+
   onStart: function() {
     var self = this
+      , pathRoot = '/' + self.instrumentId + '/'
     this.patch = Pd.loadPatch(this.patchStr)
     
+    if (!this._patchPortsInitialized) {
+      // Create a port for each object [receive <portName>] that starts with '/<instrumentId>/'
+      this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
+        .forEach(function(receive) {
+          var path = receive.name
+            , rootInd = path.indexOf(pathRoot)
+            , subpath
+
+          // If we can't find `pathRoot` at the beginning of the name of the [receive] object,
+          // we don't create a port for it. 
+          if (rootInd !== 0) return
+          else subpath = path.slice(pathRoot.length)
+          self.addPort(subpath, WebPdPort)
+          self._pdReceivePaths.push(subpath)
+          self.ports[subpath].on('value', function(args) {
+            Pd.send(path, args)
+          })
+        })
+      this.restore() // Once ports are created, we call restore again
+      this._patchPortsInitialized = true
+    }
+
     // Create and initialize patch ports.
     // If already created, restore the previous values.
-    if (!this._patchPortsInitialized) this._initPatchPorts()
     else this._pdReceivePaths.forEach(function(subpath) {
       var port = self.ports[subpath]
       if (_.isArray(self.ports[subpath].value))
@@ -123,41 +116,6 @@ module.exports = Instrument.extend({
       Pd.destroyPatch(this.patch)
       this.patch = null
     }
-  },
-
-  _clearPatchPorts: function() {
-    var self = this
-    // Removing all the ports that are not base ports
-    var basePorts = Object.keys(this.portDefinitions)
-    Object.keys(this.ports).forEach(function(subpath) {
-      if (!_.contains(basePorts, subpath)) delete self.ports[subpath]
-    })
-    this._patchPortsInitialized = false
-  },
-
-  _initPatchPorts: function() {
-    var self = this
-      , pathRoot = '/' + self.instrumentId + '/'
-    // Create a port for each object [receive <portName>] that starts with '/<instrumentId>/'
-    this.patch.objects.filter(function(obj) { return obj.type === 'receive' })
-      .forEach(function(receive) {
-        var path = receive.name
-          , rootInd = path.indexOf(pathRoot)
-          , subpath
-
-        // If we can't find `pathRoot` at the beginning of the name of the [receive] object,
-        // we don't create a port for it. 
-        if (rootInd !== 0) return
-        else subpath = path.slice(pathRoot.length)
-        self.addPort(subpath, WebPdPort)
-        self._pdReceivePaths.push(subpath)
-        self.ports[subpath].on('value', function(args) {
-          Pd.send(path, args)
-        })
-      })
-    this.restore() // Once ports are created, we call restore again
-    this._patchPortsInitialized = true
   }
-
 
 })
