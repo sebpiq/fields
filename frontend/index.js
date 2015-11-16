@@ -162,6 +162,7 @@ fields.start = function() {
   })
 }
 
+// On connected, restore the instruments.
 rhizome.on('connected', function() {
   subscribeAll()
   fields.statusChanged('connected')
@@ -188,10 +189,7 @@ rhizome.on('message', function(address, args) {
   }
 })
 
-rhizome.on('queued', function() {
-  fields.statusChanged('waiting ...')
-})
-
+// On connection lost, stop the sound after a few seconds
 rhizome.on('connection lost', function() {
   fields.statusChanged('waiting ...')
   muteTimeout = setTimeout(function() {
