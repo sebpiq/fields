@@ -20,32 +20,27 @@ var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
   , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
+  , Port = require('../core/Port')
 
 
 module.exports = Instrument.extend({
 
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    'position': ports.PointPort,
-    'duration': ports.PointPort.extend({ defaultValue: [0.1, 0] }),
-    'ratio': ports.PointPort.extend({ defaultValue: [1, 0] }),
-    'env': ports.NumberPort,
-    'density': ports.NumberPort
+    'position': Port,
+    'duration': Port.extend({ defaultValue: [0.1, 0] }),
+    'ratio': Port.extend({ defaultValue: [1, 0] }),
+    'env': Port,
+    'density': Port
   }),
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    this.url = args[0]
-  },
 
   load: function(done) {
     var self = this
+    this.url = this.args[0]
     waaUtils.loadBuffer(this.url, function(err, buffer) {  
       if (!err) {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
           + 'buffer length :' + self.buffer.length)
-        self.restore()
       }
       done(err)
     })       

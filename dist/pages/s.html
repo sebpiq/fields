@@ -25,7 +25,10 @@
         , is_iOS = /iPad|iPhone|iPod/.test(navigator.platform)
         , eventType = is_iOS ? 'touchend' : 'click'
 
-      fields.load(fields.config())
+      fields.load(fields.config, function(err) {
+        if (err) alert(err)
+        $(startEl).fadeIn()
+      })
 
       $(startEl).on(eventType, function(event) {
         $('#status').show()

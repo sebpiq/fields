@@ -19,7 +19,7 @@
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
-  , ports = require('./ports')
+  , Port = require('./Port')
 
 // -------------------- Instruments -------------------- // 
 var BaseInstrument = module.exports = function(instrumentId, args) {
@@ -37,10 +37,8 @@ BaseInstrument.extend = utils.chainExtend
 _.extend(BaseInstrument.prototype, {
 
   portDefinitions: {
-    'volume': ports.NumberPort.extend({
-      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
-    }),
-    'state': ports.TogglePort
+    'volume': Port,
+    'state': Port
   },
 
   load: function(done) {},
@@ -52,13 +50,13 @@ _.extend(BaseInstrument.prototype, {
     this.mixer.connect(fields.sound.masterMixer)
 
     // Volume
-    this.ports['volume'].on('value', function() {
-      self.mixer.gain.setTargetAtTime(self.ports['volume'].value, 0, 0.05)
+    this.ports['volume'].on('value', function(args) {
+      self.mixer.gain.setTargetAtTime(args[0], 0, 0.05)
     })
 
     // State on/off
-    this.ports['state'].on('value', function(isOn) {
-      if (isOn) self.start()
+    this.ports['state'].on('value', function(args) {
+      if (args[0]) self.start()
       else self.stop()
     })
   },

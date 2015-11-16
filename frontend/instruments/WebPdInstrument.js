@@ -20,13 +20,9 @@ var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
+  , Port = require('../core/Port')
   , utils = require('../core/utils')
 
-
-var WebPdPort = ports.BasePort.extend({
-  validate: function(args) { return args }
-})
 
 Pd.registerExternal('fields/preferred-format', Pd.core.PdObject.extend({
   inletDefs: [
@@ -87,7 +83,7 @@ module.exports = Instrument.extend({
           // we don't create a port for it. 
           if (rootInd !== 0) return
           else subpath = path.slice(pathRoot.length)
-          self.addPort(subpath, WebPdPort)
+          self.addPort(subpath, Port)
           self._pdReceivePaths.push(subpath)
           self.ports[subpath].on('value', function(args) {
             Pd.send(path, args)

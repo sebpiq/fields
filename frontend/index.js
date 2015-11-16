@@ -38,7 +38,7 @@ var fields = window.fields = {
   
   core: {
     BaseInstrument: require('./core/BaseInstrument'),
-    ports: require('./core/ports'),
+    Port: require('./core/Port'),
     waa: require('./core/waa'),
     declareInstrumentClass: function(name, cls) { instrumentClasses[name] = cls }
   }
@@ -73,17 +73,12 @@ var subscribeAll = function() {
   })
 }
 
-fields.load = function(config) {
+fields.load = function(config, done) {
   fields.sound.audioContext = new AudioContext
 
   // Declare builtin instruments
-  fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
   fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
-  fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
-  fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
   fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
-  fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   async.waterfall([    
       // Get format support infos
@@ -103,6 +98,7 @@ fields.load = function(config) {
         fields.sound.preferredFormat = 'wav'
       fields.log('format used ' + fields.sound.preferredFormat)
 
+      config = config()
       Object.keys(config).forEach(function(instrumentId) {
         var instrumentConfig = config[instrumentId]
           , instrumentClass = instrumentClasses[instrumentConfig.instrument]
@@ -121,6 +117,7 @@ fields.load = function(config) {
   ], function(err) {
     if (err) return fields.log('ERROR: ' + err)
     fields.log('all loaded')
+    if (done) done(err)
   })
 }
 

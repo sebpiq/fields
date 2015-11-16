@@ -28216,7 +28216,7 @@ var fields = window.fields = {
   
   core: {
     BaseInstrument: require('./core/BaseInstrument'),
-    ports: require('./core/ports'),
+    Port: require('./core/Port'),
     waa: require('./core/waa'),
     declareInstrumentClass: function(name, cls) { instrumentClasses[name] = cls }
   }
@@ -28251,17 +28251,12 @@ var subscribeAll = function() {
   })
 }
 
-fields.load = function(config) {
+fields.load = function(config, done) {
   fields.sound.audioContext = new AudioContext
 
   // Declare builtin instruments
-  fields.core.declareInstrumentClass('DistributedSequencer', require('./instruments/DistributedSequencer'))
   fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  fields.core.declareInstrumentClass('Osc', require('./instruments/Osc'))
-  fields.core.declareInstrumentClass('Sine', require('./instruments/Sine'))
-  fields.core.declareInstrumentClass('Trigger', require('./instruments/Trigger'))
   fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
-  fields.core.declareInstrumentClass('WhiteNoise', require('./instruments/WhiteNoise'))
 
   async.waterfall([    
       // Get format support infos
@@ -28281,6 +28276,7 @@ fields.load = function(config) {
         fields.sound.preferredFormat = 'wav'
       fields.log('format used ' + fields.sound.preferredFormat)
 
+      config = config()
       Object.keys(config).forEach(function(instrumentId) {
         var instrumentConfig = config[instrumentId]
           , instrumentClass = instrumentClasses[instrumentConfig.instrument]
@@ -28299,6 +28295,7 @@ fields.load = function(config) {
   ], function(err) {
     if (err) return fields.log('ERROR: ' + err)
     fields.log('all loaded')
+    if (done) done(err)
   })
 }
 
@@ -28382,7 +28379,7 @@ rhizome.on('connection lost', function() {
   }, 8000)
 })
 
-},{"./core/BaseInstrument":2,"./core/ports":5,"./core/waa":7,"./instruments/DistributedSequencer":8,"./instruments/Granulator":9,"./instruments/Osc":10,"./instruments/Sine":11,"./instruments/Trigger":12,"./instruments/WebPdInstrument":13,"./instruments/WhiteNoise":14,"async":15,"underscore":18,"waaclock":19}],2:[function(require,module,exports){
+},{"./core/BaseInstrument":2,"./core/Port":3,"./core/waa":7,"./instruments/Granulator":8,"./instruments/WebPdInstrument":9,"async":10,"underscore":13,"waaclock":14}],2:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -28404,7 +28401,7 @@ rhizome.on('connection lost', function() {
 var _ = require('underscore')
   , math = require('./math')
   , utils = require('./utils')
-  , ports = require('./ports')
+  , Port = require('./Port')
 
 // -------------------- Instruments -------------------- // 
 var BaseInstrument = module.exports = function(instrumentId, args) {
@@ -28422,10 +28419,8 @@ BaseInstrument.extend = utils.chainExtend
 _.extend(BaseInstrument.prototype, {
 
   portDefinitions: {
-    'volume': ports.NumberPort.extend({
-      mapping: function(inVal) { return math.valExp(inVal, 2.5) * 2 }
-    }),
-    'state': ports.TogglePort
+    'volume': Port,
+    'state': Port
   },
 
   load: function(done) {},
@@ -28437,13 +28432,13 @@ _.extend(BaseInstrument.prototype, {
     this.mixer.connect(fields.sound.masterMixer)
 
     // Volume
-    this.ports['volume'].on('value', function() {
-      self.mixer.gain.setTargetAtTime(self.ports['volume'].value, 0, 0.05)
+    this.ports['volume'].on('value', function(args) {
+      self.mixer.gain.setTargetAtTime(args[0], 0, 0.05)
     })
 
     // State on/off
-    this.ports['state'].on('value', function(isOn) {
-      if (isOn) self.start()
+    this.ports['state'].on('value', function(args) {
+      if (args[0]) self.start()
       else self.stop()
     })
   },
@@ -28479,7 +28474,52 @@ _.extend(BaseInstrument.prototype, {
   }
 
 })
-},{"./math":4,"./ports":5,"./utils":6,"underscore":18}],3:[function(require,module,exports){
+},{"./Port":3,"./math":5,"./utils":6,"underscore":13}],3:[function(require,module,exports){
+/*
+ *  Fields
+ *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
+var EventEmitter = require('events').EventEmitter
+  , _ = require('underscore')
+  , utils = require('./utils')
+
+
+var Port = module.exports = function(instrument, subpath) {
+  EventEmitter.apply(this)
+  this.instrument = instrument
+  this.path = '/' + this.instrument.instrumentId + '/' + subpath
+  this.value = this.defaultValue
+}
+Port.extend = utils.chainExtend
+
+_.extend(Port.prototype, EventEmitter.prototype, {
+
+  defaultValue: null,
+
+  restore: function() {
+    rhizome.send('/sys/resend', [this.path])
+  },
+
+  receive: function(args) {
+    this.value = args
+    this.emit('value', args)
+  }
+})
+},{"./utils":6,"events":11,"underscore":13}],4:[function(require,module,exports){
 var HTTPError = exports.HTTPError = function HTTPError(message) {
   this.message = (message || '')
 }
@@ -28491,7 +28531,7 @@ var DecodeError = exports.DecodeError = function DecodeError(message) {
 }
 DecodeError.prototype = Object.create(Error.prototype)
 DecodeError.prototype.name = 'DecodeError'
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -28523,131 +28563,7 @@ exports.valExp = function(val, exp) {
   return (Math.exp(val * exp) - Math.exp(0)) / (Math.exp(exp) - Math.exp(0))
 }
 
-},{}],5:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var EventEmitter = require('events').EventEmitter
-  , _ = require('underscore')
-  , utils = require('./utils')
-
-
-var BasePort = exports.BasePort = function(instrument, subpath) {
-  EventEmitter.apply(this)
-  this.instrument = instrument
-  this.path = '/' + this.instrument.instrumentId + '/' + subpath
-  this.value = this.defaultValue
-}
-BasePort.extend = utils.chainExtend
-
-_.extend(BasePort.prototype, EventEmitter.prototype, {
-
-  defaultValue: null,
-
-  restore: function() {
-    rhizome.send('/sys/resend', [this.path])
-  },
-
-  receive: function(args) {
-    try {
-      validated = this.validate(args)
-    } catch(err) {
-      console.error(err)
-      return 
-    }
-    this.value = validated
-    this.emit('value', validated)
-  },
-
-  // Validate and extract a list of arguments to apply to `onValue`.
-  // If the args are unvalid, returns false
-  validate: function(args) { throw new Error('implement me!') }
-})
-
-
-exports.TogglePort = BasePort.extend({
-
-  defaultValue: false,
-
-  validate: function(args) {
-    if (args.length !== 1) {
-      console.error('unvalid number of args for ' + this.path + ' : ' + args)
-      return false
-    }
-    if (typeof args[0] !== 'number') {
-      console.error('unvalid args type for ' + this.path + ' : ' + args)
-      return false
-    }
-    return !!args[0] // to bool
-  }
-
-})
-
-
-exports.NumberPort = BasePort.extend({
-
-  defaultValue: 0,
-
-  validate: function(args) {
-    if (args.length !== 1) {
-      console.error('unvalid number of args for ' + this.path + ' : ' + args)
-      return false
-    }
-    if (typeof args[0] !== 'number') {
-      console.error('unvalid args type for ' + this.path + ' : ' + args)
-      return false
-    }
-    return this.mapping(args[0])
-  },
-
-  mapping: function(inVal) {
-    return inVal
-  }
-
-})
-
-
-exports.PointPort = BasePort.extend({
-
-  defaultValue: [0, 0],
-
-  validate: function(args) {
-    if (args.length !== 2) {
-      console.error('unvalid number of args for ' + this.path + ' : ' + args)
-      return false
-    }
-    if (typeof args[0] !== 'number' || typeof args[1] !== 'number') {
-      console.error('unvalid args type for ' + this.path + ' : ' + args)
-      return false
-    }
-    return [this.mappingX(args[0]), this.mappingY(args[1])]
-  },
-
-  mappingX: function(inVal) {
-    return inVal
-  },
-
-  mappingY: function(inVal) {
-    return inVal
-  }
-
-})
-},{"./utils":6,"events":16,"underscore":18}],6:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -28699,7 +28615,7 @@ exports.loadFile = function(opts, done) {
   }
   request.send()
 }
-},{"./errors":3,"underscore":18}],7:[function(require,module,exports){
+},{"./errors":4,"underscore":13}],7:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -28831,129 +28747,7 @@ var decodeBlob = function(blob, done) {
   })
 }
 
-},{"./errors":3,"./utils":6}],8:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var _ = require('underscore')
-  , async = require('async')
-  , waaUtils = require('../core/waa')
-  , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
-
-
-// args : stepCount, tracks, tempo
-module.exports = Instrument.extend({
-
-  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-
-    'sequence': ports.BasePort.extend({
-      defaultValue: [],
-      validate: function(args) {
-        var sequence = []
-          , t, s
-
-        // Builds the looped buffer by adding all the active steps in the sequence 
-        for (t = 0, s = 1; t < args.length; t+=2, s+=2)
-          sequence.push([ args[t], args[s] ])
-        
-        // array with all active steps [[<track j>, <step i>], [<track k>, <step p>], ...]
-        return _.sortBy(sequence, function(pair) { return pair[1] })
-      }
-
-    })
-
-  }),
-
-  init: function(args) {
-    var self = this
-    Instrument.prototype.init.apply(this, arguments)
-
-    this.stepCount = args[0]
-    this.tracks = args[1]
-    this.buffers = []
-
-    this._setTempo(args[2])
-    this.bufferNode = null
-
-    this.ports['sequence'].on('value', function() {
-      if (self.started) self._playSequence()
-    })
-  },
-
-  load: function(done) {
-    var self = this
-    async.map(this.tracks, waaUtils.loadBuffer, function(err, buffers) {
-      if (!err) {
-        self.buffers = buffers
-        fields.log(self.instrumentId + ' loaded, tempo ' +  self.tempo)
-        self.restore()
-      }
-      done(err)
-    })
-  },
-
-  onStart: function() {
-    this._playSequence()
-  },
-
-  onStop: function() {
-    this.bufferNode.stop(0)
-    this.bufferNode = null
-  },
-
-  _setTempo: function(tempo) {
-    this.tempo = tempo
-    this.beatDurInSec = 60 / tempo
-    this.samplesPerBeat = this.beatDurInSec * fields.sound.audioContext.sampleRate
-    this.samplesPerLoop = this.samplesPerBeat * this.stepCount
-  },
-
-  _playSequence: function() {
-    var self = this
-      , loopBuffer = fields.sound.audioContext.createBuffer(1,
-          this.samplesPerLoop, fields.sound.audioContext.sampleRate)
-      , loopArray = loopBuffer.getChannelData(0)
-      , t, s
-
-    // Builds the looped buffer by adding all the active steps in the sequence 
-    _.forEach(self.ports['sequence'].value, function(beat) {
-      var step = beat[1]
-        , track = beat[0]
-        , offset = self.samplesPerBeat * step
-        , soundArray = self.buffers[track].getChannelData(0)
-      if ((offset + soundArray.length) >= loopArray.length)
-        subarray = soundArray.subarray(0, loopArray.length - offset)
-      else subarray = soundArray
-      loopArray.set(subarray, offset)
-    })
-
-    // Create the buffer node
-    if (this.bufferNode) this.bufferNode.stop(0)
-    this.bufferNode = fields.sound.audioContext.createBufferSource()
-    this.bufferNode.connect(this.mixer)
-    this.bufferNode.loop = true
-    this.bufferNode.buffer = loopBuffer
-    this.bufferNode.start(0)
-  }
-
-})
-},{"../core/BaseInstrument":2,"../core/ports":5,"../core/waa":7,"async":15,"underscore":18}],9:[function(require,module,exports){
+},{"./errors":4,"./utils":6}],8:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -28976,32 +28770,27 @@ var _ = require('underscore')
   , waaUtils = require('../core/waa')
   , math = require('../core/math')
   , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
+  , Port = require('../core/Port')
 
 
 module.exports = Instrument.extend({
 
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    'position': ports.PointPort,
-    'duration': ports.PointPort.extend({ defaultValue: [0.1, 0] }),
-    'ratio': ports.PointPort.extend({ defaultValue: [1, 0] }),
-    'env': ports.NumberPort,
-    'density': ports.NumberPort
+    'position': Port,
+    'duration': Port.extend({ defaultValue: [0.1, 0] }),
+    'ratio': Port.extend({ defaultValue: [1, 0] }),
+    'env': Port,
+    'density': Port
   }),
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    this.url = args[0]
-  },
 
   load: function(done) {
     var self = this
+    this.url = this.args[0]
     waaUtils.loadBuffer(this.url, function(err, buffer) {  
       if (!err) {
         self.buffer = buffer
         fields.log(self.instrumentId + ' loaded, ' 
           + 'buffer length :' + self.buffer.length)
-        self.restore()
       }
       done(err)
     })       
@@ -29081,137 +28870,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/math":4,"../core/ports":5,"../core/waa":7,"underscore":18}],10:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var async = require('async')
-  , _ = require('underscore')
-  , WAAOffset = require('waaoffset')
-  , waaUtils = require('../core/waa')
-  , math = require('../core/math')
-  , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
-
-module.exports = Instrument.extend({
-
-  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'carrierFreq': ports.NumberPort.extend({
-      defaultValue: 100,
-      mapping: function(inVal) { return math.valExp(inVal, 4) * 1000 }
-    }),
-
-    'freqModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
-    }),
-
-    'freqModAmount': ports.NumberPort,
-
-    'ampModFreq': ports.NumberPort.extend({
-      mapping: function(inVal) { return math.valExp(inVal, 4) * 100 }
-    }),
-
-    'ampModAmount': ports.NumberPort
-
-  }),
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    var self = this
-
-    this.ports['carrierFreq'].on('value', function(carrierFreq) {
-      if (self.started)
-        self.freqModOffset.offset.linearRampToValueAtTime(
-          carrierFreq, fields.sound.audioContext.currentTime + 0.05)
-    })
-
-    this.ports['freqModFreq'].on('value', function(freqModFreq) {
-      if (self.started)
-        self.freqModOsc.frequency.linearRampToValueAtTime(
-          freqModFreq, fields.sound.audioContext.currentTime + 0.05)
-    })
-
-    this.ports['freqModAmount'].on('value', function(freqModAmount) {
-      if (self.started)
-        self.freqModAmountGain.gain.value = (self.ports['carrierFreq'].value * freqModAmount)
-    })
-
-    this.ports['ampModFreq'].on('value', function(ampModFreq) {
-      if (self.started)
-        self.ampModOsc.frequency.linearRampToValueAtTime(
-          ampModFreq, fields.sound.audioContext.currentTime + 0.05)
-    })
-
-    this.ports['ampModAmount'].on('value', function(ampModAmount) {
-      if (self.started)
-        self.ampModAmountGain.gain.value = ampModAmount
-    })
-  },
-
-  load: function(done) {
-    this.restore()
-    done()
-  },
-
-  onStart: function() {
-    this.freqModOffset = new WAAOffset(fields.sound.audioContext)
-    this.carrierOsc = fields.sound.audioContext.createOscillator()
-    this.carrierOsc.type = 'square'
-    this.ampModOsc = fields.sound.audioContext.createOscillator()
-    this.freqModOsc = fields.sound.audioContext.createOscillator()
-    this.ampModAmountGain = fields.sound.audioContext.createGain()
-    this.ampModGain = fields.sound.audioContext.createGain()
-    this.freqModGain = fields.sound.audioContext.createGain()
-    this.freqModAmountGain = fields.sound.audioContext.createGain()
-
-    this.freqModOsc.connect(this.freqModAmountGain)
-    this.freqModAmountGain.connect(this.freqModGain)
-    this.freqModOffset.connect(this.freqModGain)
-    this.freqModGain.connect(this.carrierOsc.frequency)
-    
-    this.ampModOsc.connect(this.ampModAmountGain)
-    this.ampModAmountGain.connect(this.ampModGain.gain)
-
-    this.carrierOsc.connect(this.ampModGain)
-    this.ampModGain.connect(this.mixer)
-
-    this.ampModOsc.start(0)
-    this.freqModOsc.start(0)
-    this.carrierOsc.start(0)
-
-    this.ports['carrierFreq'].emit('value', this.ports['carrierFreq'].value)
-    this.ports['freqModFreq'].emit('value', this.ports['freqModFreq'].value)
-    this.ports['freqModAmount'].emit('value', this.ports['freqModAmount'].value)
-    this.ports['ampModFreq'].emit('value', this.ports['ampModFreq'].value)
-    this.ports['ampModAmount'].emit('value', this.ports['ampModAmount'].value)
-  },
-
-  onStop: function() {
-    this.ampModOsc.stop(0)
-    this.freqModOsc.stop(0)
-    this.carrierOsc.stop(0)
-    this.ampModGain.disconnect()
-  }
-
-})
-
-},{"../core/BaseInstrument":2,"../core/math":4,"../core/ports":5,"../core/waa":7,"async":15,"underscore":18,"waaoffset":21}],11:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/Port":3,"../core/math":5,"../core/waa":7,"underscore":13}],9:[function(require,module,exports){
 /*
  *  Fields
  *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
@@ -29234,170 +28893,9 @@ var async = require('async')
   , _ = require('underscore')
   , waaUtils = require('../core/waa')
   , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
-
-module.exports = Instrument.extend({
-
-  portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    
-    'play': ports.BasePort.extend({
-      validate: function(args) { return args }
-    }),
-
-    'f0': ports.NumberPort.extend({
-      mapping: function(inVal) { return 500 + inVal * 3000 }
-    })
-
-  }),
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    var self = this
-    
-    this.ports['play'].on('value', function(args) {
-      if (self.oscillatorNode) {
-        var volEnvPoints = [[0, 0.05], [args[0], args[1]], [1, 0.05]]
-          , pitchEnvPoints = [[0, 0], [args[2], args[3]], [1, 0]]
-          , duration = 1 + args[4] * 10
-          , currentTime = fields.sound.audioContext.currentTime
-          , latency = 1 + Math.random() * 3
-          , f0 = self.ports['f0'].value
-
-        self.envGain.gain.cancelScheduledValues(0)
-        self.envGain.gain.setValueAtTime(0, latency + currentTime)
-        _.forEach(volEnvPoints, function(point) {
-          self.envGain.gain.linearRampToValueAtTime(
-            point[1], latency + currentTime + point[0] * duration)
-        })
-        
-        self.oscillatorNode.frequency.cancelScheduledValues(0)
-        self.oscillatorNode.frequency.setValueAtTime(f0, latency + currentTime)
-        _.forEach(pitchEnvPoints, function(point) {
-          self.oscillatorNode.frequency.linearRampToValueAtTime(
-            f0 + f0 * point[1], latency + currentTime + point[0] * duration)
-        })
-      }
-    })
-
-    this.ports['f0'].on('value', function(f0) {
-      if (self.oscillatorNode) {
-        self.oscillatorNode.frequency.setValueAtTime(
-          f0, fields.sound.audioContext.currentTime + 1)
-      }
-    })
-  },
-
-  load: function(done) {
-    this.restore()
-    done()
-  },
-
-  onStart: function() {
-    this.envGain = fields.sound.audioContext.createGain()
-    this.envGain.connect(this.mixer)
-    this.envGain.gain.value = 0.05
-
-    this.oscillatorNode = fields.sound.audioContext.createOscillator()
-    this.oscillatorNode.type = 'sawtooth'
-    this.oscillatorNode.connect(this.envGain)
-    this.oscillatorNode.start(0)
-  },
-
-  onStop: function() {
-    this.envGain.disconnect()
-    this.envGain = null
-    this.oscillatorNode.stop()
-    this.oscillatorNode.disconnect()
-    this.oscillatorNode = null
-  }
-
-
-})
-},{"../core/BaseInstrument":2,"../core/ports":5,"../core/waa":7,"async":15,"underscore":18}],12:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var _ = require('underscore')
-  , waaUtils = require('../core/waa')
-  , math = require('../core/math')
-  , Instrument = require('../core/BaseInstrument')
-
-
-module.exports = Instrument.extend({
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    this.url = args[0]
-  },
-
-  load: function(done) {
-    var self = this
-    waaUtils.loadBuffer(this.url, function(err, buffer) {  
-      if (!err) {
-        self.buffer = buffer
-        fields.log(self.instrumentId + ' loaded, ' 
-          + 'buffer length :' + self.buffer.length)
-      }
-      done(err)
-      self.mixer.gain.value = 1
-    })       
-  },
-
-  onStart: function() {
-    this.bufferNode = fields.sound.audioContext.createBufferSource()
-    this.bufferNode.buffer = this.buffer
-    this.bufferNode.connect(this.mixer)
-    this.bufferNode.start(0)
-  },
-
-  onStop: function() {}
-  
-})
-},{"../core/BaseInstrument":2,"../core/math":4,"../core/waa":7,"underscore":18}],13:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var async = require('async')
-  , _ = require('underscore')
-  , waaUtils = require('../core/waa')
-  , Instrument = require('../core/BaseInstrument')
-  , ports = require('../core/ports')
+  , Port = require('../core/Port')
   , utils = require('../core/utils')
 
-
-var WebPdPort = ports.BasePort.extend({
-  validate: function(args) { return args }
-})
 
 Pd.registerExternal('fields/preferred-format', Pd.core.PdObject.extend({
   inletDefs: [
@@ -29458,7 +28956,7 @@ module.exports = Instrument.extend({
           // we don't create a port for it. 
           if (rootInd !== 0) return
           else subpath = path.slice(pathRoot.length)
-          self.addPort(subpath, WebPdPort)
+          self.addPort(subpath, Port)
           self._pdReceivePaths.push(subpath)
           self.ports[subpath].on('value', function(args) {
             Pd.send(path, args)
@@ -29490,60 +28988,7 @@ module.exports = Instrument.extend({
   }
 
 })
-},{"../core/BaseInstrument":2,"../core/ports":5,"../core/utils":6,"../core/waa":7,"async":15,"underscore":18}],14:[function(require,module,exports){
-/*
- *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
- 
-var async = require('async')
-  , _ = require('underscore')
-  , waaUtils = require('../core/waa')
-  , Instrument = require('../core/BaseInstrument')
-
-
-module.exports = Instrument.extend({
-
-  init: function(args) {
-    Instrument.prototype.init.apply(this, arguments)
-    var sampleCount = 44100
-    this.noiseBuffer = fields.sound.audioContext.createBuffer(1, sampleCount, 44100)
-    var noiseData = this.noiseBuffer.getChannelData(0)
-    for (var i = 0; i < sampleCount; i++) noiseData[i] = Math.random()
-  },
-
-  load: function(done) {
-    this.restore()
-    done()
-  },
-
-  onStart: function() {
-    this.bufferNode = fields.sound.audioContext.createBufferSource()
-    this.bufferNode.buffer = this.noiseBuffer
-    this.bufferNode.loop = true
-    this.bufferNode.connect(this.mixer)
-    this.bufferNode.start(0)
-  },
-
-  onStop: function() {
-    this.bufferNode.stop(0)
-  }
-
-})
-},{"../core/BaseInstrument":2,"../core/waa":7,"async":15,"underscore":18}],15:[function(require,module,exports){
+},{"../core/BaseInstrument":2,"../core/Port":3,"../core/utils":6,"../core/waa":7,"async":10,"underscore":13}],10:[function(require,module,exports){
 (function (process){
 /*!
  * async
@@ -30670,7 +30115,7 @@ module.exports = Instrument.extend({
 }());
 
 }).call(this,require('_process'))
-},{"_process":17}],16:[function(require,module,exports){
+},{"_process":12}],11:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -30973,7 +30418,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],17:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -31038,7 +30483,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],18:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -32383,13 +31828,13 @@ process.chdir = function (dir) {
   }
 }).call(this);
 
-},{}],19:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var WAAClock = require('./lib/WAAClock')
 
 module.exports = WAAClock
 if (typeof window !== 'undefined') window.WAAClock = WAAClock
 
-},{"./lib/WAAClock":20}],20:[function(require,module,exports){
+},{"./lib/WAAClock":15}],15:[function(require,module,exports){
 (function (process){
 var isBrowser = (typeof window !== 'undefined')
 
@@ -32623,33 +32068,4 @@ WAAClock.prototype._relTime = function(absTime) {
   return absTime - this.context.currentTime
 }
 }).call(this,require('_process'))
-},{"_process":17}],21:[function(require,module,exports){
-var WAAOffset = require('./lib/WAAOffset')
-module.exports = WAAOffset
-if (typeof window !== 'undefined') window.WAAOffset = WAAOffset
-},{"./lib/WAAOffset":22}],22:[function(require,module,exports){
-var WAAOffset = module.exports = function(context) {
-  this.context = context
-
-  // Ones generator
-  this._ones = context.createOscillator()
-  this._ones.frequency.value = 0
-  this._ones.setPeriodicWave(context.createPeriodicWave(
-    new Float32Array([0, 1]), new Float32Array([0, 0])))
-  this._ones.start(0)
-
-  // Multiplier
-  this._output = context.createGain()
-  this._ones.connect(this._output)
-  this.offset = this._output.gain
-  this.offset.value = 0
-}
-
-WAAOffset.prototype.connect = function() {
-  this._output.connect.apply(this._output, arguments)
-}
-
-WAAOffset.prototype.disconnect = function() {
-  this._output.disconnect.apply(this._output, arguments)
-}
-},{}]},{},[1]);
+},{"_process":12}]},{},[1]);

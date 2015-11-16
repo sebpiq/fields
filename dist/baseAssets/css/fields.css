@@ -38,6 +38,7 @@ button {
   padding: 0 1em;
 }
 #startContainer #start {
+  display: none;
   position: relative;
   width: 12em;
   height: 12em;
