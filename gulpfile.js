@@ -32,7 +32,6 @@ gulp.task('browserify', function() {
 // Bundles all the needed files for fields frontend into one file.
 gulp.task('bundle', function() {
   return gulp.src([
-      './frontend/deps/AudioContextMonkeyPatch.js',
       './frontend/deps/webpd-latest.js',
       './frontend/deps/jquery-2.1.0.js',
       './tmp/rhizome.js',
