@@ -1,38 +1,40 @@
-#N canvas 245 154 945 369 10;
-#X declare -lib mrpeach;
-#X obj 65 144 import mrpeach;
-#X obj 163 144 packOSC;
-#X obj 218 191 udpsend;
-#X obj 218 218 tgl 15 0 empty empty connected 20 7 0 8 -24198 -241291
+#N canvas 893 294 556 690 10;
+#X obj 82 554 tgl 15 0 empty empty connected 20 7 0 8 -24198 -241291
 -1 1 1;
-#X msg 218 167 connect 127.0.0.1 9000;
-#X obj 218 144 loadbang;
-#X obj 356 27 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
--262144 -1 -1 0 256;
-#X msg 356 53 send /simple-osc/frequency \$1;
-#X msg 170 52 send /simple-osc/volume \$1;
-#X msg -16 53 send /simple-osc/state \$1;
-#X obj -16 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 255 156 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
-#X obj 173 26 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 0 1;
-#X obj 15 306 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 260 242 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 6000 1;
+#X obj 237 97 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
-#X obj 224 307 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 0 1;
-#X msg 15 334 /simple-file-playback/state \$1;
-#X msg 221 333 /simple-file-playback/volume \$1;
-#X connect 1 0 2 0;
-#X connect 2 0 3 0;
-#X connect 4 0 2 0;
-#X connect 5 0 4 0;
-#X connect 6 0 7 0;
-#X connect 7 0 1 0;
-#X connect 8 0 1 0;
-#X connect 9 0 1 0;
-#X connect 10 0 9 0;
-#X connect 11 0 8 0;
-#X connect 12 0 14 0;
-#X connect 13 0 15 0;
-#X connect 14 0 1 0;
-#X connect 15 0 1 0;
+#X obj 212 32 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 7100 1;
+#X msg 131 482 disconnect;
+#X obj 82 509 netsend -u -b;
+#X obj 83 408 list prepend send;
+#X obj 83 433 list trim;
+#X obj 208 428 loadbang;
+#X msg 91 458 connect localhost 9000;
+#X obj 244 341 oscformat /simple-osc/frequency;
+#X obj 244 315 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+-262144 -1 -1 86 256;
+#X obj 257 268 oscformat /simple-osc/volume;
+#X obj 255 184 oscformat /simple-osc/state;
+#X obj 236 123 oscformat /simple-file-playback/state;
+#X obj 209 57 oscformat /simple-file-playback/volume;
+#X connect 1 0 14 0;
+#X connect 2 0 13 0;
+#X connect 3 0 15 0;
+#X connect 4 0 16 0;
+#X connect 5 0 6 0;
+#X connect 6 0 0 0;
+#X connect 7 0 8 0;
+#X connect 8 0 6 0;
+#X connect 9 0 10 0;
+#X connect 10 0 6 0;
+#X connect 11 0 7 0;
+#X connect 12 0 11 0;
+#X connect 13 0 7 0;
+#X connect 14 0 7 0;
+#X connect 15 0 7 0;
+#X connect 16 0 7 0;
