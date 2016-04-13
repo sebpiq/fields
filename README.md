@@ -17,7 +17,7 @@ Quick start
 
 **NB** : if you have never heard of Node.js, you should read the *full instructions*.
 
-You first need to install [node.js](https://nodejs.org/) version **0.12**. I highly recommend to install it through [nvm](https://github.com/creationix/nvm).
+You first need to install [node.js](https://nodejs.org/) version **0.12 or higher**. I highly recommend to install it through [nvm](https://github.com/creationix/nvm).
 
 Then, in a terminal run `npm install -g fields-system`.
 
