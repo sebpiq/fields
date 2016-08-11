@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *  Copyright (C) 2016 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -80,6 +80,11 @@ httpServer = new HTTPServer()
 wsServer = new rhizome.websockets.Server({ serverInstance: httpServer._httpServer })
 oscServer = new rhizome.osc.Server({ port: config.osc.port })
 
+// Set error handlers
+;([wsServer, oscServer, manager]).forEach((server) => {
+  server.on('error', (err) => console.error(err.stack ? err.stack : err))
+})
+
 // Create tmp and build folders
 asyncOps.push(mkdirp.bind(mkdirp, buildDir))
 
@@ -97,7 +102,7 @@ asyncOps.push(rhizome.starter.bind(rhizome.starter, manager, [oscServer, httpSer
 async.series(asyncOps, function(err) {
   if (err) throw err
   console.log(clc.bold('Fields ' + version +' running') )
-  console.log(clc.black('GPL license. Copyright (C) 2015 Sébastien Piquemal, Tim Shaw'))
+  console.log(clc.black('GPL license. Copyright (C) 2016 Sébastien Piquemal, Tim Shaw'))
   console.log(clc.blue('- HTTP server on port ') + clc.bold.blue(config.server.port) )
   if (config.osc) {
     console.log(clc.blue('- OSC on port ') + clc.bold.blue(config.osc.port) )

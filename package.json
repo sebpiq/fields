@@ -33,7 +33,7 @@
     "fields": "./backend/main.js"
   },
   "engines": {
-    "node": "0.10.x"
+    "node": "5"
   },
-  "license": "GPL"
+  "license": " GPL-3.0"
 }

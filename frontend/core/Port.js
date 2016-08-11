@@ -1,6 +1,6 @@
 /*
  *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *  Copyright (C) 2016 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ _.extend(Port.prototype, EventEmitter.prototype, {
   defaultValue: null,
 
   restore: function() {
-    rhizome.send('/sys/resend', [this.path])
+    fields.rhizomeClient.send('/sys/resend', [this.path])
   },
 
   receive: function(args) {

@@ -1,6 +1,6 @@
 /*
  *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *  Copyright (C) 2016 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ Pd.registerExternal('fields/id', Pd.core.PdObject.extend({
   inletDefs: [
     Pd.core.portlets.Inlet.extend({
       message: function(args) {
-        this.obj.o(0).message([rhizome.id])
+        this.obj.o(0).message([fields.rhizomeClient.id])
       }
     })
   ],

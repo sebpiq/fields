@@ -1,6 +1,6 @@
 /*
  *  Fields
- *  Copyright (C) 2015 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
+ *  Copyright (C) 2016 Sébastien Piquemal <sebpiq@gmail.com>, Tim Shaw <tim@triptikmusic.co.uk>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ var waaUtils = require('./core/waa')
 
 var fields = window.fields = {
   
+  rhizomeClient: rhizome ? new rhizome.Client(): null,
   position: null,
   
   sound: {
@@ -51,11 +52,10 @@ fields.log = function(msg) {}
 fields.statusChanged = function(status) {}
 
 fields.isSupported = function() {
-  if (typeof rhizome === 'undefined' || rhizome.isSupported()) {
+  if (typeof rhizome !== 'undefined' && rhizome.isSupported()) {
     if (window.AudioContext) return true
     else return false
   } else return false
-  return false
 }
 
 // Contains all the instances of sound engines for each declared instrument
@@ -69,7 +69,7 @@ var instrumentClasses = {}
 // For all the instruments, subscribe to messages
 var subscribeAll = function() {
   Object.keys(instruments).forEach(function(instrumentId) {
-    rhizome.send('/sys/subscribe', ['/' + instrumentId])
+    fields.rhizomeClient.send('/sys/subscribe', ['/' + instrumentId])
   })
 }
 
@@ -154,8 +154,8 @@ fields.start = function() {
     instrument.init()
   }).value()
 
-  // Start rhizome
-  rhizome.start(function(err) {
+  // Start rhizome client
+  fields.rhizomeClient.start(function(err) {
     if (err) return fields.log('ERROR: ' + err)
     connectionSuccessful = true
     fields.log('connection established')
@@ -163,7 +163,7 @@ fields.start = function() {
 }
 
 // On connected, restore the instruments.
-rhizome.on('connected', function() {
+fields.rhizomeClient.on('connected', function() {
   subscribeAll()
   fields.statusChanged('connected')
 
@@ -178,7 +178,7 @@ rhizome.on('connected', function() {
 
 // Message scheme :
 //  /<instrument id>/<name> [args]
-rhizome.on('message', function(address, args) {
+fields.rhizomeClient.on('message', function(address, args) {
   if (address === '/sys/subscribed') fields.log('subscribed ' + args[0])
   else {
     fields.log('' + address + ' ' + args)
@@ -190,7 +190,7 @@ rhizome.on('message', function(address, args) {
 })
 
 // On connection lost, stop the sound after a few seconds
-rhizome.on('connection lost', function() {
+fields.rhizomeClient.on('connection lost', function() {
   fields.statusChanged('waiting ...')
   muteTimeout = setTimeout(function() {
     _.forEach(_.values(instruments), function(sound) {
