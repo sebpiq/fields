@@ -52,7 +52,7 @@ fields.log = function(msg) {}
 fields.statusChanged = function(status) {}
 
 fields.isSupported = function() {
-  if (typeof rhizome !== 'undefined' && rhizome.isSupported()) {
+  if (typeof rhizome !== 'undefined' && rhizome.Client.isSupported()) {
     if (window.AudioContext) return true
     else return false
   } else return false
@@ -185,6 +185,8 @@ fields.rhizomeClient.on('message', function(address, args) {
     var parts = address.split('/') // beware : leading trailing slash cause parts[0] to be ""
       , instrument = instruments[parts[1]]
       , portPath = parts[2]
+    if (!instrument) 
+      return console.warn('unknown instrument "' + parts[1] + '"')
     instrument.receive(portPath, args)
   }
 })

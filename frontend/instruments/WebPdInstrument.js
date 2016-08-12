@@ -50,10 +50,27 @@ module.exports = Instrument.extend({
 
   load: function(done) {
     var self = this
+      , asyncOps = []
+
     this.patchUrl = this.args[0]
-    utils.loadFile({ url: this.patchUrl, responseType: 'text' }, function(err, patchStr) {
+    this.abstractions = this.args[1] || []
+
+    asyncOps.push(_.bind(utils.loadFile, this, { url: this.patchUrl, responseType: 'text' }))
+    _.forEach(this.abstractions, function(p) {
+      var name = p[0]
+        , url = p[1]
+      asyncOps.push(_.bind(utils.loadFile, this, { url: url, responseType: 'text' }))
+    })
+
+    async.series(asyncOps, function(err, results) {
+      var patchStr = results.shift()
       fields.log('Patch ' + self.patchUrl + ' loaded')
       self.patchStr = patchStr
+      _.chain(self.abstractions).pluck(0).zip(results).forEach(function(p) {
+        var name = p[0]
+          , patchStr = p[1]
+        Pd.registerAbstraction(name, patchStr)
+      }).value()
       done(err)
     })
   },

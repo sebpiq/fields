@@ -16,8 +16,8 @@ watcher.on('change', function(event) {
 })
 
 // Renders the client file for rhizome
-gulp.task('render-rhizome-client', function() {
-  return rhizome.websockets.renderClientBrowserGulp('./tmp')
+gulp.task('render-rhizome-client', function(done) {
+  return rhizome.websockets.renderClientBrowser('./tmp', done)
 })
 
 // Browserifies the fields frontend.
