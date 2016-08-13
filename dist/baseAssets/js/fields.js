@@ -20566,13 +20566,15 @@ return jQuery;
  */
 "use strict";
 
+// !!! This file must not use ES6 features, as it is browserified
+
 var _ = require('underscore')
 
 // Error for when the config of an object is not valid
 var ValidationError = exports.ValidationError = function ValidationError(fields) {
   this.fields = fields
   this.message = _.chain(fields).pairs()
-    .map((p) => (p[0].length ? p[0] : '/') + ' : ' + p[1])
+    .map(function(p) { return (p[0].length ? p[0] : '/') + ' : ' + p[1] })
     .value().join('\n')
   this.message = '\n' + this.message
 }
@@ -20583,7 +20585,7 @@ _.extend(ValidationError.prototype, {
 
   addPrefix: function(prefix) {
     this.fields = _.chain(this.fields).pair()
-      .map((p) => [prefix + p[0], p[1]])
+      .map(function(p) { return [prefix + p[0], p[1]] })
       .object().value()
   }
 })
@@ -20606,6 +20608,8 @@ _.extend(ValidationError.prototype, {
  */
 "use strict";
 
+// !!! This file must not use ES6 features, as it is browserified
+
 var Buffer = require('buffer').Buffer
   , _ = require('underscore')
   , isBrowser = (typeof window !== 'undefined')
@@ -20624,7 +20628,7 @@ exports.validateArgs = function(args) {
 }
 
 exports.argsToString = function(args) {
-  return '[' + args.map((arg) => {
+  return '[' + args.map(function(arg) {
     return _isBufferish(arg) ? 'Blob(' + arg.length + ')' : arg
   }) + ']'
 }
@@ -20691,6 +20695,8 @@ exports.connectionOpenAddress = '/broadcast/open'
  */
 "use strict";
 
+// !!! This file must not use ES6 features, as it is browserified
+
 var _ = require('underscore')
   , chai = require('chai')
   , vpod = require('validation-pod')
@@ -20710,7 +20716,7 @@ exports.ValidateConfigMixin = {
   validateConfig: function(done) {
     this._config = this._config || {}
     _.defaults(this._config, this.configDefaults)
-    this.configValidator.run(this._config, (err, validationErrors) => {
+    this.configValidator.run(this._config, function(err, validationErrors) {
       if (err)
         done(err)
       else if (_.keys(validationErrors).length)
@@ -32817,7 +32823,7 @@ module.exports = isString;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 var waaUtils = require('./core/waa')
   , async = require('async')
   , _ = require('underscore')
