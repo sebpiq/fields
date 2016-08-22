@@ -1,3 +1,5 @@
+[![Dependency status](https://david-dm.org/sebpiq/fields.svg)](https://david-dm.org/sebpiq/fields)
+
 Fields
 ========
 

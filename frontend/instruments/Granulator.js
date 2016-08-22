@@ -26,7 +26,7 @@ var _ = require('underscore')
 module.exports = Instrument.extend({
 
   portDefinitions: _.extend({}, Instrument.prototype.portDefinitions, {
-    'position': Port,
+    'position': Port, // Position [0, 1] as a ratio of the sample length
     'duration': Port.extend({ defaultValue: [0.1, 0] }),
     'ratio': Port.extend({ defaultValue: [1, 0] }),
     'env': Port,
@@ -66,9 +66,10 @@ module.exports = Instrument.extend({
   },
 
   _getPosition: function() {
-    var mean = this.ports['position'].value[0]
-      * (this.buffer.length / fields.sound.audioContext.sampleRate)
-    return math.pickVal(mean, this.ports['position'].value[1])
+    var totalDuration = (this.buffer.length / fields.sound.audioContext.sampleRate)
+      , mean = this.ports['position'].value[0] * totalDuration
+      , position = math.pickVal(mean, this.ports['position'].value[1])
+    return Math.min(Math.max(position, 0), totalDuration)
   },
 
   _getDuration: function() {

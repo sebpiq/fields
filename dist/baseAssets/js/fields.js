@@ -33446,9 +33446,10 @@ module.exports = Instrument.extend({
   },
 
   _getPosition: function() {
-    var mean = this.ports['position'].value[0]
-      * (this.buffer.length / fields.sound.audioContext.sampleRate)
-    return math.pickVal(mean, this.ports['position'].value[1])
+    var totalDuration = (this.buffer.length / fields.sound.audioContext.sampleRate)
+      , mean = this.ports['position'].value[0] * totalDuration
+      , position = math.pickVal(mean, this.ports['position'].value[1])
+    return Math.min(Math.max(position, 0), totalDuration)
   },
 
   _getDuration: function() {
