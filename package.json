@@ -1,7 +1,7 @@
 {
   "name": "fields-system",
   "preferGlobal": true,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "author": "Sébastien Piquemal <sebpiq@gmail.com>",
   "description": "Sound diffusion using audience's mobile devices",
   "repository": {
@@ -9,25 +9,26 @@
     "url": "git@bitbucket.org:sebpiq/fields-_.git"
   },
   "dependencies": {
-    "gulp": "3.8.x",
-    "browserify": "5.10.x",
-    "gulp-util": "2.2.x",
-    "gulp-concat": "2.2.x",
-    "gulp-rename": "1.2.x",
-    "gulp-uglify": "0.2.x",
-    "gulp-less": "1.2.x",
-    "vinyl-source-stream": "0.1.x",
-    "run-sequence": "0.3.x",
-    "async": "0.9.x",
-    "underscore": "1.6.x",
-    "waaoffset": "0.1.x",
-    "debug": "0.7.x",
+    "async": "^2.0.1",
+    "browserify": "^13.1.0",
+    "cli-color": "^1.1.0",
     "commander": "^2.2.0",
-    "cli-color": "0.2.x",
-    "express": "3.3.x",
+    "debug": "^2.2.0",
+    "express": "^4.14.0",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-less": "^3.1.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^2.0.0",
+    "gulp-util": "^3.0.7",
+    "mkdirp": "^0.5.1",
+    "morgan": "^1.7.0",
+    "rhizome-server": "^0.8.0",
+    "run-sequence": "^1.2.2",
+    "underscore": "^1.8.3",
+    "vinyl-source-stream": "^1.1.0",
     "waaclock": "0.5.x",
-    "rhizome-server": "^0.7.0",
-    "mkdirp": "^0.5.1"
+    "waaoffset": "0.1.x"
   },
   "bin": {
     "fields": "./backend/main.js"

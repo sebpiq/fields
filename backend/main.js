@@ -25,6 +25,7 @@ var path = require('path')
   , program = require('commander')
   , async = require('async')
   , express = require('express')
+  , morgan = require('morgan')
   , clc = require('cli-color')
   , rhizome = require('rhizome-server')
 
@@ -56,10 +57,7 @@ var HTTPServer = function() {
   this._httpServer = require('http').createServer(app)
   this._port = config.server.port
   app.set('port', this._port)
-  app.use(express.logger('dev'))
-  app.use(express.bodyParser())
-  app.use(express.methodOverride())
-  app.use(app.router)
+  app.use(morgan('combined'))
   app.use('/baseAssets', express.static(baseAssetsDir))
   app.use('/builtAssets', express.static(buildDir))
   // User assets
