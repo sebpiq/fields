@@ -78,7 +78,8 @@ fields.load = function(config, done) {
 
   // Declare builtin instruments
   fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  fields.core.declareInstrumentClass('WebPdInstrument', 
+    require('./instruments/WebPdInstrument').WebPdInstrument)
 
   async.waterfall([    
       // Get format support infos
@@ -134,7 +135,10 @@ fields.start = function() {
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clock.onexpired = function() { fields.log('expired') }
   fields.sound.clock.start()
-  Pd.start({ audioContext: fields.sound.audioContext })
+  Pd.start({ 
+    audioContext: fields.sound.audioContext,
+    storage: new (require('./instruments/WebPdInstrument').WebPdStorage)() 
+  })
 
   // Create an analyser for visualizations
   if (fields.sound.fftDataHandler) {

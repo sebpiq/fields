@@ -86,40 +86,6 @@ var formatSupport = exports.formatSupport = function(done) {
   loadBuffer(format[1], cb.bind(this, format[0]))
 }
 
-// Simple helper to plot mono buffers. For debugging purpose only 
-var plottedBuffers = []
-exports.plotBuffer = function(buffer, svg) {
-  var downsampleFactor = 100
-    , samples = buffer.getChannelData(0)
-    , sampleRate = buffer.sampleRate
-    , width = svg.attr('width') || 300
-    , height = svg.attr('height') || 300
-    , data = []
-
-  for (i = 0, length = buffer.length; i < length; i+=downsampleFactor)
-    data.push([i / sampleRate, samples[i]])
-
-  var x = d3.scale.linear()
-    .range([ 0, width ])
-
-  var y = d3.scale.linear()
-    .range([ height, 0 ])
-
-  var line = d3.svg.line()
-    .x(function(d) { return x(d[0]) })
-    .y(function(d) { return y(d[1]) })
-
-  x.domain(d3.extent(data, function(d) { return d[0] }))
-  y.domain(d3.extent(data, function(d) { return d[1] }))
-
-  svg.append('path')
-    .datum(data)
-    .attr('class', 'plot plot-' + plottedBuffers.length % 2)
-    .attr('d', line)
-
-  plottedBuffers.push(buffer)
-}
-
 // Decodes `blob` and calls `done(err, blob)` when done.
 var decodeBlob = function(blob, done) {
   fields.sound.audioContext.decodeAudioData(blob, function(buffer) {

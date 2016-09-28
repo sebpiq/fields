@@ -46,7 +46,7 @@ Pd.registerExternal('fields/id', Pd.core.PdObject.extend({
   outletDefs: [Pd.core.portlets.Outlet]
 }))
 
-module.exports = Instrument.extend({
+exports.WebPdInstrument = Instrument.extend({
 
   load: function(done) {
     var self = this
@@ -55,6 +55,7 @@ module.exports = Instrument.extend({
     this.patchUrl = this.args[0]
     this.abstractions = this.args[1] || []
 
+    // Load patch and all abstractions
     asyncOps.push(_.bind(utils.loadFile, this, { url: this.patchUrl, responseType: 'text' }))
     _.forEach(this.abstractions, function(p) {
       var name = p[0]
@@ -62,6 +63,14 @@ module.exports = Instrument.extend({
       asyncOps.push(_.bind(utils.loadFile, this, { url: url, responseType: 'text' }))
     })
 
+    // Preload audio samples
+    if (this.args[2] && this.args[2].length) {
+      _.forEach(this.args[2], function(url) {
+        asyncOps.push(_.bind(utils.loadFile, this, { url: url, responseType: 'arraybuffer' }))
+      })
+    }
+
+    // When all loaded, register all abstractions, save patch string.
     async.series(asyncOps, function(err, results) {
       var patchStr = results.shift()
       fields.log('Patch ' + self.patchUrl + ' loaded')
@@ -132,3 +141,9 @@ module.exports = Instrument.extend({
   }
 
 })
+
+// Storage for WebPd, using our cached utils.loadFile function
+var WebPdStorage = module.exports.WebPdStorage = function() {}
+WebPdStorage.prototype.get = function(url, done) {
+  utils.loadFile({ url : url, responseType: 'arraybuffer' }, done)
+}

@@ -33027,20 +33027,33 @@ exports.chainExtend = function() {
 }
 
 // Loads the file and calls `done(err, blob)` when done.
-// `opts` must contain `url` and `responseType`
+// `opts` must contain `url` and `responseType.
+// All requests are cached, so that if `url, responseType` has already been fetched before,
+// the response is retrieved from the cache.
 exports.loadFile = function(opts, done) {
+  
+  var cacheKey = (opts.responseType || '') + ';' + opts.url
+  if (_loadFileCache.hasOwnProperty(cacheKey))
+    return done(null, _loadFileCache[cacheKey])
+
   var request = new XMLHttpRequest()
   request.open('GET', opts.url, true)
   request.responseType = opts.responseType
+
   request.onload = function(res) {
-    if (request.status === 200) done(null, request.response)
-    else done(new errors.HTTPError(request.statusText))
+    if (request.status === 200) {
+      _loadFileCache[cacheKey] = request.response
+      done(null, request.response)
+    } else done(new errors.HTTPError(request.statusText))
   }
+
   request.onerror = function(err) {
     done(err || new Error('unexpected request error'), null)
   }
+  
   request.send()
 }
+_loadFileCache = {}
 },{"./errors":3,"underscore":13}],6:[function(require,module,exports){
 /*
  *  Fields
@@ -33128,40 +33141,6 @@ var formatSupport = exports.formatSupport = function(done) {
   }
   format = formatList.pop()
   loadBuffer(format[1], cb.bind(this, format[0]))
-}
-
-// Simple helper to plot mono buffers. For debugging purpose only 
-var plottedBuffers = []
-exports.plotBuffer = function(buffer, svg) {
-  var downsampleFactor = 100
-    , samples = buffer.getChannelData(0)
-    , sampleRate = buffer.sampleRate
-    , width = svg.attr('width') || 300
-    , height = svg.attr('height') || 300
-    , data = []
-
-  for (i = 0, length = buffer.length; i < length; i+=downsampleFactor)
-    data.push([i / sampleRate, samples[i]])
-
-  var x = d3.scale.linear()
-    .range([ 0, width ])
-
-  var y = d3.scale.linear()
-    .range([ height, 0 ])
-
-  var line = d3.svg.line()
-    .x(function(d) { return x(d[0]) })
-    .y(function(d) { return y(d[1]) })
-
-  x.domain(d3.extent(data, function(d) { return d[0] }))
-  y.domain(d3.extent(data, function(d) { return d[1] }))
-
-  svg.append('path')
-    .datum(data)
-    .attr('class', 'plot plot-' + plottedBuffers.length % 2)
-    .attr('d', line)
-
-  plottedBuffers.push(buffer)
 }
 
 // Decodes `blob` and calls `done(err, blob)` when done.
@@ -33254,7 +33233,8 @@ fields.load = function(config, done) {
 
   // Declare builtin instruments
   fields.core.declareInstrumentClass('Granulator', require('./instruments/Granulator'))
-  fields.core.declareInstrumentClass('WebPdInstrument', require('./instruments/WebPdInstrument'))
+  fields.core.declareInstrumentClass('WebPdInstrument', 
+    require('./instruments/WebPdInstrument').WebPdInstrument)
 
   async.waterfall([    
       // Get format support infos
@@ -33310,7 +33290,10 @@ fields.start = function() {
   fields.sound.clock = new WAAClock(fields.sound.audioContext)
   fields.sound.clock.onexpired = function() { fields.log('expired') }
   fields.sound.clock.start()
-  Pd.start({ audioContext: fields.sound.audioContext })
+  Pd.start({ 
+    audioContext: fields.sound.audioContext,
+    storage: new (require('./instruments/WebPdInstrument').WebPdStorage)() 
+  })
 
   // Create an analyser for visualizations
   if (fields.sound.fftDataHandler) {
@@ -33550,7 +33533,7 @@ Pd.registerExternal('fields/id', Pd.core.PdObject.extend({
   outletDefs: [Pd.core.portlets.Outlet]
 }))
 
-module.exports = Instrument.extend({
+exports.WebPdInstrument = Instrument.extend({
 
   load: function(done) {
     var self = this
@@ -33559,6 +33542,7 @@ module.exports = Instrument.extend({
     this.patchUrl = this.args[0]
     this.abstractions = this.args[1] || []
 
+    // Load patch and all abstractions
     asyncOps.push(_.bind(utils.loadFile, this, { url: this.patchUrl, responseType: 'text' }))
     _.forEach(this.abstractions, function(p) {
       var name = p[0]
@@ -33566,6 +33550,14 @@ module.exports = Instrument.extend({
       asyncOps.push(_.bind(utils.loadFile, this, { url: url, responseType: 'text' }))
     })
 
+    // Preload audio samples
+    if (this.args[2] && this.args[2].length) {
+      _.forEach(this.args[2], function(url) {
+        asyncOps.push(_.bind(utils.loadFile, this, { url: url, responseType: 'arraybuffer' }))
+      })
+    }
+
+    // When all loaded, register all abstractions, save patch string.
     async.series(asyncOps, function(err, results) {
       var patchStr = results.shift()
       fields.log('Patch ' + self.patchUrl + ' loaded')
@@ -33636,6 +33628,12 @@ module.exports = Instrument.extend({
   }
 
 })
+
+// Storage for WebPd, using our cached utils.loadFile function
+var WebPdStorage = module.exports.WebPdStorage = function() {}
+WebPdStorage.prototype.get = function(url, done) {
+  utils.loadFile({ url : url, responseType: 'arraybuffer' }, done)
+}
 },{"../core/BaseInstrument":1,"../core/Port":2,"../core/utils":5,"../core/waa":6,"async":10,"underscore":13}],10:[function(require,module,exports){
 (function (process,global){
 (function (global, factory) {

@@ -35,17 +35,30 @@ exports.chainExtend = function() {
 }
 
 // Loads the file and calls `done(err, blob)` when done.
-// `opts` must contain `url` and `responseType`
+// `opts` must contain `url` and `responseType.
+// All requests are cached, so that if `url, responseType` has already been fetched before,
+// the response is retrieved from the cache.
 exports.loadFile = function(opts, done) {
+  
+  var cacheKey = (opts.responseType || '') + ';' + opts.url
+  if (_loadFileCache.hasOwnProperty(cacheKey))
+    return done(null, _loadFileCache[cacheKey])
+
   var request = new XMLHttpRequest()
   request.open('GET', opts.url, true)
   request.responseType = opts.responseType
+
   request.onload = function(res) {
-    if (request.status === 200) done(null, request.response)
-    else done(new errors.HTTPError(request.statusText))
+    if (request.status === 200) {
+      _loadFileCache[cacheKey] = request.response
+      done(null, request.response)
+    } else done(new errors.HTTPError(request.statusText))
   }
+
   request.onerror = function(err) {
     done(err || new Error('unexpected request error'), null)
   }
+  
   request.send()
 }
+_loadFileCache = {}
